@@ -65,6 +65,15 @@
 
 \newcommand{\todo}[1]{\textcolor{red}{@TODO: #1}}
 
+\newcommand{\datalogra}{Datalog$^{RA}$ }
+\newcommand{\aggfun}{\textit{aggfun} }
+\newcommand{\aggcol}{\textit{aggcol} }
+
+\def\changemargin#1#2{\list{}{\rightmargin#2\leftmargin#1}\item[]}
+\let\endchangemargin=\endlist 
+
+\newcommand{\narrow}[1]{\begin{changemargin}{2cm}{2cm} #1 \end{changemargin}}
+
 
 % koniec definicji
 
@@ -242,11 +251,14 @@ Additionally, thanks to the declarative sematics of Datalog and SociaLite, it is
 
 In distributed computations on large graphs, an approximate result is often enough. Usually we can observe the \emph{long tail} phenomenon in the computation, where a good approximate solution is achieved quickly, but it takes a long time to get to the optimal one. In SociaLite, by simply stopping the computaion, we can obtain an approximate solution found so far. \cite{distsoc} also shows a method which can significantly reduce memory requirements by storing the intermediate results in an approximate way using Bloom filters. Those topics are covered in section \ref{s:approxdist}
 
-\section{Recursive aggregate functions}\label{s:recaggr}
+\section{Datalog with recursive aggregate functions}\label{s:recaggr}
+
+In this section we introduce the recursive aggregate functions extension from SociaLite. Since the original SociaLite consists of several extensions to Datalog, we will call the language defined here \emph{Datalog with recursive aggregate functions}, abbreviated \datalogra.
+
 \subsection{Motivation}
 Most graph algorithms are essentially some kind of iteration or recursive computation. Simple recursion can be expressed easily in Datalog. However, in many problems the computation results are gradually refined in each iteration, until the final result is reached. Examples of such algorithms are the Dijkstra algorithm for single source shortest paths or Page Rank. Usually, it is difficult or impossible to express such algorithms in Datalog efficiently, as it would require computing much more intermediate results than it is actually needed to obtain the solution. We will explain that on an example: a simple program that computes shortest paths from a source node.
 
-A straightforward Datalog program for computing single source shortests paths (starting from node 1) is presented below. Due to limitations of Datalog, this program computes all possible path lengths from node 1 (the source) to other nodes in the first place, and after that for each node the minimal distance is chosen. Not only this approach results in bad performance, but causes the program to execute infinitely if a loop in the graph is reachable from the source node.
+A straightforward Datalog program for computing single source shortests paths (starting from node $1$) is presented below. Due to limitations of Datalog, this program computes all possible path lengths from node $1$ to other nodes in the first place, and after that for each node the minimal distance is chosen. Not only this approach results in bad performance, but causes the program to execute infinitely if a loop in the graph is reachable from the source node.
 
 \begin{figure}[h!]
   \begin{flalign*}
@@ -258,12 +270,14 @@ A straightforward Datalog program for computing single source shortests paths (s
   \label{ex:ssspdatalog}
 \end{figure}
 
-SociaLite allows aggregation to be combined with recursion under some conditions. This allows us to write staightforward programs for such problems, which finish execution in finite time and often are much more efficient than Datalog programs. An example SociaLite program that computes single source shortest paths is presented below.
+\datalogra allows aggregation to be combined with recursion under some conditions. This allows us to write staightforward programs for such problems, which finish execution in finite time and often are much more efficient than Datalog programs. An example \datalogra program that computes single source shortest paths is presented below. The relation $\textsc{Path}$ is declared so that for each \textit{target} the values in \textit{dist} column are aggregated using minimum operator.
 
 \begin{figure}[h!]
+  $\textsc{Edge}(\text{int } \textit{src}, \text{int } \textit{sink}, \text{int } \textit{len}) $ \\
+  $\textsc{Path}(\text{int } \textit{target}, \text{int } \textit{dist} \text{ aggregate } \textsc{Min}) $
   \begin{flalign*}
-  & \textsc{Path} (t, \textsc{Min}(d)) &&  & :- & && \textsc{Edge} (1, t, d). & \\
-  &  &&  & :- & && \textsc{Path} (s, d_1), \textsc{Edge} (s, t, d_2), d = d_1 + d_2. &
+  & \textsc{Path} (1, 0). &&  & & &&  & \\
+  & \textsc{Path} (t, d) &&  & :- & && \textsc{Path} (s, d_1), \textsc{Edge} (s, t, d_2), d = d_1 + d_2. &
   \end{flalign*}
   \caption{SociaLite query for computing shortest paths from node 1 to other nodes}
 \end{figure}
@@ -282,7 +296,7 @@ A binary operation is a \emph{meet} operation if it is idempotent, commutative a
 
 \subsubsection{Order induced by a meet operation}
 
-A meet operation $\sqcap$ defines a semi-lattice: it induces a partial order $\preceq$ over its domain, such that the result of the operation for any two elements is the least upper bound of those elements with respect to $\preceq$
+A meet operation $\sqcap$ defines a semi-lattice: it induces a partial order $\preceq_\sqcap$ over its domain, such that the result of the operation for any two elements is the least upper bound of those elements with respect to $\preceq_\sqcap$
 
 \begin{exmp}
 $\max(a, b)$ for $a, b \in \mathbb{N}$ is a meet operation; it is:
@@ -297,31 +311,92 @@ It induces the partial order $\le$: for any two $a, b \in \mathbb{N}$, $\max(a, 
 On the contrary, $+$ is not a meet operation, since it is not idempotent: $1+1 \ne 1$.
 \end{exmp}
 
-\subsubsection{Order on relation instances}
-We can extend the partial order $\preceq$ to an order $\sqsubseteq$ on relation instances as follows:
-$$R_1 \sqsubseteq R_2 \iff \forall_{(q_1, ..., q_{n-1}, v) \in g(R_1)} \exists_{(q_1, ..., q_{n-1}, v') \in g(R_2)} v \preceq v' $$.
+\subsection{A program in \datalogra}
+A \datalogra program is a Datalog program, with additional aggregation function defined for some of the relations:
+For each relation $R$, there can be one column $\aggcol_R \in {1, \dots ar_R}$ chosen for which an aggregation function $\aggfun_R$ is provided. The rest of the columns are called the \emph{qualifying columns}. Intuitively, after each step of computation, we group the tuples in the relation by the qualifying columns and aggregate the column $\aggcol_R$ using $\aggfun_R$. Value $\aggcol_R = \bf{none}$ means that $R$ is a regular relation with no aggregation.
 
-\todo{Show that this is actually a partial order.}
+For simplicity, we assume that if a relation has an aggregated column, then it is always the last one: $\aggcol_R = ar_R$.
 
-\todo{komentarz, przykład}
+Syntactically, we require that each relation is declared at the top of the program as on the example below. In declaration of a relation, aggregated column can be specified by adding keyword \textit{aggregate} and name of the aggregate function next to the column declaration.
 
-We can easily see that an empty relation instance $\emptyset$ is smaller under $\sqsubseteq$ 
-
-\subsection{SociaLite program}
-A SociaLite program is a Datalog program, with additional aggregation function defined for some of the relations:
-For each relation $R$, there can be one column $agg_R$ chosen for which an aggregation function $\sqcap_R$ is provided. The rest of the columns are called the \emph{qualifying columns}. Intuitively, after each step of computation, we group the tuples in the relation by the qualifying columns and aggregate the column $agg_R$ using $\sqcap_R$.
-
-For simplicity, we assume that the aggregated column is always the last one.
-
-Syntactically, we require that all rules with a given relation $R$ in the head are defined together, with the head defined once and possibly many rule bodies on the right hand side:
 \begin{figure}[h!]
+\narrow{
+  $\textsc{P}(\text{int } \textit{a}, \text{int } \textit{b} \text{ aggregate } \textsc{F}) $\\
+  $\textsc{R}(\text{int } \textit{src}, \text{int } \textit{sink}, \text{int } \textit{len}) $ 
   \begin{flalign*}
-  & \textsc{P} (x_1, \dots, x_k, \textsc{Agg}(y)) &&  & :- & && Q_1(x_1, \dots, x_k, y) & \\
+  & \textsc{P} (x_1, \dots, x_{ar_P}) &&  & :- & && Q_{P,1}(x_1, \dots, x_{ar_P}) & \\
   &  &&  & \dots & && & \\
-  &  &&  & :- & && Q_m(x_1, \dots, x_k, y). &
+  & \textsc{P} (x_1, \dots, x_{ar_P}) &&  & :- & && Q_{P,m}(x_1, \dots, x_{ar_P}) & \\
+  & \textsc{R} (x_1, \dots, x_{ar_R}) &&  & :- & && Q_{R,1}(x_1, \dots, x_{ar_R}) & \\
+  &  &&  & \dots & && & \\
+  & \textsc{R} (x_1, \dots, x_{ar_R}) &&  & :- & && Q_{R,m}(x_1, \dots, x_{ar_R}) & \\
   \end{flalign*}
-  \caption{Definition of multiple rules for one relation.}
+  \caption{Structure of a program in \datalogra.}
+}
 \end{figure}
+
+\subsubsection{Aggregation function $g_R$}
+\begin{defn}
+For a relation $R$ of arity $ar_R = k$, in let us define $g: \bf{dom}^k \to \bf{dom}^k$:
+$$
+g_R(I) = \begin{cases}
+\{(x_1, \dots, x_{k-1}, \aggfun_R(\{y: (x_1, \dots, x_{k-1}, y) \in I\}): (x_1, \dots, x_{k-1}, x_k) \in I\} & \text{if } \aggcol_R \ne \bf{none} \\
+I & \text{otherwise}
+\end{cases}
+$$
+\end{defn}
+
+If $R$ has an aggregated column, $g_R$ groups the tuples in relation instance $I$ by qualifying parameters and performs the aggregation using $\aggfun_R$. For non-aggregated relations, $g_R$ is an identity function.
+
+\subsubsection{Order on relation instances}
+\begin{defn}
+Let $R$ be a relation. Let us define comparison $\sqsubseteq_R$ on relation instances as follows:
+\begin{align}
+I_1 \sqsubseteq_R I_2 \iff \forall_{(q_1, ..., q_{n-1}, v) \in g_R(I_1)} \exists_{(q_1, ..., q_{n-1}, v') \in g_R(I_2)} v \preceq_{\aggfun_R} v' & \text{ if } \aggcol_R \ne \bf{none} \\
+I_1 \sqsubseteq_R I_2 \iff \forall_{(q_1, ..., q_n) \in g_R(I_1)} \exists_{(q_1, ..., q_n) \in g_R(I_2)} & otherwise
+\end{align}
+\end{defn}
+
+\begin{note}
+If $R$ does not have an aggregated column, $g_R(I) = I$ for any $I$, so $\sqsubseteq_R$ is simply the inclusion order $\subseteq$. 
+\end{note}
+
+\begin{lem}
+For any $R$, $\sqsubseteq_R$ is a partial order.
+\end{lem}
+
+\emph{Proof:}
+
+If $R$ does not have an aggregated column, $\sqsubseteq_R$ is the same as inclusion order $\subseteq$, which is a partial order.
+
+If $R$ does have an aggregated column, then:
+
+\begin{itemize}
+\item $\sqsubseteq_R$ is reflexive: for each $R$, we have that  $\forall_{(q_1, ..., q_{n-1}, v) \in g(R)} \exists_{(q_1, ..., q_{n-1}, v) \in g(R)} v \preceq_{\aggfun_R} v $ because $\preceq_{\aggfun_R}$ is reflexive. Hence, $R \sqsubseteq_R R$.
+\item $\sqsubseteq_R$ is antisimmetric \todo{No, it is not antisimmetric, so this is not a partial order --- how to deal with that?}
+\item $\sqsubseteq_R$ is transistive: if $A \sqsubseteq_R B$ and $B \sqsubseteq_R  C$, then $\forall_{(q_1, ..., q_{n-1}, a) \in g(A)} \exists_{(q_1, ..., q_{n-1}, b) \in g(B)} a \preceq_{\aggfun_R} b $ and $\forall_{(q_1, ..., q_{n-1}, b) \in g(B)} \exists_{(q_1, ..., q_{n-1}, c) \in g(C)} b \preceq_{\aggfun_R} c$.
+
+$\preceq_{\aggfun_R}$ is transistive, so $\forall_{(q_1, ..., q_{n-1}, a) \in g(A)} \exists_{(q_1, ..., q_{n-1}, c) \in g(C)} a \preceq_{\aggfun_R} c $, which means that $A \sqsubseteq_R C$.
+\end{itemize}
+
+\todo{Because of lack of antisimmetry it is only a preorder, not a partial order ---> how to deal with that?}
+
+\todo{komentarz}
+
+\begin{exmp}
+Let $R$ be a relation with arity $3$, with the last column aggregated using meet operation $\max$.
+We recall that for $ \max $, $ \preceq_{\max} $ is the usual order $ \le $.
+\begin{itemize}
+\item $\{(1, 2, 3)\} \sqsubseteq_R \{(1, 2, 5)\}$, because $3 \le 5$
+\item $\{(1, 2, 3)\} \sqsubseteq_R \{(1, 2, 5), (1, 7, 2)\}$ , because $3 \le 5$
+\item $\{(1, 2, 3), (1, 2, 8)\} \sqsubseteq_R \{(1, 2, 5)\}$ , because $g_R(\{(1, 2, 3), (1, 2, 8)\}) = \{(1,2,3)\}$ and $3 \le 5$
+\item $\{(1, 2, 3), (2, 8, 1)\}$ and  $\sqsubseteq_R \{(1, 2, 5), (1, 7, 2)\}$ are not comparable
+\item $\emptyset \sqsubseteq_R \{(1, 2, 3)\}$
+\end{itemize}
+\end{exmp}
+
+We can easily see that for any $R$ an empty relation instance $\emptyset$ is smaller under $\sqsubseteq_R$  than any other relation instance.
+
 
 \subsection{Semantics and evaluation - one relation case}
 In this section we will show that the semantics of a SociaLite program can be unambiguously defined using least fixed point, as long as it satisfies some conditions. To simplify the reasoning, we will restrict our attention to programs with only one \emph{idb} relation. In the next section we extend the definitions and theorems from this section to the general case of many \emph{idb} relations.
@@ -336,10 +411,12 @@ Let $P$ be a SociaLite program, with only one \emph{idb} relation $R$ of arity $
   \end{flalign*}
 \end{figure}
 
+To simplify the notation, by $\sqsubseteq$ let us denote $\sqsubseteq_F$.
+
 Let us define:
 \begin{itemize}
 \item $f: \bf{dom}^k \to \bf{dom}^k$ -- the function that evaluates the rules $Q_1, ... Q_m$ based on the contents of the relation given in the argument and returns its input extended with the set of generated tuples
-\item $f: \bf{dom}^k \to \bf{dom}^k$ -- the function that performs grouping and aggregation: $$g(R) = \{(x_1, \dots, x_{k-1}, F(\{y: (x_1, \dots, x_{k-1}, y) \in R\}): (x_1, \dots, x_{k-1}, \overline{y}) \in R\}$$
+\item $g: \bf{dom}^k \to \bf{dom}^k$ -- the function that performs grouping and aggregation.
 \item $h = g \circ f$
 \end{itemize}
 
