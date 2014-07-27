@@ -260,8 +260,8 @@ Most graph algorithms are essentially some kind of iteration or recursive comput
 
 A straightforward Datalog program for computing single source shortests paths (starting from node $1$) is presented below. Due to limitations of Datalog, this program computes all possible path lengths from node $1$ to other nodes in the first place, and after that for each node the minimal distance is chosen. Not only this approach results in bad performance, but causes the program to execute infinitely if a loop in the graph is reachable from the source node.
 
-\narrow{
 \begin{figure}[h!]
+\narrow{
   \begin{flalign*}
   & \textsc{Path} (t, d) &&  & :- & && \textsc{Edge} (1, t, d). & \\
   & \textsc{Path} (t, d) &&  & :- & && \textsc{Path} (s, d_1), \textsc{Edge} (s, t, d_2), d = d_1 + d_2. & \\
@@ -269,12 +269,13 @@ A straightforward Datalog program for computing single source shortests paths (s
   \end{flalign*}
   \caption{Datalog query for computing shortest paths from node 1 to other nodes}
   \label{ex:ssspdatalog}
-\end{figure}
 }
+\end{figure}
 
 \datalogra allows aggregation to be combined with recursion under some conditions. This allows us to write staightforward programs for such problems, which finish execution in finite time and often are much more efficient than Datalog programs. An example \datalogra program that computes single source shortest paths is presented below. The relation $\textsc{Path}$ is declared so that for each \textit{target} the values in \textit{dist} column are aggregated using minimum operator.
 
 \begin{figure}[h!]
+\narrow{
   $\textsc{Edge}(\text{int } \textit{src}, \text{int } \textit{sink}, \text{int } \textit{len}) $ \\
   $\textsc{Path}(\text{int } \textit{target}, \text{int } \textit{dist} \text{ aggregate } \textsc{Min}) $
   \begin{flalign*}
@@ -282,6 +283,7 @@ A straightforward Datalog program for computing single source shortests paths (s
   & \textsc{Path} (t, d) &&  & :- & && \textsc{Path} (s, d_1), \textsc{Edge} (s, t, d_2), d = d_1 + d_2. &
   \end{flalign*}
   \caption{SociaLite query for computing shortest paths from node 1 to other nodes}
+}
 \end{figure}
 
 While being very useful, recursive aggregation rules not always have an unambiguous solution. This is the case only under some conditions on the rules and the aggregation function itself.
@@ -401,7 +403,7 @@ We can easily see that for any $R$ an empty relation instance $\emptyset$ is sma
 
 
 \subsection{Semantics and evaluation - one relation case}
-In this section we will show that the semantics of a SociaLite program can be unambiguously defined using least fixed point, as long as it satisfies some conditions. To simplify the reasoning, we will restrict our attention to programs with only one \emph{idb} relation. In the next section we extend the definitions and theorems from this section to the general case of many \emph{idb} relations.
+In this section we will show that the semantics of a \datalogra program can be unambiguously defined using least fixed point, as long as it satisfies some conditions. To simplify the reasoning, we will restrict our attention to programs with only one \emph{idb} relation. In the following section we extend the definitions and theorems presented here to the general case of many \emph{idb} relations.
 
 Let $P$ be a SociaLite program, with only one \emph{idb} relation $R$ of arity $k$ in the form of:
 
