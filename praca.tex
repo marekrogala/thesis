@@ -260,6 +260,7 @@ Most graph algorithms are essentially some kind of iteration or recursive comput
 
 A straightforward Datalog program for computing single source shortests paths (starting from node $1$) is presented below. Due to limitations of Datalog, this program computes all possible path lengths from node $1$ to other nodes in the first place, and after that for each node the minimal distance is chosen. Not only this approach results in bad performance, but causes the program to execute infinitely if a loop in the graph is reachable from the source node.
 
+\narrow{
 \begin{figure}[h!]
   \begin{flalign*}
   & \textsc{Path} (t, d) &&  & :- & && \textsc{Edge} (1, t, d). & \\
@@ -269,6 +270,7 @@ A straightforward Datalog program for computing single source shortests paths (s
   \caption{Datalog query for computing shortest paths from node 1 to other nodes}
   \label{ex:ssspdatalog}
 \end{figure}
+}
 
 \datalogra allows aggregation to be combined with recursion under some conditions. This allows us to write staightforward programs for such problems, which finish execution in finite time and often are much more efficient than Datalog programs. An example \datalogra program that computes single source shortest paths is presented below. The relation $\textsc{Path}$ is declared so that for each \textit{target} the values in \textit{dist} column are aggregated using minimum operator.
 
