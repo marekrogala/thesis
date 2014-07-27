@@ -405,21 +405,27 @@ We can easily see that for any $R$ an empty relation instance $\emptyset$ is sma
 \subsection{Semantics and evaluation - one relation case}
 In this section we will show that the semantics of a \datalogra program can be unambiguously defined using least fixed point, as long as it satisfies some conditions. To simplify the reasoning, we will restrict our attention to programs with only one \emph{idb} relation. In the following section we extend the definitions and theorems presented here to the general case of many \emph{idb} relations.
 
-Let $P$ be a SociaLite program, with only one \emph{idb} relation $R$ of arity $k$ in the form of:
+Let $P$ be a \datalogra program, with only one \emph{idb} relation $R$ of arity $k$ in the form of:
 
 \begin{figure}[h!]
+\narrow{
+%  $\textsc{R}(x_1, \dots, x_{k-1}, x_k [\text{ aggregate } \textsc{F}]) $\\
   \begin{flalign*}
-  & \textsc{R} (x_1, \dots, x_{k-1}, \textsc{F}(y)) &&  & :- & && Q_1(x_1, \dots, x_{k-1}, y) & \\
+  & \textsc{R} (x_1, \dots, x_k) &&  & :- & && Q_1(x_1, \dots, x_k) & \\
   &  &&  & \dots & && & \\
-  &  &&  & :- & && Q_m(x_1, \dots, x_{k-1}, y). &
+  & \textsc{R} (x_1, \dots, x_k) &&  & :- & && Q_m(x_1, \dots, x_k) & \\
   \end{flalign*}
+}
 \end{figure}
 
-To simplify the notation, by $\sqsubseteq$ let us denote $\sqsubseteq_F$.
+$Q_1, \dots, Q_m$ are rule bodies with free variables $x_1, \dots, x_k$. They may contain references to any of the \emph{edb} relations, which are constant during the evaluation or to the only \emph{idb} relation, $R$. We denote evaluation of rule body $Q$ in the context of an instance $I$ of the relation $Q$ as $E_I(Q)$.
 
-Let us define:
-\begin{itemize}
-\item $f: \bf{dom}^k \to \bf{dom}^k$ -- the function that evaluates the rules $Q_1, ... Q_m$ based on the contents of the relation given in the argument and returns its input extended with the set of generated tuples
+To simplify the notation, let $\sqsubseteq$ denote $\sqsubseteq_R$.
+
+Let us define $f: \bf{dom}^k \to \bf{dom}^k$ as the function that evaluates the rules $Q_1, ... Q_m$ based on the given instance of the relation $R$ and and returns its input extended with the set of generated tuples:
+$$ f(I) = I \cup \bigcup_{i=1..m} E_I(Q_i) $$
+
+
 \item $g: \bf{dom}^k \to \bf{dom}^k$ -- the function that performs grouping and aggregation.
 \item $h = g \circ f$
 \end{itemize}
