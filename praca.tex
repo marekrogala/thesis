@@ -108,40 +108,9 @@ The Socialite \cite{socialite} \cite{distsoc} language is one of the most intere
 
 Unfortunately, there is no solid implementation of SociaLite avaiable. The interpreter published by the authors is undocumented and contains many bugs. It is hard to imagine the langauge being implemented in the industry in the forseeable future. The papers \cite{socialite} and \cite{distsoc} which introduced SociaLite contain certain simplifications and are not specific about some important details in definitions and proofs.
 
-The goal of this work is to bridge the gap between the theoretical idea for SociaLite and a practical implementation and to draw a path for its usage in the industry. We show how to translate SociaLite declarative programs into Giraph "think-like-a-vertex" programs and introduce a compiler that enables SociaLite programs to be executed on existing Giraph infrastructure. This allows users of Hadoop to write and execute SociaLite programs without any additional effort to build a dedicated server infrastructure for that.
+The goal of this work is to bridge the gap between the theoretical idea for SociaLite and a practical implementation and to draw a path towards its usage in the industry. We show how to translate SociaLite declarative programs into Giraph "think-like-a-vertex" programs and introduce a compiler that enables SociaLite programs to be executed on existing Giraph infrastructure. This allows users of Hadoop to write and execute SociaLite programs without any additional effort to build a dedicated server infrastructure for that.
 
 The work consists of six chapters. In \ref{r:datalog} we recall definitions of Datalog and its evaluation methods while \ref{r:pregel} contains an introduction to the Pregel computation model. In \ref{r:socialite} we describe the extensions introduced by SociaLite and provide formal definitions and general-case proofs which the original papers lack. Chapter \ref{r:s2g} shows the translation procedure from SociaLite to Giraph programs implemented in the S2G compiler, which is described in \ref{r:implementation}. In \ref{r:summary} we sketch the possible future work and the path to industrial implementation of the language using the S2G compiler.
-
-\begin{comment}
-
-Blabalizator różnicowy jest podstawowym narzędziem blabalii
-fetorycznej.  Dlatego naukowcy z~całego świata prześcigają się
-w~próbach efektywnej implementacji.  Opracowana przez prof. Fifaka
-teoria fetorów $\sigma$-$\rho$ otwiera w~tej dziedzinie nowe
-możliwości.  Wykorzystujemy je w~niniejszej pracy.
-
-Przystępne wprowadzenie do blabalii fetorycznej można znaleŒć w~pracy
-Fifaka i~Gryzogrzechotalskiego \cite{ffgg}.  Dlatego w~niniejszym
-tekście ograniczymy się do przypomnienia pojęć podstawowych.
-
-Praca składa się z~pięciu rozdziałów i~dodatków.
-W~rozdziale~\ref{r:pojecia} przypomniano podstawowe pojęcia blabalii
-fetorycznej.  Dotychczasowe próby implementacji blablizatora
-różnicowego zestawiono w~rozdziale~\ref{r:losers}.
-Rozdział~\ref{r:fifak} przedstawia teorię Fifaka i~wyjaśnia sposób jej
-wykorzystania w~implementacji blabalizatora.  W~rozdziale \ref{r:impl}
-przedstawiono algorytm blabalizy i~realizujący go program komputerowy.
-Ostatni rozdział zawiera przemyślenia dotyczące możliwego wpływu
-dostępności efektywnej blabalizy numerycznej na rozwój blabalii
-fetorycznej.  W~dodatkach umieszczono najciekawszy fragment programu,
-przykładowe dane i~wyniki działania programu.
-
-\end{comment}
-
-
-SociaLite
-Implementation
-Summary
 
 \chapter{Datalog}\label{r:datalog}
 
@@ -149,7 +118,7 @@ In this chapter we define the Datalog language.
 
 \section{Definitions}
 
-\todo{te definicje są roboczo przepisane z \cite{wfom}, którzy z kolei podają je za \cite{fod}].}
+\todo{te definicje są roboczo przepisane z \cite{wfom}, którzy z kolei podają je za \cite{fod}.}
 
 \subsection{Queries and instances}
 
@@ -260,12 +229,24 @@ bottom-up, top-down
 
 SociaLite (\cite{socialite}, \cite{distsoc}) is a graph query language based on Datalog. While Datalog allows to express some of graph algorithms
 in an elegant and succint way, many practical problems cannot be efficiently solved with Datalog programs. 
-SociaLite consists of a few extensions to the Datalog language, most significant of which is the ability to combine recursive rules with aggregation. Under some conditions, such rules can be evaluated incrementally and thus as efficiently as regular recursion in Datalog.
 
-\section{Motivation}
-Most graph algorithms are essentially some kind of iteration or recursive computation. In many of them, the computation results are gradually refined in each iteration, until the final result is reached. Examples of such algorithms are the Dijkstra algorithm for sigle source shortest paths or Page Rank. An important limitation of Datalog is the lack of possibility to create recursive aggregation rules.
+SociaLite allows a programmer to write intuitive queries using declarative semantics, which can often be executed as efficiently as highly optimized dedicated programs. The queries can be executed in a distributed environment with no need for the programmer to worry about distributing the computation or managing the communication protocols.
 
-A straightforward Datalog program for computing single source shortests paths (starting from 0) is given below. Due to limitations of Datalog, this program is faulty: it computes all possible path lengths from node 1 (the source) to other nodes in the first place, and after that for each node the minimal distance is chosen. Not only this approach results in bad performance, but causes the program to execute infinitely if a loop is reachable from the source.
+The language consists of a few extensions to Datalog, most significant of which is the ability to combine recursive rules with aggregation. Under some conditions, such rules can be evaluated incrementally and thus as efficiently as regular recursion in Datalog.
+
+\cite{socialite} introduces \emph{Sequential SociaLite}, intended to be executed on one machine, consisting of two main extensions: \emph{recursive aggregate functions} and \emph{tail-nested tables}. Recursive aggregate functions are the most important new feature in Socialite -- in \ref{s:recaggr} we present a complete definition and proofs of correctness of that extension, which are missing in \cite{socialite}. Tail-nested tables are a much more straightforward extension -- an optimization of data layout in memory. They are described in \ref{s:tnt}
+
+\cite{distsoc} extends Sequential Socialite to \emph{Distributed SociaLite}, executable on a distributed architecture. It introduces a \emph{location operator}, shows how the data and computations can be distributed. The programmer does not have to think about how to distribute the data between machines or manage the communication between them. He only specifies an abstract \emph{location} for each row in the data, and the data and computations are automatically sharded. Distributed SociaLite is covered in section \ref{s:distributed}
+
+Additionally, thanks to the declarative sematics of Datalog and SociaLite, it is possible to provide an important optimization: the \emph{delta stepping} technique, which is an effective way of parallelizing the Dijkstra algorithm \cite{deltastep}. In SociaLite, this technique can be applied automatically to a certain class of recursive aggregate programs.
+
+In distributed computations on large graphs, an approximate result is often enough. Usually we can observe the \emph{long tail} phenomenon in the computation, where a good approximate solution is achieved quickly, but it takes a long time to get to the optimal one. In SociaLite, by simply stopping the computaion, we can obtain an approximate solution found so far. \cite{distsoc} also shows a method which can significantly reduce memory requirements by storing the intermediate results in an approximate way using Bloom filters. Those topics are covered in section \ref{s:approxdist}
+
+\section{Recursive aggregate functions}\label{s:recaggr}
+\subsection{Motivation}
+Most graph algorithms are essentially some kind of iteration or recursive computation. Simple recursion can be expressed easily in Datalog. However, in many problems the computation results are gradually refined in each iteration, until the final result is reached. Examples of such algorithms are the Dijkstra algorithm for single source shortest paths or Page Rank. Usually, it is difficult or impossible to express such algorithms in Datalog efficiently, as it would require computing much more intermediate results than it is actually needed to obtain the solution. We will explain that on an example: a simple program that computes shortest paths from a source node.
+
+A straightforward Datalog program for computing single source shortests paths (starting from node 1) is presented below. Due to limitations of Datalog, this program computes all possible path lengths from node 1 (the source) to other nodes in the first place, and after that for each node the minimal distance is chosen. Not only this approach results in bad performance, but causes the program to execute infinitely if a loop in the graph is reachable from the source node.
 
 \begin{figure}[h!]
   \begin{flalign*}
@@ -274,6 +255,7 @@ A straightforward Datalog program for computing single source shortests paths (s
   & \textsc{MinPath} (t, \textsc{Min}(d)) &&  & :- & && \textsc{Path} (t, d). &
   \end{flalign*}
   \caption{Datalog query for computing shortest paths from node 1 to other nodes}
+  \label{ex:ssspdatalog}
 \end{figure}
 
 SociaLite allows aggregation to be combined with recursion under some conditions. This allows us to write staightforward programs for such problems, which finish execution in finite time and often are much more efficient than Datalog programs. An example SociaLite program that computes single source shortest paths is presented below.
@@ -286,19 +268,19 @@ SociaLite allows aggregation to be combined with recursion under some conditions
   \caption{SociaLite query for computing shortest paths from node 1 to other nodes}
 \end{figure}
 
-While being very useful, recursive aggregation rules have a unambiguous solutions only under some conditions on the rules and the aggregation function itself.
+While being very useful, recursive aggregation rules not always have an unambiguous solution. This is the case only under some conditions on the rules and the aggregation function itself.
 
-Typically, Datalog programs semantics is defined using the least fixed point of instance inclusion. This requires that the subsequent computation interations only add tuples to the database instance, but never remove tuples from the instance. When recursive aggregate functions are allowed, this is not the case: a tuple in the instance can be replaced with a different one because a new aggregated value appeared. Consequently, in order to define SociaLite programs sematics in terms of least fixed point, we need to use a different order on database instances.
+Typically, Datalog programs semantics is defined using the least fixed point of instance inclusion. This requires that the subsequent computation interations only add tuples to the database instance, but never remove tuples from the instance. This is the reason for which program \ref{ex:ssspdatalog} is inefficient. When recursive aggregate functions are allowed, this is not the case: a tuple in the instance can be replaced with a different one because a new aggregated value appeared. Consequently, in order to define SociaLite programs sematics in terms of least fixed point, we need to use a different order on database instances.
 
 First, we will define a meet operation and show the order that it induces. Then we will show that if the aggregation function is a meet operation and corresponding rules are monotone with respect to this induced order, then the result of the program is unambiguously defined. We will also show how it can be computed efficiently.
 
-\section{Meet operation and induced ordering}
+\subsection{Meet operation and induced ordering}
 \begin{defn}
 A binary operation is a \emph{meet} operation if it is idempotent, commutative and associative.
 \end{defn}
 \todo{Maybe remind definitions of semi-lattice and partial order?}
 
-\subsection{Order induced by a meet operation}
+\subsubsection{Order induced by a meet operation}
 
 A meet operation $\sqcap$ defines a semi-lattice: it induces a partial order $\preceq$ over its domain, such that the result of the operation for any two elements is the least upper bound of those elements with respect to $\preceq$
 
@@ -315,7 +297,7 @@ It induces the partial order $\le$: for any two $a, b \in \mathbb{N}$, $\max(a, 
 On the contrary, $+$ is not a meet operation, since it is not idempotent: $1+1 \ne 1$.
 \end{exmp}
 
-\subsection{Order on relation instances}
+\subsubsection{Order on relation instances}
 We can extend the partial order $\preceq$ to an order $\sqsubseteq$ on relation instances as follows:
 $$R_1 \sqsubseteq R_2 \iff \forall_{(q_1, ..., q_{n-1}, v) \in g(R_1)} \exists_{(q_1, ..., q_{n-1}, v') \in g(R_2)} v \preceq v' $$.
 
@@ -325,7 +307,7 @@ $$R_1 \sqsubseteq R_2 \iff \forall_{(q_1, ..., q_{n-1}, v) \in g(R_1)} \exists_{
 
 We can easily see that an empty relation instance $\emptyset$ is smaller under $\sqsubseteq$ 
 
-\section{SociaLite program}
+\subsection{SociaLite program}
 A SociaLite program is a Datalog program, with additional aggregation function defined for some of the relations:
 For each relation $R$, there can be one column $agg_R$ chosen for which an aggregation function $\sqcap_R$ is provided. The rest of the columns are called the \emph{qualifying columns}. Intuitively, after each step of computation, we group the tuples in the relation by the qualifying columns and aggregate the column $agg_R$ using $\sqcap_R$.
 
@@ -341,7 +323,7 @@ Syntactically, we require that all rules with a given relation $R$ in the head a
   \caption{Definition of multiple rules for one relation.}
 \end{figure}
 
-\section{Semantics and evaluation - one relation case}
+\subsection{Semantics and evaluation - one relation case}
 In this section we will show that the semantics of a SociaLite program can be unambiguously defined using least fixed point, as long as it satisfies some conditions. To simplify the reasoning, we will restrict our attention to programs with only one \emph{idb} relation. In the next section we extend the definitions and theorems from this section to the general case of many \emph{idb} relations.
 
 Let $P$ be a SociaLite program, with only one \emph{idb} relation $R$ of arity $k$ in the form of:
@@ -384,6 +366,15 @@ Let us suppose that $R'$ is any fixpoint of $h$.  We know that $\emptyset \sqsub
 \item How we compute recursive functions with non-meet aggregation operators?
 \end{itemize}
 }
+
+\section{Tail-nested tables}\label{s:tnt}
+
+\section{Distributed SociaLite}\label{s:distributed}
+
+\section{Delta stepping in Distributed SociaLite}\label{s:deltastep}
+
+\section{Approximate evaluation in Distributed SociaLite}\label{s:approxdist}
+
 \chapter{Translating SociaLite programs to Giraph programs}\label{r:s2g}
 
 \chapter{Implementation}\label{r:implementation}
@@ -395,14 +386,24 @@ Let us suppose that $R'$ is any fixpoint of $h$.  We know that $\emptyset \sqsub
 \addcontentsline{toc}{chapter}{Bibliografia}
 
 
-\bibitem[SL]{socialite} Jiwon Seo, Stephen Guo, Monica S. Lam, \textit{SociaLite: Datalog extensions for efficient social network analysis}, ICDE 2013: 278-289
+\bibitem{socialite} Jiwon Seo, Stephen Guo, Monica S. Lam, \textit{SociaLite: Datalog extensions for efficient social network analysis}, ICDE 2013: 278-289
 
-\bibitem[DSL]{distsoc} Jiwon Seo, Jongsoo Park, Jaeho Shin, Monica S. Lam: \textit{Distributed SociaLite: A Datalog-Based Language for Large-Scale Graph Analysis}. PVLDB 6(14): 1906-1917 (2013)
+\bibitem{distsoc} Jiwon Seo, Jongsoo Park, Jaeho Shin, Monica S. Lam: \textit{Distributed SociaLite: A Datalog-Based Language for Large-Scale Graph Analysis}. PVLDB 6(14): 1906-1917 (2013)
 
-\bibitem[FoD]{fod} S. Abiteboul, R. Hull, and V. Vianu: \textit{Foundations of Databases}. Addison-Wesley (1995)
+\bibitem{fod} S. Abiteboul, R. Hull, and V. Vianu: \textit{Foundations of Databases}. Addison-Wesley (1995)
 
-\bibitem[WFoM]{wfom} T.J. Ameloot, B. Ketsman, F. Neven, D. Zinn: \textit{Weaker Forms of Monotonicity for Declarative Networking: a more fine-grained answer to the CALM-conjecture}, PODS (2014) ...???..
+\bibitem{wfom} T.J. Ameloot, B. Ketsman, F. Neven, D. Zinn: \textit{Weaker Forms of Monotonicity for Declarative Networking: a more fine-grained answer to the CALM-conjecture}, PODS (2014) ...???..
 
+\bibitem{mapreduce} Jeffrey Dean , Sanjay Ghemawat: \textit{MapReduce: simplified data processing on large clusters}, Proceedings of the 6th conference on Symposium on Opearting Systems Design \& Implementation, 2004
+
+\bibitem{pregel} Grzegorz Malewicz, Matthew H. Austern, Aart J.C. Bik, James C. Dehnert, Ilan Horn, Naty Leiser, Grzegorz Czajkowski: \textit{Pregel: a system for large-scale graph processing}, Proceedings of the 2010 ACM SIGMOD International Conference on Management of data, 2010
+
+\bibitem{giraphpp} Y. Tian, A. Balmin, S. A. Corsten, S. Tatikonda, J. McPherson: \textit{From "Think Like a Vertex" to "Think Like a Graph"}, Proceedings of the VLDB Endowment, 2013
+
+\bibitem{deltastep} U. Meyer, P. Sanders: \textit{Delta-stepping: A parallel
+single source shortest path algorithm.} ESA, 1998.
+
+\bibitem{ullman} Anand Rajaraman, Jeffrey D. Ullman: \textit{Mining of Massive Datasets}, Cambridge University Press, New York, NY, 2011
 
 \begin{comment}
 \bibitem[Fif00]{ffgg} Filigran Fifak, Gizbert Gryzogrzechotalski,
