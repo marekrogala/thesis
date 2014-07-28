@@ -339,8 +339,9 @@ Syntactically, we require that each relation is declared at the top of the progr
 }
 \end{figure}
 
-\subsubsection{Aggregation function $g_R$}
-\begin{defn}
+\subsubsection{Aggregation operation $g_R$}
+An important step in the evaluation of a \datalogra program is grouping the tuples in an instance of each relation and performing the aggregation within each group. We can put that into a formal definition as function $g_R$, which takes a relation instance which may contain multiple tuples with the same set of qualifying parameters and performs the aggregation.
+\begin{defn}\label{d:aggregationoperationgr}
 For a relation $R$ of arity $ar_R = k$, in let us define $g: \bf{dom}^k \to \bf{dom}^k$:
 $$
 g_R(I) = \begin{cases}
@@ -353,6 +354,8 @@ $$
 If $R$ has an aggregated column, $g_R$ groups the tuples in relation instance $I$ by qualifying parameters and performs the aggregation using $\aggfun_R$. For non-aggregated relations, $g_R$ is an identity function.
 
 \subsubsection{Order on relation instances}
+In Datalog, we can prove that there is a unique least fixed point for any program. The fundamental fact needed for this proof is that during the evaluation of a Datalog program, if the state of a relation is $I_1$ at some point and $I_2$ at some other point, we know that $I_1 \subseteq I_2$. In \datalogra this property no longer holds: a tuple in $I_1$ can be replaced with different tuple with a lower value in the aggregated column. To be able to define semantics of programs in \datalogra using least fixed point, we need to use a custom order on relation instances.
+
 \begin{defn}
 Let $R$ be a relation. Let us define comparison $\sqsubseteq_R$ on relation instances as follows:
 \begin{align}
@@ -385,7 +388,7 @@ $\preceq_{\aggfun_R}$ is transistive, so $\forall_{(q_1, ..., q_{n-1}, a) \in g(
 
 \todo{Because of lack of antisimmetry it is only a preorder, not a partial order ---> how to deal with that?}
 
-\todo{komentarz}
+\todo{dodatkowy komentarz?}
 
 \begin{exmp}
 Let $R$ be a relation with arity $3$, with the last column aggregated using meet operation $\max$.
@@ -420,39 +423,45 @@ Let $P$ be a \datalogra program, with only one \emph{idb} relation $R$ of arity 
 
 $Q_1, \dots, Q_m$ are rule bodies with free variables $x_1, \dots, x_k$. They may contain references to any of the \emph{edb} relations, which are constant during the evaluation or to the only \emph{idb} relation, $R$. We denote evaluation of rule body $Q$ in the context of an instance $I$ of the relation $Q$ as $E_I(Q)$.
 
-To simplify the notation, let $\sqsubseteq$ denote $\sqsubseteq_R$.
+Since we consider only one relation $R$, we can simplify the notation: let $\sqsubseteq$ denote $\sqsubseteq_R$ and let $g$ denote the aggregation operation $g_R$ for relation $R$, as defined in Definition \ref{d:aggregationoperationgr}.
 
 Let us define $f: \bf{dom}^k \to \bf{dom}^k$ as the function that evaluates the rules $Q_1, ... Q_m$ based on the given instance of the relation $R$ and and returns its input extended with the set of generated tuples:
 $$ f(I) = I \cup \bigcup_{i=1..m} E_I(Q_i) $$
 
-
-\item $g: \bf{dom}^k \to \bf{dom}^k$ -- the function that performs grouping and aggregation.
-\item $h = g \circ f$
-\end{itemize}
+Let $h = g \circ f$. 
 
 
 \begin{thm}
 If $f$ is monotone with respect to $\sqsubseteq$, i.e. $R_1 \subseteq R_2 \rightarrow f(R_1) \subseteq f(R_2)$, and there exists $n \ge 0 $, such that $h^n(\emptyset) = h^{n+1}(\emptyset)$, then $R^* = h^n(\emptyset)$ is the least fixed point of $h$, that is:
 \begin{enumerate}
-\item $R^* = h(R^*)$
-\item $R^* \sqsubseteq R$ for all $R$ such that $R = h(R)$
+\item $R^* = h(R^*)$, i.e. $R^*$ is a fixpoint
+\item $R^* \sqsubseteq R$ for all $R$ such that $R = h(R)$, i.e. $R^*$ is smaller than any other fixpoint
 \end{enumerate}
+\todo{Extract the definition of fixpoint -- it does not have to be here, but where to put it?}
 \end{thm}
 
 \emph{Proof:} 
 
 $g$ is monotone with respect to $\sqsubseteq$. Since we assumed that $f$ is monotone with respect to $\sqsubseteq$, $h = g \circ f$ is also monotone with respect to $\sqsubseteq$. 
 
-Let us notice that $\emptyset$ is greater under $\sqsubseteq$ than any other element.
-TODO: show that (very easy)
+We know that $\emptyset$ is smaller under $\sqsubseteq$ than any other element.
 
 Let us suppose that $R'$ is any fixpoint of $h$.  We know that $\emptyset \sqsubseteq R'$. Applying $h$ $n$ times to both sides of the inequality, we have that $R^* = h^n(\emptyset) \sqsubseteq h^n(R') = R'$, thanks to the monotonicity of $h$ with respect to $\sqsubseteq$. Therefore, the inductive fixed point $R^*$ is the least fixed point of $h$.
 
+\todo{pseudocode of naive evaluation algorithm}
+
 \todo{open questions:
 \begin{itemize}
-\item How we compute recursive functions with non-meet aggregation operators?
+\item How we compute recursive functions with non-meet aggregation operators? -- I can forbid that for now...
 \end{itemize}
 }
+
+\subsection{Semi-naive evaluation -- one relation case}
+Semi-naive evaluation is the most basic optimization used in Datalog. In comes from the following observation: in a Datalog program, if some rule $Q$ produced a tuple $t$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule with produce this tuple in each subsequent iteration, because $I_j \supseteq I_i$ for $j > i$. The goal of this optimization is to avoid such redundant computation. It is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration.
+
+In this section we give the algorithm for seminaive evaluation in \datalogra and show that this optimization is valid.
+
+
 
 \section{Tail-nested tables}\label{s:tnt}
 
