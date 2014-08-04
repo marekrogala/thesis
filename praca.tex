@@ -405,7 +405,7 @@ We recall that for $ \max $, $ \preceq_{\max} $ is the usual order $ \le $.
 We can easily see that for any $R$ an empty relation instance $\emptyset$ is smaller under $\sqsubseteq_R$  than any other relation instance.
 
 
-\subsection{Semantics and evaluation - one relation case}
+\subsection{Semantics and evaluation - one relation case}\label{ss:semeval1rel}
 In this section we will show that the semantics of a \datalogra program can be unambiguously defined using least fixed point, as long as it satisfies some conditions. To simplify the reasoning, we will restrict our attention to programs with only one \emph{idb} relation. In the following section we extend the definitions and theorems presented here to the general case of many \emph{idb} relations.
 
 Let $P$ be a \datalogra program, with only one \emph{idb} relation $R$ of arity $k$ in the form of:
@@ -446,9 +446,34 @@ $g$ is monotone with respect to $\sqsubseteq$. Since we assumed that $f$ is mono
 
 We know that $\emptyset$ is smaller under $\sqsubseteq$ than any other element.
 
-Let us suppose that $R'$ is any fixpoint of $h$.  We know that $\emptyset \sqsubseteq R'$. Applying $h$ $n$ times to both sides of the inequality, we have that $R^* = h^n(\emptyset) \sqsubseteq h^n(R') = R'$, thanks to the monotonicity of $h$ with respect to $\sqsubseteq$. Therefore, the inductive fixed point $R^*$ is the least fixed point of $h$.
+Let us suppose that $I'$ is any fixpoint of $h$.  We know that $\emptyset \sqsubseteq I'$. Applying $h$ to both sides of the inequality $n$ times, we have that $I^* = h^n(\emptyset) \sqsubseteq h^n(I') = I'$, thanks to the monotonicity of $h$ with respect to $\sqsubseteq$. Therefore, the inductive fixed point $I^*$ is the least fixed point of $h$.
 
-\todo{pseudocode of naive evaluation algorithm}
+In pseudocode, the evaluation algorithm is straightforward:
+
+\begin{figure}[h!]
+\narrow{
+$I_0 \leftarrow \emptyset$
+
+$i \leftarrow 0$
+
+do
+
+{\addtolength{\leftskip}{5mm}
+
+$i \leftarrow i + 1$
+
+$I_i \leftarrow h(I_{i-1})$
+
+}
+
+while $I_i \ne I_{i-1}$
+
+
+\caption{Naive evaluation algorithm for \datalogra programs with one \textit{idb} relation.}
+}
+\end{figure}
+
+
 
 \todo{open questions:
 \begin{itemize}
@@ -456,14 +481,128 @@ Let us suppose that $R'$ is any fixpoint of $h$.  We know that $\emptyset \sqsub
 \end{itemize}
 }
 
+
+\begin{comment}
+
 \subsection{Semi-naive evaluation -- one relation case}
-Semi-naive evaluation is the most basic optimization used in Datalog. In comes from the following observation: in a Datalog program, if some rule $Q$ produced a tuple $t$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule with produce this tuple in each subsequent iteration, because $I_j \supseteq I_i$ for $j > i$. The goal of this optimization is to avoid such redundant computation. It is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration.
+\emph{Semi-naive evaluation} is the most basic optimization used in Datalog. In comes from the following observation: in a Datalog program, if some rule $Q$ produced a tuple $t$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule with produce this tuple in each subsequent iteration, because $I_j \supseteq I_i$ for $j > i$. The goal of this optimization is to avoid such redundant computation. It is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration.
 
-In this section we give the algorithm for seminaive evaluation in \datalogra and show that this optimization is valid.
+In this section we give the algorithm for semi-naive evaluation in \datalogra and show that this optimization is valid.
 
+\subsubsection{Algorithm}
+
+\begin{figure}[h!]
+\narrow{
+$R_0 \leftarrow \emptyset, \Delta_0 \leftarrow \emptyset$
+
+$i \leftarrow 0$
+
+do
+
+{\addtolength{\leftskip}{5mm}
+
+$i \leftarrow i + 1$
+
+$T_i \leftarrow \bigcup_{l=1..n} f(R_{i-1})$
+
+$R_i \leftarrow g_k(T_i \cup R_{i-1})$
+
+$\Delta_k^i \leftarrow R_k^i - R_k^{i-1}$
+
+}
+
+while not for all $k$ $\Delta_k^i = \emptyset$
+
+\caption{Semi-Naive evaluation algorithm for \datalogra programs with one \textit{idb} relation.}
+}
+\end{figure}
+
+\end{comment}
+
+
+\subsection{Semantics and evaluation - multiple relations case}
+In this section we extend \datalogra semantics from \ref{ss:semeval1rel} to a general case of possibly many \emph{idb} relations.
+
+Let $P$ be a \datalogra program, with $w$ \emph{idb} relations $R_1, R_2, \dots, R_w$ of arities $k_1, k_2, \dots, k_w$ respectively.
+
+\begin{figure}[h!]
+\narrow{
+%  $\textsc{R}(x_1, \dots, x_{k-1}, x_k [\text{ aggregate } \textsc{F}]) $\\
+  \begin{flalign*}
+  & \textsc{R$_1$} (x_1, \dots, x_{k_1}) &&  & :- & && Q_{1,1}(x_1, \dots, x_{k_1}) & \\
+  &  &&  & \dots & && & \\
+  & \textsc{R$_1$} (x_1, \dots, x_{k_1}) &&  & :- & && Q_{1,{m_1}}(x_1, \dots, x_{k_1}) & \\
+  &  &&  & \dots & && & \\
+  & \textsc{R$_w$} (x_1, \dots, x_{k_w}) &&  & :- & && Q_{w, 1}(x_1, \dots, x_{k_w}) & \\
+  &  &&  & \dots & && & \\
+  & \textsc{R$_w$} (x_1, \dots, x_{k_w}) &&  & :- & && Q_{w, {m_w}}(x_1, \dots, x_{k_w}) & \\
+  \end{flalign*}
+}
+\end{figure}
+
+For $i = 1, \dots, w$, $Q_{i,1}, \dots, Q_{i,m}$ are rule bodies with free variables $x_1, \dots, x_{k_w}$. They may contain references to the \emph{idb} relations $R_1, R_2, \dots R_w$ and the \emph{edb} relations, which are constant during the evaluation. We denote evaluation of rule body $Q$ in the context of an instance $I_1, \dots I_w$ of the relation $R_1, \dots, R_w$ as $E_(I_1, \dots, I_w)(Q)$.
+
+For $i = 1, \dots, w$, $Q_{i,1}, \dots, Q_{i,m}$, let us define $f_i: P(\bf{dom}^{k_1}) \times \dots \times P(\bf{dom}^{k_w}) \to P(\bf{dom}^{k_i})$ as the function that evaluates the rules $Q_{i,1}, ... Q_{i, m_w}$ for relation $R_i$ based on the given instances of the relations $R_1, \dots, R_w$:
+$$ f_i(I_1, \dots I_w) = I_i \cup \bigcup_{i=1..{m_w}} E_(I_1, \dots, I_w)(Q_i) $$
+
+Let $h_i = g_{R_i} \circ f_i$. Let $h(I_1, \dots, I_w) = (h_1(I_1, \dots, I_w), \dots, h_w(I_1, \dots, I_w))$
+
+Let $\sqsubseteq = \sqsubseteq_{R_1} \times \dots \sqsubseteq_{R_w}$.
+
+\begin{thm}
+If $h$ is monotone with respect to $\sqsubseteq$, i.e. $I \subseteq I' \rightarrow h(I) \subseteq f(I')$, and there exists $n \ge 0 $, such that $h^n(\emptyset) = h^{n+1}(\emptyset)$, then $I^* = h^n(\emptyset)$ is the least fixed point of $h$, that is:
+\begin{enumerate}
+\item $I^* = h(I^*)$, i.e. $I^*$ is a fixpoint
+\item $I^* \sqsubseteq I$ for all $I$ such that $I = h(I)$, i.e. $I^*$ is smaller than any other fixpoint
+\end{enumerate}
+\todo{Extract the definition of fixpoint -- it does not have to be here, but where to put it?}
+\end{thm}
+
+\emph{Proof:} 
+
+We know that $\emptyset$ is smaller under $\sqsubseteq$ than any other element.
+
+Let us suppose that $I'$ is any fixpoint of $h$.  We know that $\emptyset \sqsubseteq I'$. Applying $h$ to both sides of the inequality $n$ times, we have that $I^* = h^n(\emptyset) \sqsubseteq h^n(I') = I'$, thanks to the monotonicity of $h$ with respect to $\sqsubseteq$. Therefore, the inductive fixed point $I^*$ is the least fixed point of $h$.
+
+In pseudocode, the evaluation algorithm is straightforward:
+
+\begin{figure}[h!]
+\narrow{
+$I_0 \leftarrow (\emptyset, \dots, \emptyset)$
+
+$i \leftarrow 0$
+
+do
+
+{\addtolength{\leftskip}{5mm}
+
+$i \leftarrow i + 1$
+
+$I_i \leftarrow h(I_{i-1})$
+
+}
+
+while $I_i \ne I_{i-1}$
+
+\caption{Naive evaluation algorithm for \datalogra programs with multiple \textit{idb} relations.}
+}
+\end{figure}
+
+
+\todo{open questions:
+\begin{itemize}
+\item How we compute recursive functions with non-meet aggregation operators? -- I can forbid that for now...
+\end{itemize}
+}
+
+
+
+\subsection{\datalogra with negation}
+\todo{Basically we do the same thing as in regular Datalog -- stratification}
 
 
 \section{Tail-nested tables}\label{s:tnt}
+Another important extension in SociaLite are \emph{tail nested tables}, which optimize the memory layout so that it can be accessed in a faster way. While being very useful in practice, this optimization is not crucial for running such programs on distributed Giraph architecture. \todo{I don't want to have this in the compiler, but maybe describe here?}
 
 \section{Distributed SociaLite}\label{s:distributed}
 
@@ -501,41 +640,6 @@ single source shortest path algorithm.} ESA, 1998.
 
 \bibitem{ullman} Anand Rajaraman, Jeffrey D. Ullman: \textit{Mining of Massive Datasets}, Cambridge University Press, New York, NY, 2011
 
-\begin{comment}
-\bibitem[Fif00]{ffgg} Filigran Fifak, Gizbert Gryzogrzechotalski,
-  \textit{O blabalii fetorycznej}, Materiały Konferencji Euroblabal
-  2000.
-
-\bibitem[Fif01]{ff-sr} Filigran Fifak, \textit{O fetorach
-    $\sigma$-$\rho$}, Acta Fetorica, 2001.
-
-\bibitem[Głomb04]{grglo} Gryzybór Głombaski, \textit{Parazytonikacja
-    blabiczna fetorów --- nowa teoria wszystkiego}, Warszawa 1904.
-
-\bibitem[Hopp96]{hopp} Claude Hopper, \textit{On some $\Pi$-hedral
-    surfaces in quasi-quasi space}, Omnius University Press, 1996.
-
-\bibitem[Leuk00]{leuk} Lechoslav Leukocyt, \textit{Oval mappings ab ovo},
-  Materiały Białostockiej Konferencji Hodowców Drobiu, 2000.
-
-\bibitem[Rozk93]{JR} Josip A.~Rozkosza, \textit{O pewnych własnościach
-    pewnych funkcji}, Północnopomorski Dziennik Matematyczny 63491
-  (1993).
-
-\bibitem[Spy59]{spyrpt} Mrowclaw Spyrpt, \textit{A matrix is a matrix
-    is a matrix}, Mat. Zburp., 91 (1959) 28--35.
-
-\bibitem[Sri64]{srinis} Rajagopalachari Sriniswamiramanathan,
-  \textit{Some expansions on the Flausgloten Theorem on locally
-    congested lutches}, J. Math.  Soc., North Bombay, 13 (1964) 72--6.
-
-\bibitem[Whi25]{russell} Alfred N. Whitehead, Bertrand Russell,
-  \textit{Principia Mathematica}, Cambridge University Press, 1925.
-
-\bibitem[Zen69]{heu} Zenon Zenon, \textit{Użyteczne heurystyki
-    w~blabalizie}, Młody Technik, nr~11, 1969.
-
-\end{comment}
 
 \end{thebibliography}
 
