@@ -596,6 +596,13 @@ while $I_i \ne I_{i-1}$
 }
 
 
+\subsection{Semi-naive evaluation -- one relation case}
+\emph{Semi-naive evaluation} is the most basic optimization used in Datalog. In comes from the following observation: in a Datalog program, if some rule $Q$ produced a tuple $t$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule with produce this tuple in each subsequent iteration, because $I_j \supseteq I_i$ for $j > i$. The goal of this optimization is to avoid such redundant computation. It is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration.
+
+This optimization can be applied in \datalogra as well. To achieve this, we need to define function $f$ and the evaluation operation $E_I(Q)$ in a different way.
+
+
+
 
 \subsection{\datalogra with negation}
 \todo{Basically we do the same thing as in regular Datalog -- stratification}
