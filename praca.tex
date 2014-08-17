@@ -9,6 +9,7 @@
 \usepackage[font=small]{caption}
 
 \usepackage{amsmath,amsfonts,amssymb,amsthm,epsfig,epstopdf,url,array,bm,color}
+\usepackage{program}
 
 % Dane magistranta:
 
@@ -69,8 +70,8 @@
 
 
 \newcommand{\narrow}[1]{\begin{changemargin}{2cm}{2cm} #1 \end{changemargin}}
-\newcommand{\rel}[2]{$\textsc{#1}#2$}
-\newcommand{\program}[4]{
+\newcommand{\relat}[2]{$\textsc{#1}#2$}
+\newcommand{\dprog}[4]{
   \begin{figure}[h!]
     \narrow{
       #1
@@ -91,8 +92,8 @@
 
 \begin{abstract}
 W pracy przedstawiono metodę tłumaczenia programów zapisanych w Datalogu
-i jego rozszerzonych wersjach do programów w modelu obliczeniowym Google Pregel / Apache Giraph,
-oraz implementację prototypowego kompilatora wykorzystującego tę metodę.
+i jego rozszerzonych wersjach do programów w modelu obliczeniowym Google Pregel,
+oraz implementację prototypowego kompilatora wykorzystującego tę metodę do uruchamiania takich programów na platformie Apache Spark.
 Takie podejście pozwala na wykonywanie obliczeń na istniejących architekturach do obliczeń rozproszonych
 za pomocą deklaratywnego języka zapytań, znacznie prostszego niż dotychczas dostępne języki dla tych architektur.
 \end{abstract}
@@ -103,34 +104,32 @@ za pomocą deklaratywnego języka zapytań, znacznie prostszego niż dotychczas 
 
 \chapter*{Introduction}
 \addcontentsline{toc}{chapter}{Introduction}
-In recent years, the humanity has created many graph datasets much larger than those avaiable ever before.
+In recent years, the humanity has created many graph datasets much larger than those available ever before.
 Those graphs became a very popular object of research. Most notable examples are \emph{the Web graph} -- a graph of Internet websites and links between them as well as all kinds of social networks. Other interesting graphs include transportation routes, similarity of newspaper of scientific articles or citations among them.
 
 With increasing computational power and memory space, we can expect more and more real-life graphs to became subject to computation. We can also expect the existing graphs, such as the Web or social networks, to grow in all aspects.
 
-The graps metioned can be a source of a huge amount of useful information. Hence, there is an increasing number of practical computational problems.
+The graphs mentioned can be a source of a huge amount of useful information. Hence, there is an increasing number of practical computational problems.
 Some of the analyses carried out are ranking of the graph nodes, e.g. importance of a Web page, determining most influential users in given group of people, detecting communities with clustering, computing metrics for the whole graph or some parts of it and connection predictions.
 Usually, such analyses are built on top of standard graph algorithms, such as variations of PageRank, shortest paths or connected components.
 
-When dealing with so large graphs, distribution of the computations among many machines is inevitable. The graph size is often be too large to fit in one computer's memory. At the same time, performing useful computations on a sigle machine would take too much time for it to be a feasible solution. Sizes of the graphs are growing faster than the computational power of a computer, and so is the need for distributing the computations.
+When dealing with so large graphs, distribution of the computations among many machines is inevitable. The graph size is often be too large to fit in one computer's memory. At the same time, performing useful computations on a single machine would take too much time for it to be a feasible solution. Sizes of the graphs are growing faster than the computational power of a computer, and so is the need for distributing the computations.
 
 In the past, we have seen many tools for efficient distributed large dataset computations, such as Google's MapReduce \cite{mapreduce} and its widely used open source counterpart, Apache's Hadoop, as well as higher-level languages such as PigLatin and Hive. However, those are not well suited for graph computations, as they do not support iteration well.
 
 Recently, there is an outbreak of frameworks and languages for large graphs processing, including industrial systems such as Google's Pregel \cite{pregel}, its open-source version Apache Giraph and Spark GraphX, Giraph++ \cite{giraphpp}.
 
-The frameworks currently avaiable allow one to implement a graph algorithm in a specified model, for example Pregel's "think like a vertex", using a programming language like Java, Scala or Python. On the other hand, query languages, such as SQL, are a bad fit for graph data because of limited support of iteration. One of the advantages of query languages over general-purpose programming languages is that they are available for a much broader group of users: they are used not only by programmers, but also by analysts and data scientists. Queries are often optimized by the query engines automatically. With the rise of graph computational problems, we need an easier way to extract information from graphs: a query language for effectively expressing data queries typical for graphs.
+The frameworks currently available allow one to implement a graph algorithm in a specified model, for example Pregel's "think like a vertex", using a programming language like Java, Scala or Python. On the other hand, query languages, such as SQL, are a bad fit for graph data because of limited support of iteration. One of the advantages of query languages over general-purpose programming languages is that they are available for a much broader group of users: they are used not only by programmers, but also by analysts and data scientists. Queries are often optimized by the query engines automatically. With the rise of graph computational problems, we need an easier way to extract information from graphs: a query language for effectively expressing data queries typical for graphs.
 
-The Socialite \cite{socialite, distsoc} language is one of the most interesting propositions. It is based on a classical language --- Datalog \cite{fod}. In Datalog, the problem is expressed in a declarative way as a set of rules. Declarative semantics makes it easy to distribute the computations, since no execution flow is embedded in the program code. It also gives many possibilities for optimizations and approximate evaluation. At the same time, Datalog's support for recursion is crucial, since most graph algorithms have iterative nature. However, most practical graph algorithms can not be expressed efficiently in Datalog because of the language limitiations. With a few extensions to original Datalog, most important of which is recursive aggregation, SociaLite makes it easy to write intuitive programs which can be executed very efficiently.
+The Socialite \cite{socialite, distsoc} language is one of the most interesting propositions. It is based on a classical language --- Datalog \cite{fod}. In Datalog, the problem is expressed in a declarative way as a set of rules. Declarative semantics makes it easy to distribute the computations, since no execution flow is embedded in the program code. It also gives many possibilities for optimizations and approximate evaluation. At the same time, Datalog's support for recursion is crucial, since most graph algorithms have iterative nature. However, most practical graph algorithms can not be expressed efficiently in Datalog because of the language limitations. With a few extensions to original Datalog, most important of which is recursive aggregation, SociaLite makes it easy to write intuitive programs which can be executed very efficiently.
 
-Unfortunately, there is no solid implementation of SociaLite avaiable. The interpreter published by the authors is undocumented and contains many bugs. It is hard to imagine it being implemented in the industry in the forseeable future. At the same time, papers \cite{socialite} and \cite{distsoc} which introduced SociaLite contain certain simplifications and are not specific about some important details in definitions and proofs.
-
+Unfortunately, there is no solid implementation of SociaLite available. The interpreter published by the authors is undocumented and contains many bugs. It is hard to imagine it being implemented in the industry in the foreseeable future. At the same time, papers \cite{socialite} and \cite{distsoc} which introduced SociaLite contain certain simplifications and are not specific about some important details in definitions and proofs.
 
 The goal of this work is to bridge the gap between the theoretical idea for SociaLite and a practical implementation and to draw a path towards its usage in the industry. We show how to translate SociaLite declarative programs into Pregel "think-like-a-vertex" programs and introduce a compiler that enables SociaLite programs to be executed on existing infrastructure. This allows its users to write and execute SociaLite programs without any additional effort to build a dedicated server infrastructure for that.
 
-This works presents an experimental implementation of the SociaLite language on the Apache Spark platform. 
-\todo{wcześniej przydałby się akapit wyjaśńiający, że Giraph jest dopracowany, dotestowany, ciągle rozwijany i ogólnie warto na nim implementować bo wszyscy go używają i nie zniknie}
+This works presents an experimental implementation of the SociaLite language on the Apache Spark platform. Spark is an open-source project which provides a general platform for processing large datasets which has gained a huge momentum since the initial white paper in 2010 \cite{spark} and inclusion into Apache Incubator in June 2013. Distinctive features of Spark are the ability keep cached data in nodes memory, which gives impressive speedups over other environments like Hadoop MapReduce and a powerful API allowing for various usages including MapReduce, machine learning, computations on graphs and stream data processing. In February 2014 Spark became a top-level project of the Apache Foundation, and in since July 2014 it is included in the Cloudera CDH, a popular enterprise platform for Hadoop deployment. Spark is already a stable, well-tested platform which is being intensively developed and can be expected to become a new industry standard in large datasets processing. For these reasons, it has been chosen as the most promising implementation platform for the S2P compiler.
 
-The work consists of six chapters. In Chapter~\ref{r:datalog} we recall definitions of Datalog and its evaluation methods while Chapter~\ref{r:pregel} contains an introduction to the Pregel computation model. In Chapter~\ref{r:socialite} we describe the extensions introduced by SociaLite and provide formal definitions and general-case proofs which the original papers lack. Chapter \ref{r:s2g} shows the translation procedure from SociaLite to Giraph programs implemented in the S2G compiler, which is described in Chapter~\ref{r:implementation}. In Chapter~\ref{r:summary} we sketch the possible future work and the path to industrial implementation of the language using the S2G compiler.
+The work consists of six chapters. In Chapter~\ref{r:datalog} we recall definitions of Datalog and its evaluation methods while Chapter~\ref{r:pregel} contains an introduction to the Pregel computation model. In Chapter~\ref{r:socialite} we describe the extensions introduced by SociaLite and provide formal definitions and general-case proofs which the original papers lack. Chapter \ref{r:s2p} shows the translation procedure from SociaLite to Pregel programs implemented in the S2P compiler, which is described in Chapter~\ref{r:implementation}. In Chapter~\ref{r:summary} we sketch the possible future work and the path to industrial implementation of the language using the S2P compiler.
 
 \section{Basic definitions}\label{r:basicdefs}
 Let us give some basic definitions which will be used in this paper.
@@ -144,7 +143,7 @@ Given a database schema $\sigma$, let $R$ is a relation in $\sigma$ with arity $
 
 A \emph{database instance} $I$ over database schema $\sigma$ is a union of relations over $R$, where $R \in \sigma$.
 
-Elements of $\bm{dom}$ are called \emph{contants}, whereas elements of $\bf{var}$ are called \emph{(free) variables}.
+Elements of $\bm{dom}$ are called \emph{constants}, whereas elements of $\bf{var}$ are called \emph{(free) variables}.
 \end{defn}
 
 \begin{defn}
@@ -159,34 +158,33 @@ In this chapter we describe the basic Datalog language and its typical extended 
 
 Languages based on relational algebra and relational calculus, like SQL, are widely used and researched as query languages for relational databases. This dates back to Edgar F. Codd's relational model \cite{coddrelmodel} introduced in 1970. Unfortunately, such languages leave some simple operations that they can not handle. Examples of such problems are transitive closure of a graph or distances from a vertex to all other vertices.
 
-Datalog is a language that enhances relational calculus with recursion, which allows for solving those problems. It appeared around 1978 and is inspired by logical programming paradigm. Recently, there is an increasing interest in Datalog research and implementations in industry \todo{citations - LogicBlox, etc.}. Datalog is typically extended with negation and simple, non-recursive aggregation.
+Datalog is a language that enhances relational calculus with recursion, which allows for solving those problems. It appeared around 1978 and is inspired by logical programming paradigm. Recently, there is an increasing interest in Datalog research as well as its implementations in industry. Datalog is typically extended with negation and simple, non-recursive aggregation.
 
 Let us begin with an example of a problem which can not be solved in relational calculus, but can be easily solved in Datalog.
 
 Let us suppose that we have a database with a binary relation $\textsc{Edge}$. The database represents a graph $G$: if $\textsc{Edge}(a, b)$ means that there is an edge in $G$ between vertices $a$ and $b$. Given a selected vertex $s$, we would like to find all vertices in $G$ that are reachable from $s$.
 
-Unfortunately, unless we have some additional assumptions about $G$, is seems difficult to answer this query using languages like SQL. It can be proven that this kind of query is not expressible in the relational calculus \cite{fod}. Ituitively, what is necessary to answer such queries is some kind of conditional iteration or recursion, which is the most important feature of Datalog.
+Unfortunately, unless we have some additional assumptions about $G$, is seems difficult to answer this query using languages like SQL. It can be proven that this kind of query is not expressible in the relational calculus \cite{fod}. Intuitively, what is necessary to answer such queries is some kind of conditional iteration or recursion, which is the most important feature of Datalog.
 
 \section{History}
 
+Datalog is not credited to any particular researchers since it originated as an extension or restriction of various other languages, including logic programming languages. It emerged as a separate area of research around 1977. It is believed that professor David Maier is the author of the name \emph{Datalog}.
 
+Datalog is described in detail in classical books on databases theory, such as \emph{Foundations of Databases} \cite{fod}.
 
-\todo{Przydałoby się trochę historii, kto wymyślił, w jakiej pracy, gdzie sie przydawało, czemu jest ważne, że jest w podstawowych podręcznikach do baz danych+ref, krótki przegląd wyników związanych z Datalogiem np. prace z metodami optymalizacji, itp.}
+The language has been proven to be useful in various fields like program analysis \cite{pointanalysis}, network systems \cite{boomanalysis, dataloganalysis}. It is also used to formally define computational problems which can be solved with different models and frameworks, allowing for comparison of those frameworks and their optimizations \cite{ullman}. 
 
-\todo{wzrost zainteresownaia datalogiem w ostatnich czasach}
+Some of the most important fields of research concerning Datalog are optimizations in programs evaluation (magic sets \cite{magicsets}, subsumptive queries \cite{subsumptivequeries}) and extensions to the language \cite{magicsetsexist, disjunctivedatalog, datalogrelaunched}.
 
-Datalog is also useful and often used to define computational problems that are then solved with various techniques \cite{ullman}.
-
-
-propositional logic intro?
+Recently there is also an increasing interest in applications of Datalog in industry. Two examples worth mentioning are LogicBlox and Datomic. LogicBlox \cite{logicblox} delivers a high performance database which can be queried with a Datalog variant called LogiQL.  Datomic \cite{datomic} is a distributed database with an innovative architecture featuring immutable records and temporal queries, which uses Datalog as a query language.
 
 \section{Introduction to Datalog}
 
-Before we formally define Datalog syntax and sematics, let us take a look at an example program in this language.
+Before we formally define Datalog syntax and semantics, let us take a look at an example program in this language.
 
 As before, let us assume that the database contains a relation $\textsc{Edge}$ representing a graph and $\textsc{Edge}(a, b)$ means that there is an edge between vertices $a$ and $b$. The following program computes relation $\textsc{Tc}$ containing a transitive closure of relation $\textsc{Edge}$.
 
-\program{}{
+\dprog{}{
   & \textsc{Tc} (a, b) &&  & :- & && \textsc{Edge} (a, b). & \\
   & \textsc{Tc} (a, b) &&  & :- & && \textsc{Tc} (a, c), \textsc{Edge}(c, b). &\\
 }{Datalog query for computing transitive closure of a graph}{ex:tcdatalog}
@@ -248,13 +246,13 @@ A \emph{program} in Datalog is a finite set of safe rules.
 
 By $adom(P)$ we denote the set of constants appearing in the rules of $P$.
 
-The \emph{schema} of program $P$ is the set of all relation names occuring in $P$ and is denoted by $sch(P)$.
+The \emph{schema} of program $P$ is the set of all relation names occurring in $P$ and is denoted by $sch(P)$.
 
 \begin{defn}
 The rules of a Datalog program $P$ divide the relations into two disjoint classes: 
 \begin{itemize}
 \item \emph{extensional} relations, i.e. relations that occur only in the subgoals, but never in the head of the rules in $P$
-\item \emph{intensional} relations occuring in the head of at least one of the rules in $P$
+\item \emph{intensional} relations occurring in the head of at least one of the rules in $P$
 \end{itemize}
 \end{defn}
 
@@ -263,12 +261,12 @@ The set of extensional relations are called the \emph{edb} or \emph{extensional 
 A Datalog program is essentially a function from database instances over $edb(P)$ into database instances over $idb(P)$.
 
 \begin{defn}
-Given a rule $ \textsc{R}(x) :- R_1(x_1), \dots, R_n(x_n). $, if $\nu$ is a valuation of variables appearing in this rule, then we obtain an \emph{instatiation} of this rule by replacing each variable $t$ in the rule by its value $\nu(t)$:
+Given a rule $ \textsc{R}(x) :- R_1(x_1), \dots, R_n(x_n). $, if $\nu$ is a valuation of variables appearing in this rule, then we obtain an \emph{instantiation} of this rule by replacing each variable $t$ in the rule by its value $\nu(t)$:
 $$ \textsc{R}(\nu(x)) :- R_1(\nu(x_1)), \dots, R_n(\nu(x_n)). $$
 \end{defn}
 
 \begin{exmp}
-\todo{jakis fajny przyklad programu, jakie jest edb, jakie jest idb, instatiation jakiejs reguly}
+\todo{jakis fajny przyklad programu, jakie jest edb, jakie jest idb, instantiation jakiejs reguly}
 \end{exmp}
 
 \subsection{Differences between Datalog and Prolog}
@@ -288,12 +286,12 @@ In the \emph{model theoretic} definition, we consider the rules of program $P$ t
 
 A second approach is \emph{proof theoretic}, in which a fact is included in the result if and only if it can be derived, or proven using the rules. There are two strategies for obtaining proofs for facts: \emph{bottom up}, in which we start from all known facts and incrementally derive all provable facts, and \emph{top down}, which starts from a fact to be proven and seeks for rules and facts that can be used to prove it.
 
-A third approach, on which we will focus in this work is the \emph{least fixpoint} semantics, which defines the result of a program as a least fixpoint of some function. In this definition, a program is evaluated by iteratively applying a function until a fixpoint is reached. This is very similar to the bottom-up evaluation strategy of the proof-theoretic approach.
+A third approach, on which we will focus in this work is the \emph{least fix-point} semantics, which defines the result of a program as a least fix-point of some function. In this definition, a program is evaluated by iteratively applying a function until a fix-point is reached. This is very similar to the bottom-up evaluation strategy of the proof-theoretic approach.
 
-\subsection{Fixpoint semantics}
-In this section we show the fixpoint semantics for Datalog programs. A central notion in this definition is the \emph{immediate consequence} operator. Intuitively, that operator adds to the database new facts that could be immediately derived using one of the rules.
+\subsection{Fix-point semantics}
+In this section we show the fix-point semantics for Datalog programs. A central notion in this definition is the \emph{immediate consequence} operator. Intuitively, that operator adds to the database new facts that could be immediately derived using one of the rules.
 
-Given a datalog program $P$, let $\textbf{K}$ be a database instance over $sch(P)$.
+Given a Datalog program $P$, let $\textbf{K}$ be a database instance over $sch(P)$.
 
 We say that a fact $R(v)$ is an \emph{immediate consequence} for $\textbf{K}$ and $P$ if $ \in \textbf{K}$ or there exists an instantiation $R(v) :- R_1(v_1), \dots, R_n(v_n)$ of a rule in $P$ such that $R_i(v_i) \in \textbf{K}$ for each $i = 1\dots n$.
 
@@ -307,13 +305,12 @@ Operator $T_P$ for any Datalog program $P$ is a monotone function.
 By definition, $F$ is an immediate consequence of $\textbf{I}$, so either $F$ is in $\textbf{I}$ or it there exists an instantiation
  $F :- F_1, \dots, F_n$ of a rule in $P$ such that $F_i \in \textbf{I}$ for each $i = 1\dots n$. 
 In the first case $F \in \textbf{I} \subseteq \textbf{J}$, so $F \in \textbf{J}$. 
-In the second case, each $F_i \in \textbf{I} \subseteq \textbf{J}$, so the instatiation also exists in $\textbf{J}$. 
+In the second case, each $F_i \in \textbf{I} \subseteq \textbf{J}$, so the instantiation also exists in $\textbf{J}$. 
 Hence, $F$ is also an immediate consequence of $\textbf{J}$, and thus $F \in T_P(\textbf{J})$. 
 Since $F$ was arbitrarily chosen, we have that $T_P(\textbf{I}) \subseteq T_P(\textbf{I})$ and $T_P$ is a monotone function.
 
-\todo{zdefiniowac wczesniej fixpoint i least fixpoint}
 \begin{thm}
-For any $P$ and an instance $\textbf{K}$ over $edb(P)$, there exists a finite least fixpoint of $T_P$ containing $\textbf{K}$.
+For any $P$ and an instance $\textbf{K}$ over $edb(P)$, there exists a finite minimal fix-point of $T_P$ containing $\textbf{K}$.
 \end{thm}\label{t:datalogfixpointsem}
 \emph{Proof.}
 The definition of $T_P$ implies that $\textbf{K} \subseteq T_P(\textbf{K})$.
@@ -321,9 +318,9 @@ Because of monotonicity of $T_P$, we have inductively that $T_P^i(\textbf{K}) \s
 Hence, we have that:
 $$\textbf{K} \subseteq T_P(\textbf{K}) \subseteq T_P^2(\textbf{K}) \subseteq T_P^3(\textbf{K}) \subseteq \dots$$.
 
-$adom(P) \cup adom(\textbf{K})$ and the database schema $sch(P)$ of $P$ are all finite, so there is a finite number $n$ of database instances over $sch(P)$ using those values. Hence, the sequence $\{T_P^i(\textbf{K})\}_i$ reaches a fixpoint: $T_P^n(\textbf{K}) = T_P^{n+1}(\textbf{K})$. Let us denote this fixpoint by $T_P^*(\textbf{K})$.
+$adom(P) \cup adom(\textbf{K})$ and the database schema $sch(P)$ of $P$ are all finite, so there is a finite number $n$ of database instances over $sch(P)$ using those values. Hence, the sequence $\{T_P^i(\textbf{K})\}_i$ reaches a fix-point: $T_P^n(\textbf{K}) = T_P^{n+1}(\textbf{K})$. Let us denote this fix-point by $T_P^*(\textbf{K})$.
 
-We will now prove that this is the minimum fixpoint of $T_P$ containing $\textbf{K}$. Let us suppose that $\textbf{J}$ is a fixpoint of $T_P$ containing  $\textbf{K}$:  $\textbf{K} \subseteq \textbf{J}$. By applying $T_P$ $n$ times to both sides of the inequality, we have that $T_P^*(\textbf{K}) = T_P^n(\textbf{K}) \subseteq \textbf T_P^n(\textbf{J} = \textbf{J}$. Hence, $T_P^*(\textbf{K})$ is the minimum fixpoint of $T_P$ containing $\textbf{K}$.
+We will now prove that this is the minimum fix-point of $T_P$ containing $\textbf{K}$. Let us suppose that $\textbf{J}$ is a fix-point of $T_P$ containing  $\textbf{K}$:  $\textbf{K} \subseteq \textbf{J}$. By applying $T_P$ $n$ times to both sides of the inequality, we have that $T_P^*(\textbf{K}) = T_P^n(\textbf{K}) \subseteq \textbf T_P^n(\textbf{J} = \textbf{J}$. Hence, $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$.
 
 
 \todo{example}
@@ -349,12 +346,12 @@ It this section we will briefly describe these extensions.
 \subsection{Arithmetic predicates}
 If we assume that all values in a selected column of a relation are numeric, it may be often useful to write Datalog programs that incorporate arithmetic comparisons between such values.
 
-Let us consider a following example. We have a database of employees consisting of two relations \rel{Boss}{} and \rel{Salary}: \rel{Boss}{(a, b)} means that employee $a$ is a direct boss of employee $b$ and \rel{Salary}(a, s) means that salary of employee $a$ is $s$. We assume that all values in the second column of relation \rel{Salary}{} are numeric. We would like to find all employees that earn more than their direct boss.
+Let us consider a following example. We have a database of employees consisting of two relations \relat{Boss}{} and \relat{Salary}: \relat{Boss}{(a, b)} means that employee $a$ is a direct boss of employee $b$ and \relat{Salary}(a, s) means that salary of employee $a$ is $s$. We assume that all values in the second column of relation \relat{Salary}{} are numeric. We would like to find all employees that earn more than their direct boss.
 
 \begin{center}
 \begin{tabular}{|c|}
 \hline
-\rel{Boss}{} \\
+\relat{Boss}{} \\
 \hline
 (a, b)\\
 (b, c)\\
@@ -364,7 +361,7 @@ Let us consider a following example. We have a database of employees consisting 
 \quad
 \begin{tabular}{|c|}
 \hline
-\rel{Salary}{} \\
+\relat{Salary}{} \\
 \hline
 (a, 10)\\
 (b, 15)\\
@@ -379,7 +376,7 @@ The following query with arithmetic comparisons solves this problem:
 \textsc{EarnsMoreThanBoss} (employee) :- \\ \textsc{Boss}(boss, employee), \textsc{Salary}(boss, bs), \textsc{Salary}(employee, es), es > bs. \\
 \end{multline*}
 
-We can think of arithmetic comparisons as a new kind of predicates, which are infinite built-in relations. Since we introduced implicit infitite relations, we need to adjust the definition of rule safety \ref{d:datalogsaferule}:
+We can think of arithmetic comparisons as a new kind of predicates, which are infinite built-in relations. Since we introduced implicit infinite relations, we need to adjust the definition of rule safety \ref{d:datalogsaferule}:
 
 \begin{defn}
 A rule with arithmetic comparisons is \emph{safe} if each free variable appearing in its head or in any of the comparisons also appears in at least one of the non-comparison subgoals.
@@ -409,7 +406,7 @@ also appears in at least one of the relational subgoals or on the left side of a
 \begin{exmp}
 
 As an example, let us suppose we have a graph $G$ defined by a relation $\textsc{Edge}$ 
-where \rel{Edge}{(v, u, l)} means that $G$ has an edge from $v$ to $u$ of length $l > 0$. 
+where \relat{Edge}{(v, u, l)} means that $G$ has an edge from $v$ to $u$ of length $l > 0$. 
 There is also a distinguished source vertex $s$.
 An interesting question is what are the minimal distances from $s$ to all other vertices of $G$.
 We will come back to this question in section \ref{ss:datalognra}.
@@ -418,7 +415,7 @@ what are the lengths of paths between $s$ and $v$?
 
 The following program answers this question using a straightforward rule of edge relaxation:
 
-\program{}{
+\dprog{}{
   & \textsc{Path} (v, d) &&  & :- & && \textsc{Edge}(s, v, d) & \\
   & \textsc{Path} (v, d) &&  & :- & && \textsc{Path} (t, d'), \textsc{Edge}(t, v, l), d = d' + l. &\\
 }{Datalog query for computing all path lengths from a given source}{ex:pathsdatalog}
@@ -431,12 +428,12 @@ Similarly to arithmetic comparisons, arithmetic functions can be interpreted an 
 The difference is that we do not forbid those relations to introduce new values into the database.
 Given a program $P$ and a database instance $\textbf{K}$ over $sch(P)$, rules with arithmetic functions can produce new values, i.e. values that were not present in $adom(P) \cup adom(\textbf{K})$. In our example, such situation happens if there is a cycle in $G$ reachable from the source. There is an infinite number of paths from the source to the vertices on the cycle, and thus $\textsc{Path}$ would be infinite.
 
-There are different approaches to address this problem, including \emph{finiteness dependencies} and syntatic requirements that imply safety of Datalog programs with arithmetic conditions \cite{RBS87, KRS88a, KRS88b, SV89}.
+There are different approaches to address this problem, including \emph{finiteness dependencies} and syntactic requirements that imply safety of Datalog programs with arithmetic conditions \cite{RBS87, KRS88a, KRS88b, SV89}.
 
 For the purpose of this paper, we can simply define semantics for Datalog programs that have a finite fixed point. The updated version of Theorem \ref{t:datalogfixpointsem} is as follows.
 
 \begin{thm}
-For any $P$ and an instance $\textbf{K}$ over $edb(P)$, if there exists $n \ge 0$ such that $T_P^n(\textbf{K})$ is a fixpoint of $T_P$, then is it the least fixpoint of $T_P$ containing $\textbf{K}$.
+For any $P$ and an instance $\textbf{K}$ over $edb(P)$, if there exists $n \ge 0$ such that $T_P^n(\textbf{K})$ is a fix-point of $T_P$, then is it the minimal fix-point of $T_P$ containing $\textbf{K}$.
 \end{thm}
 \emph{Proof.} See second part of the proof for Theorem \ref{t:datalogfixpointsem}.
 
@@ -471,7 +468,7 @@ For a semi-positive program, any relation used in a negative sense is an \emph{e
 
 The situation is different when \emph{idb} relations are used in negative subgoals. Let us assume that we use the naive evaluation. In classical Datalog, all tuples added to the database during the evaluation remain there until its end. However, when negation is allowed, it is not true in general. Let us consider a program which has a rule with a negated subgoal $!R(u)$. Such rule might produce a tuple $t$ in iteration $i$ because some $t'$ is not in $R$ and thus $!R(t')$ is true. When $t'$ is added to relation $R$ in a subsequent iteration though, the rule can no longer produce $t$. Some versions of negation semantics in Datalog allow for removing tuples from relations during the evaluation \ref{fod}.
 
-In stratified semantics, we do not allow tuples to be removed from relations. Consequently, the inflationary semantics of Datalog is preserved. To achieve that, we require that if there is a rule for computing relation $R_1$ that uses $R_2$ in a negated subgoal, then relation $R_2$ can be fully computed before evaluation of relation $R_1$. Intuitively, this order of computation is possible if there is no direct or indirect dependency on $R_1$ in any of the rules for $R_2$, i. e. $R_1$ and $R_2$ are not recursively dependent from each other. This is formalised this by the notion of strata.
+In stratified semantics, we do not allow tuples to be removed from relations. Consequently, the inflationary semantics of Datalog is preserved. To achieve that, we require that if there is a rule for computing relation $R_1$ that uses $R_2$ in a negated subgoal, then relation $R_2$ can be fully computed before evaluation of relation $R_1$. Intuitively, this order of computation is possible if there is no direct or indirect dependency on $R_1$ in any of the rules for $R_2$, i. e. $R_1$ and $R_2$ are not recursively dependent from each other. This is formalized this by the notion of strata.
 
 \begin{defn}
 Let $P$ be a program in \datalogneg and $n = |idb(P)|$ be then number of \emph{idb} relations in $P$. A function $\rho : sch(P) \to {1, . . . , n}$ is called \emph{stratification} of $P$ if such that for each rule $\phi$ in $P$ with head predicate $T$, the following are true: 
@@ -492,7 +489,7 @@ $\rho$ corresponds to a partitioning of $P$ into several subprograms $P_1, P_2, 
 
 Stratification assures that if a relation $R$ is used in rules of stratum $P_i$, then $R$ must be defined in this stratum or one of the previous strata. Additionally, if a relation is used in stratum $P_i$ in a negated subgoal, then it must be defined in an earlier stratum. It is worth noting that this allows for recursive rules, unless the recursive subgoal is negated.
 
-For each $P_i$, $idb(P_i)$ consists of the relations defined in this stratum, while $edb(P_i)$ may contain only relations defined in earlier strata or relations from $edb(P)$. By definition of stratification, the negative subgoals in rules of $P_i$ use only relations in $edb(P_i)$. Hence, each $P_i$ is a semi-positive program and as such, it may be evaluated using the least fix-point semantics.
+For each $P_i$, $idb(P_i)$ consists of the relations defined in this stratum, while $edb(P_i)$ may contain only relations defined in earlier strata or relations from $edb(P)$. By definition of stratification, the negative subgoals in rules of $P_i$ use only relations in $edb(P_i)$. Hence, each $P_i$ is a semi-positive program and as such, it may be evaluated using the fix-point semantics.
 
 We require the programs in \datalogneg to be stratifiable. If $P$ can be stratified into $P_1, P_2, \dots P_n$, then the output of program $P$ on input $\textbf{I}$ is defined by applying programs $P_1, P_2, \dots P_n$ in a sequence:
 $$P(\textbf{I}) = P_n(\dots, P_2(P_1(\textbf{I}))\dots)$$
@@ -517,7 +514,61 @@ The program from example \ref{ex:pathsdatalog} computes for a given graph the le
 
 \chapter{The Pregel model for graph computations and its implementations}\label{r:pregel}
 
+Pregel is a computational model designed for large graph computations, introduced in 2010 by Google engineers \cite{pregel}. Its goal is to streamline implementation of graph algorithms by providing a framework which lets the programmer forget about distributing the computation, implementing the graph topology and addressing fault tolerance issues and instead focus on the problem at hand.
+
+Previously available were graph algorithm libraries such as BGL\cite{bgl} and GraphBase \cite{GraphBase} designed for a single computer, and this limited in the scale of problems they could solve, and parallel graph frameworks such Parallel BGL \cite{parallelbgl}, which did not address issues crucial in large data processing, such as fault-tolerance. Graph algorithms also used to be expressed as a series of MapReduce iterations, but this adds a significant overhead because of the need to dump the state of computation to disk after each iteration.
+
+Since introduction of Pregel, there have been many systems developed based on this model, most notably Apache Giraph, the open source implementation of the Pregel model. Pregel has been included in other, more general frameworks such as Spark as one of the available APIs. There have also been extensions to the model, such as Giraph++ \cite{giraphpp}.
+
+In the first section of this chapter, the Pregel model is described. The subsequent sections cover the most important open-source implementations of the model: Apache Giraph and Apache Spark's GraphX.
+
 \section{Pregel model and its original implementation}
+
+The name of the Pregel model comes from its initial proprietary implementation by Google and honors Leonard Euler, a famous Swiss mathematician and physicist and also a pioneer of the graph theory. In 1735, he formulated the first theorem in graph theory: a solution to an old question whether a Königsberg citizen could take a walk around the city so that he crossed each of the seven city's bridges exactly once. Euler concluded that it is impossible, because the graph bridges form is not what we today call an Euler graph --- a graph in which every vertex has an even degree. The name of river that flows through Königsberg and which the famous bridges spanned is Pregel.
+
+The model of computation in Pregel is based on the L. Valiant's Bulk Synchronous Parallel model. The computation is performed in a sequence of \emph{supersteps}. In each superstep, the framework executes on each vertex a \emph{vertex program} provided by the user. Vertices communicate by messages: a message sent by a vertex in superstep $S$ is delivered to its recipient in superstep $S+1$.
+
+The main concept in implementing algorithms on Pregel is to "think like a vertex". User is required to express the algorithm as a function executed locally on each vertex, where communication between vertices is allowed only across supersteps. Those local functions are then combined by the framework in an efficient way to perform the whole computation. This approach, similar to what happens in the MapReduce model, is well suited for distributed computations, since all local functions can be executed completely independently. At the same time, the synchronous structure of computation makes it easier to reason about the semantics of a program than in asynchronous systems and allows for fault-tolerance mechanisms.
+
+A Pregel program takes a directed graph as an input and performs computations that are allowed to modify this graph.
+Each vertex of the graph has a unique, constant \emph{vertex identifier} and is associated with some \emph{vertex data}, which can be modified during the computation, and \emph{outgoing edges}. Each such edge has a target vertex and some modifiable \emph{edge data}. The algorithm logic is described using the \emph{vertex program}.
+
+A computation is performed as a sequence of \emph{supersteps}. In each superstep the vertex program is concurrently executed on each vertex. The program is the same for each vertex, but can depend on the vertex identifier. The program executed on vertex $V$ receives messages sent to $V$ in the previous superstep. It can modify the vertex data and the data of its outgoing edges, send messages to other vertices to be delivered in the next superstep and change the topology of graph by adding or removing vertices or edges. A vertex can send messages not only to its neighbors, but also to other vertices if it knows their identifiers.
+
+The termination criterion is distributed. A vertex may \emph{vote to halt}. Initially, all vertices are in the \emph{active} state. If a vertex votes to halt, its state changes to \emph{inactive}. If an inactive vertex receives a message from another vertex, it is moved back to the active state. The vertex program is executed only on the active vertices. The computation is terminated when all vertices are in the inactive state.
+
+According to the original definition, the result of a computation are the values explicitly output by the vertices, but in most scenarios the graph state after the last superstep is assumed to be the output of the algorithm.
+
+Let us consider the following example: for a strongly connected graph with an integer value assigned to each node, compute the minimum of those values. This can be implemented in Pregel using the following vertex program:
+
+\begin{figure}[h!]
+\parbox{0.8\textwidth}{
+$\text{vertexProgram}(\textit{vertex, superstepNumber, incomingMessages}) \{$
+
+~~~~$\textit{newValue} \leftarrow \min(\textit{incomingMessages} \cup \{\textit{vertex.data}\})$;
+
+~~~~\textbf{if} $superstepNumber = 0$ \textbf{or} $\textit{newValue} < \textit{vertexValue}$ \textbf{then}
+
+~~~~~~~~\textbf{foreach} $\textit{edge} \in \textit{vertex.outgoingEdges}$ \textbf{do}
+
+~~~~~~~~~~~~~~\text{sendMessage}$(\textit{edge.targetVertex, newValue})$;
+
+~~~~~~~~$\textit{vertexValue} \leftarrow \textit{newValue}$;
+
+~~~~\text{voteToHalt()};
+
+$\}$
+}
+\caption{Pregel vertex program for computing minimum value among graph nodes:}
+\end{figure}
+
+In the first superstep, a vertex sends its value to all neighbors, and votes to halt. Upon reception of any new values, a vertex is activated and if the received values are lower than the value stored in the vertex, it is updated, and messages with the new value are sent. An example computation is presented on the image below.
+
+\todo{obrazek o obliczaniu min-value jak z pracy o pregelu}
+
+For another example, let us see how single source shortest paths can be computed using Pregel.
+
+\todo{SSSP - example}
 
 \section{Giraph}
 
@@ -529,13 +580,12 @@ Giraph++
 
 
 
-
 \chapter{SociaLite}\label{r:socialite}
 
 \todo{zastanów się co w jakiej kolejności jest najważniejsze (i zrozumiałe dla czytelnika)}
 
 SociaLite (\cite{socialite, distsoc}) is a graph query language based on Datalog. While Datalog allows to express some of graph algorithms
-in an elegant and succint way, many practical problems cannot be efficiently solved with Datalog programs. 
+in an elegant and succinct way, many practical problems cannot be efficiently solved with Datalog programs. 
 
 SociaLite allows a programmer to write intuitive queries using declarative semantics, which can often be executed as efficiently as highly optimized dedicated programs. The queries can then be executed in a distributed environment.
 
@@ -545,10 +595,10 @@ Most significant extension over Datalog in SociaLite is the ability to combine r
 
 \cite{distsoc} extends Sequential Socialite to \emph{Distributed SociaLite}, executable on a distributed architecture. It introduces a \emph{location operator}, which determines how the data and computations can be distributed. The programmer does not have to think about how to distribute the data between machines or manage the communication between them. He only specifies an abstract \emph{location} for each row in the data, and the data and computations are automatically sharded. Distributed SociaLite is covered in section \ref{s:distributed}
 
-Additionally, thanks to the declarative sematics of Datalog and SociaLite, it is possible to provide an important optimization: the \emph{delta stepping} technique, which is an effective way of parallelizing the Dijkstra algorithm \cite{deltastep}. In SociaLite, this technique can be applied automatically to a certain class of recursive aggregate programs. \todo{zostaw sobie TODO i zastanówi się czy to dasz radę zrobić (potrzebny tu komentarz)
+Additionally, thanks to the declarative semantics of Datalog and SociaLite, it is possible to provide an important optimization: the \emph{delta stepping} technique, which is an effective way of parallelizing the Dijkstra algorithm \cite{deltastep}. In SociaLite, this technique can be applied automatically to a certain class of recursive aggregate programs. \todo{zostaw sobie TODO i zastanówi się czy to dasz radę zrobić (potrzebny tu komentarz)
 Być może będzie oddzielny rozdział o optymalizacji i te akapity wylądują tam (że oni robili to i to, a ty to i to, bo bardziej pasowało). Wtedy tu wystarczy wspomnieć że w socialite je mają.}
 
-In distributed computations on large graphs, an approximate result is often enough. Usually we can observe the \emph{long tail} phenomenon in the computation, where a good approximate solution is achieved quickly, but it takes a long time to get to the optimal one. In SociaLite, by simply stopping the computaion, we can obtain an approximate solution found so far. \cite{distsoc} also shows a method which can significantly reduce memory requirements by storing the intermediate results in an approximate way using Bloom filters. Those topics are covered in section \ref{s:approxdist} \todo{to np. nie będzie jasne dopóki nie wiemy więcej}
+In distributed computations on large graphs, an approximate result is often enough. Usually we can observe the \emph{long tail} phenomenon in the computation, where a good approximate solution is achieved quickly, but it takes a long time to get to the optimal one. In SociaLite, by simply stopping the computation, we can obtain an approximate solution found so far. \cite{distsoc} also shows a method which can significantly reduce memory requirements by storing the intermediate results in an approximate way using Bloom filters. Those topics are covered in section \ref{s:approxdist} \todo{to np. nie będzie jasne dopóki nie wiemy więcej}
 
 \section{Datalog with recursive aggregate functions}\label{s:recaggr}
 
@@ -557,19 +607,19 @@ In this section we introduce the recursive aggregate functions extension from So
 \subsection{Motivation}
 Most graph algorithms are essentially some kind of iteration or recursive computation. Simple recursion can be expressed easily in Datalog. However, in many problems the computation results are gradually refined in each iteration, until the final result is reached. Examples of such algorithms are the Dijkstra algorithm for single source shortest paths or PageRank. Usually, it is difficult or impossible to express such algorithms in Datalog efficiently, as it would require computing much more intermediate results than it is actually needed to obtain the solution. We will explain that on an example: a simple program that computes shortest paths from a source node.
 
-A straightforward Datalog program for computing single source shortests paths (starting from node $1$) is presented below. Due to limitations of Datalog, this program computes all possible path lengths from node $1$ to other nodes in the first place, and after that for each node the minimal distance is chosen. Not only this approach results in bad performance, but causes the program to execute infinitely if a loop in the graph is reachable from the source node. \todo{czy to jest w Datalogu?
+A straightforward Datalog program for computing single source shortest paths (starting from node $1$) is presented below. Due to limitations of Datalog, this program computes all possible path lengths from node $1$ to other nodes in the first place, and after that for each node the minimal distance is chosen. Not only this approach results in bad performance, but causes the program to execute infinitely if a loop in the graph is reachable from the source node. \todo{czy to jest w Datalogu?
 trzeba wyjaśnić że to już jest rozszerzenie a teraz tylko chodzi o sposób wyliczania i zapętlanie}
 
-\program{}{
+\dprog{}{
   & \textsc{Path} (t, d) &&  & :- & && \textsc{Edge} (1, t, d). & \\
   & \textsc{Path} (t, d) &&  & :- & && \textsc{Path} (s, d_1), \textsc{Edge} (s, t, d_2), d = d_1 + d_2. & \\
   & \textsc{MinPath} (t, \textsc{Min}(d)) &&  & :- & && \textsc{Path} (t, d). &
 }{Datalog query for computing shortest paths from node 1 to other nodes}{ex:ssspdatalog}
 
-\datalogra allows aggregation to be combined with recursion under some conditions. This allows us to write staightforward programs for such problems, which finish execution in finite time and often are much more efficient than Datalog programs. An example \datalogra program that computes single source shortest paths is presented below. The relation $\textsc{Path}$ is declared so that for each \textit{target} the values in \textit{dist} column are aggregated using minimum operator.
+\datalogra allows aggregation to be combined with recursion under some conditions. This allows us to write straightforward programs for such problems, which finish execution in finite time and often are much more efficient than Datalog programs. An example \datalogra program that computes single source shortest paths is presented below. The relation $\textsc{Path}$ is declared so that for each \textit{target} the values in \textit{dist} column are aggregated using minimum operator.
 
 
-\program{
+\dprog{
   $\textsc{Edge}(\text{int } \textit{src}, \text{int } \textit{sink}, \text{int } \textit{len}) $ \\
   $\textsc{Path}(\text{int } \textit{target}, \text{int } \textit{dist} \text{ aggregate } \textsc{Min}) $
 }{
@@ -579,7 +629,7 @@ trzeba wyjaśnić że to już jest rozszerzenie a teraz tylko chodzi o sposób w
 
 While being very useful, recursive aggregation rules not always have an unambiguous solution. This is the case only under some conditions on the rules and the aggregation function itself.
 
-Typically, Datalog programs semantics is defined using the least fixed point of instance inclusion. This requires that the subsequent computation interations only add tuples to the database instance, but never remove tuples from the instance. This is the reason for which program \ref{ex:ssspdatalog} is inefficient. When recursive aggregate functions are allowed, this is not the case: a tuple in the instance can be replaced with a different one because a new aggregated value appeared. Consequently, in order to define SociaLite programs sematics in terms of least fixed point, we need to use a different order on database instances.
+Typically, Datalog programs semantics is defined using the fixed point of instance inclusion. This requires that the subsequent computation iterations only add tuples to the database instance, but never remove tuples from the instance. This is the reason for which program \ref{ex:ssspdatalog} is inefficient. When recursive aggregate functions are allowed, this is not the case: a tuple in the instance can be replaced with a different one because a new aggregated value appeared. Consequently, in order to define SociaLite programs semantics in terms of fixed point, we need to use a different order on database instances.
 
 First, we will define a meet operation and show the order that it induces. Then we will show that if the aggregation function is a meet operation and corresponding rules are monotone with respect to this induced order, then the result of the program is unambiguously defined. We will also show how it can be computed efficiently.
 
@@ -672,9 +722,9 @@ If $R$ does have an aggregated column, then:
 \begin{itemize}
 \item $\sqsubseteq_R$ is reflexive: for each $R$, we have that  $\forall_{(q_1, ..., q_{n-1}, v) \in g(R)} \exists_{(q_1, ..., q_{n-1}, v) \in g(R)} v \preceq_{\aggfun_R} v $ because $\preceq_{\aggfun_R}$ is reflexive. Hence, $R \sqsubseteq_R R$.
 \item $\sqsubseteq_R$ is antisimmetric \todo{No, it is not antisimmetric, so this is not a partial order --- how to deal with that?}
-\item $\sqsubseteq_R$ is transistive: if $A \sqsubseteq_R B$ and $B \sqsubseteq_R  C$, then $\forall_{(q_1, ..., q_{n-1}, a) \in g(A)} \exists_{(q_1, ..., q_{n-1}, b) \in g(B)} a \preceq_{\aggfun_R} b $ and $\forall_{(q_1, ..., q_{n-1}, b) \in g(B)} \exists_{(q_1, ..., q_{n-1}, c) \in g(C)} b \preceq_{\aggfun_R} c$.
+\item $\sqsubseteq_R$ is transitive: if $A \sqsubseteq_R B$ and $B \sqsubseteq_R  C$, then $\forall_{(q_1, ..., q_{n-1}, a) \in g(A)} \exists_{(q_1, ..., q_{n-1}, b) \in g(B)} a \preceq_{\aggfun_R} b $ and $\forall_{(q_1, ..., q_{n-1}, b) \in g(B)} \exists_{(q_1, ..., q_{n-1}, c) \in g(C)} b \preceq_{\aggfun_R} c$.
 
-$\preceq_{\aggfun_R}$ is transistive, so $\forall_{(q_1, ..., q_{n-1}, a) \in g(A)} \exists_{(q_1, ..., q_{n-1}, c) \in g(C)} a \preceq_{\aggfun_R} c $, which means that $A \sqsubseteq_R C$.
+$\preceq_{\aggfun_R}$ is transitive, so $\forall_{(q_1, ..., q_{n-1}, a) \in g(A)} \exists_{(q_1, ..., q_{n-1}, c) \in g(C)} a \preceq_{\aggfun_R} c $, which means that $A \sqsubseteq_R C$.
 \end{itemize}
 
 \todo{Because of lack of antisimmetry it is only a preorder, not a partial order ---> how to deal with that?}
@@ -725,10 +775,10 @@ Let $h = g \circ f$.
 \begin{thm}
 If $f$ is monotone with respect to $\sqsubseteq$, i.e. $R_1 \subseteq R_2 \rightarrow f(R_1) \subseteq f(R_2)$, and there exists $n \ge 0 $, such that $h^n(\emptyset) = h^{n+1}(\emptyset)$, then $R^* = h^n(\emptyset)$ is the least fixed point of $h$, that is:
 \begin{enumerate}
-\item $R^* = h(R^*)$, i.e. $R^*$ is a fixpoint
-\item $R^* \sqsubseteq R$ for all $R$ such that $R = h(R)$, i.e. $R^*$ is smaller than any other fixpoint
+\item $R^* = h(R^*)$, i.e. $R^*$ is a fix-point
+\item $R^* \sqsubseteq R$ for all $R$ such that $R = h(R)$, i.e. $R^*$ is smaller than any other fix-point
 \end{enumerate}
-\todo{Extract the definition of fixpoint -- it does not have to be here, but where to put it?}
+\todo{Extract the definition of fix-point -- it does not have to be here, but where to put it?}
 \end{thm}
 
 \emph{Proof:} 
@@ -737,7 +787,7 @@ $g$ is monotone with respect to $\sqsubseteq$. Since we assumed that $f$ is mono
 
 We know that $\emptyset$ is smaller under $\sqsubseteq$ than any other element.
 
-Let us suppose that $I'$ is any fixpoint of $h$.  We know that $\emptyset \sqsubseteq I'$. Applying $h$ to both sides of the inequality $n$ times, we have that $I^* = h^n(\emptyset) \sqsubseteq h^n(I') = I'$, thanks to the monotonicity of $h$ with respect to $\sqsubseteq$. Therefore, the inductive fixed point $I^*$ is the least fixed point of $h$.
+Let us suppose that $I'$ is any fix-point of $h$.  We know that $\emptyset \sqsubseteq I'$. Applying $h$ to both sides of the inequality $n$ times, we have that $I^* = h^n(\emptyset) \sqsubseteq h^n(I') = I'$, thanks to the monotonicity of $h$ with respect to $\sqsubseteq$. Therefore, the inductive fixed point $I^*$ is the least fixed point of $h$.
 
 In pseudocode, the evaluation algorithm is straightforward:
 
@@ -843,17 +893,17 @@ Let $\sqsubseteq = \sqsubseteq_{R_1} \times \dots \sqsubseteq_{R_w}$.
 \begin{thm}
 If $h$ is monotone with respect to $\sqsubseteq$, i.e. $I \subseteq I' \rightarrow h(I) \subseteq f(I')$, and there exists $n \ge 0 $, such that $h^n(\emptyset) = h^{n+1}(\emptyset)$, then $I^* = h^n(\emptyset)$ is the least fixed point of $h$, that is:
 \begin{enumerate}
-\item $I^* = h(I^*)$, i.e. $I^*$ is a fixpoint
-\item $I^* \sqsubseteq I$ for all $I$ such that $I = h(I)$, i.e. $I^*$ is smaller than any other fixpoint
+\item $I^* = h(I^*)$, i.e. $I^*$ is a fix-point
+\item $I^* \sqsubseteq I$ for all $I$ such that $I = h(I)$, i.e. $I^*$ is smaller than any other fix-point
 \end{enumerate}
-\todo{Extract the definition of fixpoint -- it does not have to be here, but where to put it?}
+\todo{Extract the definition of fix-point -- it does not have to be here, but where to put it?}
 \end{thm}
 
 \emph{Proof:} 
 
 We know that $\emptyset$ is smaller under $\sqsubseteq$ than any other element.
 
-Let us suppose that $I'$ is any fixpoint of $h$.  We know that $\emptyset \sqsubseteq I'$. Applying $h$ to both sides of the inequality $n$ times, we have that $I^* = h^n(\emptyset) \sqsubseteq h^n(I') = I'$, thanks to the monotonicity of $h$ with respect to $\sqsubseteq$. Therefore, the inductive fixed point $I^*$ is the least fixed point of $h$.
+Let us suppose that $I'$ is any fix-point of $h$.  We know that $\emptyset \sqsubseteq I'$. Applying $h$ to both sides of the inequality $n$ times, we have that $I^* = h^n(\emptyset) \sqsubseteq h^n(I') = I'$, thanks to the monotonicity of $h$ with respect to $\sqsubseteq$. Therefore, the inductive fixed point $I^*$ is the least fixed point of $h$.
 
 In pseudocode, the evaluation algorithm is straightforward:
 
@@ -900,7 +950,7 @@ This optimization can be applied in \datalogra as well. To achieve this, we need
 
 
 \section{Tail-nested tables}\label{s:tnt}
-Another important extension in SociaLite are \emph{tail nested tables}, which optimize the memory layout so that it can be accessed in a faster way. While being very useful in practice, this optimization is not crucial for running such programs on distributed Giraph architecture. \todo{I don't want to have this in the compiler, but maybe describe here?}
+Another important extension in SociaLite are \emph{tail nested tables}, which optimize the memory layout so that it can be accessed in a faster way. While being very useful in practice, this optimization is not crucial for running such programs on distributed architecture. \todo{I don't want to have this in the compiler, but maybe describe here?}
 
 \section{Distributed SociaLite}\label{s:distributed}
 
@@ -908,7 +958,7 @@ Another important extension in SociaLite are \emph{tail nested tables}, which op
 
 \section{Approximate evaluation in Distributed SociaLite}\label{s:approxdist}
 
-\chapter{Translating SociaLite programs to Pregel}\label{r:s2g}
+\chapter{Translating SociaLite programs to Pregel}\label{r:s2p}
 
 \chapter{Implementation}\label{r:implementation}
 
@@ -925,7 +975,7 @@ Another important extension in SociaLite are \emph{tail nested tables}, which op
 
 \bibitem{fod} S. Abiteboul, R. Hull, and V. Vianu: \textit{Foundations of Databases}. Addison-Wesley (1995)
 
-\bibitem{wfom} T.J. Ameloot, B. Ketsman, F. Neven, D. Zinn: \textit{Weaker Forms of Monotonicity for Declarative Networking: a more fine-grained answer to the CALM-conjecture}, PODS (2014) ...???..
+\bibitem{wfom} T.J. Ameloot, B. Ketsman, F. Neven, D. Zinn: \textit{Weaker Forms of Monotonicity for Declarative Networking: a more fine-grained answer to the CALM-conjecture}, PODS 2014
 
 \bibitem{mapreduce} Jeffrey Dean , Sanjay Ghemawat: \textit{MapReduce: simplified data processing on large clusters}, Proceedings of the 6th conference on Symposium on Opearting Systems Design \& Implementation, 2004
 
@@ -944,6 +994,32 @@ single source shortest path algorithm.} ESA, 1998.
 \bibitem{KRS88a} M. Kifer, R. Ramakrishnan, A. Silberschatz:  \textit{An axiomatic approach to deciding query safety in deductive databases}, Proc. ACM Symp. on Principles of Database Systems, 1988.
 \bibitem{KRS88b} R. Krishnamurthy, R. Ramakrishnan, O. Shmueli:  \textit{A framework for testing safety and effective computability of extended Datalog}, Proc. ACM SIGMOD Symp. on the Management of Data, 1988.
 \bibitem{SV89} Y. Sagiv, M. Y. Vardi:  \textit{Safety of datalog queries over infinite databases}.  Proc. ACM Symp. on Principles of Database Systems, 1989.
+
+\bibitem{spark} Matei Zaharia, Mosharaf Chowdhury, Michael J. Franklin, Scott Shenker, Ion Stoica: \textit{Spark: Cluster Computing with Working Sets}, HotCloud 2010
+\bibitem{pointanalysis} J. Whaley, M. S. Lam: \textit{Cloning-based context-sensitive pointer alias analyses using binary decision diagrams} In PLDI, 2004.
+\bibitem{boomanalysis} P. Alvaro, T. Condie, N. Conway, K. Elmeleegy, J. M. Hellerstein, R. C. Sears: \textit{Boom analytics: Exploring data-centric, declarative programming for the cloud}, In EuroSys, 2010.
+\bibitem{dataloganalysis} P. Alvaro, W. R. Marczak, N. Conway, J. M. Hellerstein, D. Maier, R. Sears. \textit{Dedalus: Datalog in time and space.} In Datalog, 2010
+
+\bibitem{bsp} Leslie G. Valiant, \emph{A Bridging Model for Parallel Computation.} Comm. ACM 33(8), 1990, 103–111.
+
+\bibitem{bgl} Jeremy G. Siek, Lie-Quan Lee, Andrew Lumsdaine: \textit{The Boost Graph Library: User Guide and Reference Manual.} Addison Wesley, 2002.
+\bibitem{parallelbgl} Douglas Gregor, Andrew Lumsdaine: \textit{The Parallel BGL: A Generic Library for Distributed Graph Computations.} Proc. of Parallel Object-Oriented Scientific Computing (POOSC), July 2005.
+\bibitem{GraphBase} Donald E. Knuth: \textit{Stanford GraphBase: A Platform for Combinatorial Computing.} ACM Press, 1994.
+
+\bibitem{logicblox} http://www.logicblox.com/technology.html, Accessed: September 18th, 2014
+\bibitem{datomic} http://www.datomic.com, Accessed: September 18th, 2014
+\bibitem{giraph} http://giraph.apache.com, Accessed: September 18th, 2014
+\bibitem{sparkwww} http://spark.apache.com, Accessed: September 18th, 2014
+
+\bibitem{pagerank} S. Brin, L. Page. \textit{The anatomy of a large-scale hypertextual web search engine.} In WWW’98, 1998.
+\bibitem{mapreduce} J. Dean, S. Ghemawat: \textit{MapReduce: simplified data processing on large clusters.} In OSDI’04, 2004.
+
+\bibitem{magicsetsexist} Mario Alviano, Nicola Leone, Marco Manna, Giorgio Terracina, Pierfrancesco Veltri: \textit{Magic-Sets for Datalog with Existential Quantifiers.} Datalog 2012: 31-43
+\bibitem{disjunctivedatalog} Mario Alviano, Wolfgang Faber, Nicola Leone, Marco Manna: \textit{Disjunctive datalog with existential quantifiers: Semantics, decidability, and complexity issues.} TPLP 12(4-5): 701-718 (2012)
+\bibitem{datalogrelaunched} Francois Bry, Tim Furche, Clemens Ley, Bruno Marnette, Benedikt Linse, Sebastian Schaffert: \textit{Datalog relaunched: simulation unification and value invention}, Proceedings of the First international conference on Datalog Reloaded, March 16-19, 2010, Oxford, UK
+\bibitem{magicsets} Francois Bancilhon, David Maier, Yehoshua Sagiv, Jeffrey D Ullman: \textit{Magic sets and other strange ways to implement logic programs}. In Proceedings of the fifth ACM SIGACT-SIGMOD symposium on Principles of database systems (PODS '86). ACM, New York, NY, USA.
+\bibitem{subsumptivequeries} K. Tuncay Tekle, Yanhong A. Liu: \textit{More efficient datalog queries: subsumptive tabling beats magic sets.} In Proceedings of the 2011 ACM SIGMOD International Conference on Management of data (SIGMOD '11). ACM, New York, NY, USA.
+
 \end{thebibliography}
 
 
