@@ -496,20 +496,49 @@ $$P(\textbf{I}) = P_n(\dots, P_2(P_1(\textbf{I}))\dots)$$
 
 A program can have multiple stratifications, but it can be shown that $P(\textbf{I})$ does not depend on which of them is chosen.
 
+\todo{Może ilustracja precedence graph}
+
 \subsection{Datalog with non-recursive aggregation}\label{ss:datalognra}
 
-Datalog with negation and arithmetics is already a useful language, but for some queries one more feature is necessary: aggregation.
+Datalog with negation and arithmetics is already a useful language, but for some queries one more feature is necessary: aggregation using a certain function $f$. Aggregation works similarly to $\textsc{GroupBy}$ clause in SQL: when aggregation is applied to a certain column of a relation, all the facts in the relation are grouped by their values in the remaining columns and for each 
+Let us consider the following example of relation $\textsc{Rel}$:
 
-The program from example \ref{ex:pathsdatalog} computes for a given graph the lengths of all existing paths from source to other vertices. An interesting question in often what is the shortest path to each vertex.
+\begin{centab}{ | c | }
+  \hline
+  $\textsc{Rel}$ \\
+  \hline
+  $(1, 5, 5)$ \\
+  $(1, 5, 3)$ \\
+  $(1, 5, 4)$ \\
+  $(2, 3, 4)$ \\
+  $(2, 3, 5)$ \\
+  $(2, 4, 6)$ \\
+  \hline
+\end{centab}
 
-\todo{aggregation of a relation from a preceding stratum}
+If aggregation with function $\textsc{Min}$ is applied to the last column of this relation, the result is a new relation $\textsc{Aggregated-Rel}$
 
+\begin{centab}{ | c | }
+  \hline
+  $\textsc{Rel}$ \\
+  \hline
+  $(1, 5, 3) = (1, 5, \min{\{5, 3, 4\}})$ \\
+  $(2, 3, 4) = (2, 3, \min{\{4, 5\}})$ \\
+  $(2, 4, 6) = (1, 5, \min{\{6\}})$ \\
+  \hline
+\end{centab}
 
+A simple version of aggregation can be introduced in Datalog by allowing only to aggregate \emph{edb} relations. The semantics and evaluation is then straightforward. This definition can be extended in a simple way using the stratification method described in the previous section. Semantics for a program is defined if can be stratified in such a way that each aggregation is applied to a relation defined in a preceding stratum. Aggregation of a relation from the same stratum, i. e. recursive aggregation is discussed in Chapter \ref{socialite}
 
+For an example, let us recall the program from example \ref{ex:pathsdatalog}, which computes for a given graph the lengths of all existing paths from source to other vertices. An interesting question in often what is the shortest path to each vertex. This question can be answered using aggregation, by computing the minimum of distances for each vertex: 
 
+\dprog{}{
+  & \textsc{Path} (v, d) &&  & :- & && \textsc{Edge}(s, v, d) & \\
+  & \textsc{Path} (v, d) &&  & :- & && \textsc{Path} (t, d'), \textsc{Edge}(t, v, l), d = d' + l. &\\
+  & \textsc{MinPath} (t, \textsc{Min}(d)) &&  & :- & && \textsc{Path} (t, d). &
+}{Datalog query for computing all path lengths from a given source}{ex:pathsdatalogaggregate}
 
-
-
+In this example, there are two strata: \relat{Edge}{} is an \emph{edb} relation, \relat{Path}{} belongs to the first stratum and \relat{MinPath}{} belongs to the second stratum.
 
 
 \chapter{The Pregel model for graph computations and its implementations}\label{r:pregel}
