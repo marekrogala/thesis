@@ -111,7 +111,7 @@ With increasing computational power and memory space, we can expect more and mor
 
 The graphs mentioned can be a source of a huge amount of useful information. Hence, there is an increasing number of practical computational problems.
 Some of the analyses carried out are ranking of the graph nodes, e.g. importance of a Web page, determining most influential users in given group of people, detecting communities with clustering, computing metrics for the whole graph or some parts of it and connection predictions.
-Usually, such analyses are built on top of standard graph algorithms, such as variations of PageRank, shortest paths or connected components.
+Usually, such analyses are built on top of standard graph algorithms, such as variations of PageRank \cite{pagerank}, shortest paths or connected components.
 
 When dealing with so large graphs, distribution of the computations among many machines is inevitable. The graph size is often be too large to fit in one computer's memory. At the same time, performing useful computations on a single machine would take too much time for it to be a feasible solution. Sizes of the graphs are growing faster than the computational power of a computer, and so is the need for distributing the computations.
 
@@ -326,11 +326,52 @@ We will now prove that this is the minimum fix-point of $T_P$ containing $\textb
 \todo{example}
 
 \section{Evaluation of Datalog programs}
-\todo{}
+The most straightforward evaluation algorithm for Datalog programs is the iterative evaluation derived from the fix-point definition of semantics. While being having very simple formulation, this method is not efficient in a typical case due to excessive redundant computation. The most basic optimization adressing this problem is \emph{semi-naive} evaluation, which tries to avoid computations that can not bring any new facts. Naive and semi-naive evaluations are examples of the bottom-up strategy, where new facts are inferred based on the facts currently known.
+
+There are also other, more optimized evaluation methods, such as Magic Sets and Subsumptive queries as well. A top-down strategy is also possible, where queries are answered by making an attempt to prove a fact using available rules.
+
+This section briefly describes the ways to evaluate Datalog programs.
+
 \subsection{Naive evaluation}
+In naive evaluation, the computation starts with the initial database containing the \emph{edb} relations and repeatedly applies all the rules, until a fixpoint is reached.
+
+In pseudocode, if $T_P$ is the immediate consequence operator, the algorithm for evaluation of a program $P$ on an input $\textbf{K}$ can be written as:
+
+\parbox{0.5\textwidth}{
+$P(\textbf{K}) = \{$
+
+{\addtolength{\leftskip}{5mm}
+
+$I_0 \leftarrow K$
+
+$i \leftarrow 0$
+
+\textbf{do}
+
+{\addtolength{\leftskip}{5mm}
+
+$i \leftarrow i + 1$
+
+$I_i \leftarrow T_P(I_{i-1})$
+
+}
+
+\textbf{while} $I_i \ne I_{i-1}$
+
+\textbf{return} $I_i$
+
+}
+
+$\}$
+}
+
 \subsection{Semi-Naive evaluation}
+\emph{Semi-naive evaluation} is the most basic optimization used in Datalog evaluation. It comes from the following observation: in a Datalog program, if some rule $Q$ produced a fact $R(t)$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule with produce this fact in each subsequent iteration, because $I_j \supseteq I_i$ for $j > i$. The goal of this optimization is to avoid those computations after producing the fact for the first time. This is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration.
+
+\todo{example}
+
 \subsection{Other strategies}
-Bottom-up, top-down, Magic sets, ten fajny paper of Jana.
+\todo{Bottom-up, top-down, Magic sets, subsumptive queries.}
 
 \section{Typical extensions}
 Despite recursion, pure Datalog's expressive power is still not enough for many practical applications. Datalog is often extended with:
@@ -520,7 +561,7 @@ If aggregation with function $\textsc{Min}$ is applied to the last column of thi
 
 \begin{centab}{ | c | }
   \hline
-  $\textsc{Rel}$ \\
+  $\textsc{Aggregated-Rel}$ \\
   \hline
   $(1, 5, 3) = (1, 5, \min{\{5, 3, 4\}})$ \\
   $(2, 3, 4) = (2, 3, \min{\{4, 5\}})$ \\
@@ -528,7 +569,7 @@ If aggregation with function $\textsc{Min}$ is applied to the last column of thi
   \hline
 \end{centab}
 
-A simple version of aggregation can be introduced in Datalog by allowing only to aggregate \emph{edb} relations. The semantics and evaluation is then straightforward. This definition can be extended in a simple way using the stratification method described in the previous section. Semantics for a program is defined if can be stratified in such a way that each aggregation is applied to a relation defined in a preceding stratum. Aggregation of a relation from the same stratum, i. e. recursive aggregation is discussed in Chapter \ref{socialite}
+A simple version of aggregation can be introduced in Datalog by allowing only to aggregate \emph{edb} relations. The semantics and evaluation is then straightforward. This definition can be extended in a simple way using the stratification method described in the previous section. Semantics for a program is defined if can be stratified in such a way that each aggregation is applied to a relation defined in a preceding stratum. Aggregation of a relation from the same stratum, i. e. recursive aggregation, is much more difficult and is discussed in Chapter \ref{r:socialite}.
 
 For an example, let us recall the program from example \ref{ex:pathsdatalog}, which computes for a given graph the lengths of all existing paths from source to other vertices. An interesting question in often what is the shortest path to each vertex. This question can be answered using aggregation, by computing the minimum of distances for each vertex: 
 
@@ -597,7 +638,9 @@ In the first superstep, a vertex sends its value to all neighbors, and votes to 
 
 For another example, let us see how single source shortest paths can be computed using Pregel.
 
-\todo{SSSP - example}
+\todo{najkrótsze ścieżki - przykład}
+
+\todo{krótko o własnej implementacji Google'a}
 
 \section{Giraph}
 
@@ -967,7 +1010,7 @@ while $I_i \ne I_{i-1}$
 
 
 \subsection{Semi-naive evaluation -- one relation case}
-\emph{Semi-naive evaluation} is the most basic optimization used in Datalog. In comes from the following observation: in a Datalog program, if some rule $Q$ produced a tuple $t$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule with produce this tuple in each subsequent iteration, because $I_j \supseteq I_i$ for $j > i$. The goal of this optimization is to avoid such redundant computation. It is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration.
+\emph{Semi-naive evaluation} is the most basic optimization used in Datalog evaluation. In comes from the following observation: in a Datalog program, if some rule $Q$ produced a tuple $t$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule with produce this tuple in each subsequent iteration, because $I_j \supseteq I_i$ for $j > i$. The goal of this optimization is to avoid such redundant computation. It is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration.
 
 This optimization can be applied in \datalogra as well. To achieve this, we need to define function $f$ and the evaluation operation $E_I(Q)$ in a different way.
 
@@ -1006,6 +1049,8 @@ Another important extension in SociaLite are \emph{tail nested tables}, which op
 
 \bibitem{wfom} T.J. Ameloot, B. Ketsman, F. Neven, D. Zinn: \textit{Weaker Forms of Monotonicity for Declarative Networking: a more fine-grained answer to the CALM-conjecture}, PODS 2014
 
+\bibitem{pagerank} S. Brin, L. Page. \textit{The anatomy of a large-scale hypertextual web search engine.} In WWW’98, 1998.
+
 \bibitem{mapreduce} Jeffrey Dean , Sanjay Ghemawat: \textit{MapReduce: simplified data processing on large clusters}, Proceedings of the 6th conference on Symposium on Opearting Systems Design \& Implementation, 2004
 
 \bibitem{pregel} Grzegorz Malewicz, Matthew H. Austern, Aart J.C. Bik, James C. Dehnert, Ilan Horn, Naty Leiser, Grzegorz Czajkowski: \textit{Pregel: a system for large-scale graph processing}, Proceedings of the 2010 ACM SIGMOD International Conference on Management of data, 2010
@@ -1040,8 +1085,6 @@ single source shortest path algorithm.} ESA, 1998.
 \bibitem{giraph} http://giraph.apache.com, Accessed: September 18th, 2014
 \bibitem{sparkwww} http://spark.apache.com, Accessed: September 18th, 2014
 
-\bibitem{pagerank} S. Brin, L. Page. \textit{The anatomy of a large-scale hypertextual web search engine.} In WWW’98, 1998.
-\bibitem{mapreduce} J. Dean, S. Ghemawat: \textit{MapReduce: simplified data processing on large clusters.} In OSDI’04, 2004.
 
 \bibitem{magicsetsexist} Mario Alviano, Nicola Leone, Marco Manna, Giorgio Terracina, Pierfrancesco Veltri: \textit{Magic-Sets for Datalog with Existential Quantifiers.} Datalog 2012: 31-43
 \bibitem{disjunctivedatalog} Mario Alviano, Wolfgang Faber, Nicola Leone, Marco Manna: \textit{Disjunctive datalog with existential quantifiers: Semantics, decidability, and complexity issues.} TPLP 12(4-5): 701-718 (2012)
