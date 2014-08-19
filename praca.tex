@@ -1,6 +1,9 @@
 \documentclass{pracamgr}
 
+\usepackage{amsmath, amsfonts,amssymb,amsthm,epsfig,epstopdf,url,array,bm,color}
+
 \usepackage{polski}
+\usepackage[english,polish]{babel}
 \usepackage[utf8]{inputenc}
 
 \usepackage{verbatim}
@@ -8,7 +11,6 @@
 \usepackage[section]{placeins}
 \usepackage[font=small]{caption}
 
-\usepackage{amsmath,amsfonts,amssymb,amsthm,epsfig,epstopdf,url,array,bm,color}
 \usepackage{program}
 
 % Dane magistranta:
@@ -33,14 +35,12 @@
 11.3 Informatyka\\
 }
 
-%Klasyfikacja tematyczna wedlug AMS (matematyka) lub ACM (informatyka)
-\klasyfikacja{TODO --- SD	H.2.3 Query languages\\ }
+\klasyfikacja{Information Systems: Query languages }
 
 % Słowa kluczowe:
-\keywords{TODO -- graph queries, Datalog}
+\keywords{Przetwarzanie dużych grafów, deklaratywne języki zapytań, obliczenia na dużych zbiorach danych, Datalog, SociaLite, Apache Spark, Hadoop. \\
+Large graphs processing, Declarative query languages, Computations on large datasets, Datalog, SociaLite, Apache Spark, Hadoop}
 
-% WLASNE MAKRA
-% TODO: uporzadkowac to
 \theoremstyle{plain}
 \newtheorem{thm}{Theorem}[section]
 \newtheorem{lem}[thm]{Lemma}
@@ -71,6 +71,14 @@
 
 \newcommand{\narrow}[1]{\begin{changemargin}{2cm}{2cm} #1 \end{changemargin}}
 \newcommand{\relat}[2]{$\textsc{#1}#2$}
+\newcommand{\rdprog}[2]{
+  \narrow{
+      #1
+      \begin{flalign*}
+      #2
+      \end{flalign*}
+    }
+}
 \newcommand{\dprog}[4]{
   \begin{figure}[h!]
     \narrow{
@@ -80,7 +88,7 @@
       \end{flalign*}
       \caption{#3}
       \label{#4}
-  }
+    }
 \end{figure}
 
 }
@@ -134,12 +142,12 @@ The work consists of six chapters. In Chapter~\ref{r:datalog} we recall definiti
 \section{Basic definitions}\label{r:basicdefs}
 Let us give some basic definitions which will be used in this paper.
 
-The languages considered in the paper operate on databases, which consist of relations identified by relation names. The databases can contain any value from an countable infinite set $\bm{dom}$ called the \emph{domain}. The programs use variables from a set $\bf{var}$, which is disjoint from $\bf{dom}$.
+The languages considered in the paper operate on databases, which consist of relations identified by relation names. The databases can contain any value from an countable infinite set $\textbf{dom}$ called the \emph{domain}. The programs use variables from a set $\bf{var}$, which is disjoint from $\bf{dom}$.
 
 \begin{defn}
 A \emph{database schema} is a collection of relation names $R$ with arity $ar(R) \ge 0$ defined for each relation.
 
-Given a database schema $\sigma$, let $R$ is a relation in $\sigma$ with arity $n$. A \emph{fact} over $R$ is an expression $R(x_1 , \dots , x_n)$, where each $x_i \in \bm{dom}$. A fact is sometimes written in the form $R(v)$ where $v \in \bf{dom}^n$ is a tuple. A \emph{relation} or \emph{relation instance} over $R$ is defined as a finite set of facts over $R$.
+Given a database schema $\sigma$, let $R$ is a relation in $\sigma$ with arity $n$. A \emph{fact} over $R$ is an expression $R(x_1 , \dots , x_n)$, where each $x_i \in \textbf{dom}$. A fact is sometimes written in the form $R(v)$ where $v \in \textbf{dom}^n$ is a tuple. A \emph{relation} or \emph{relation instance} over $R$ is defined as a finite set of facts over $R$.
 
 A \emph{database instance} $I$ over database schema $\sigma$ is a union of relations over $R$, where $R \in \sigma$.
 
@@ -150,6 +158,7 @@ Elements of $\bm{dom}$ are called \emph{constants}, whereas elements of $\bf{var
 If $f$ is a function $f: D \to D$ and $f(x) = x$ for an $x \in D$, then $x$ is called a \emph{fix-point} of $f$.
 \end{defn}
 
+\todo{valuation}
 
 
 \chapter{Datalog}\label{r:datalog}
@@ -266,18 +275,38 @@ $$ \textsc{R}(\nu(x)) :- R_1(\nu(x_1)), \dots, R_n(\nu(x_n)). $$
 \end{defn}
 
 \begin{exmp}
-\todo{jakis fajny przyklad programu, jakie jest edb, jakie jest idb, instantiation jakiejs reguly}
+As an example, let us consider the following program $P$:
+
+\rdprog{}{
+  & \textsc{Mother} (parent, child) &&  & :- & && \textsc{Parent}(parent, child), \textsc{Woman}(parent) & \\
+  & \textsc{Father} (parent, child) &&  & :- & && \textsc{Parent}(parent, child), \textsc{Man}(parent) & \\
+  & \textsc{Ancestor} (ancestor, child) &&  & :- & && \textsc{Parent} (ancestor, child) &\\
+  & \textsc{Ancestor} (ancestor, child) &&  & :- & && \textsc{Ancestor} (ancestor, parent), \textsc{Parent} (parent, child) &\\
+}{}{}
+
+Assuming that \relat{Parent}{(p, c)} means that $p$ is $c$'s parent and \relat{Woman}{(x)} and \relat{Man}{(x)} tell whether person $x$ is a woman or a man, this program computes child's father, mother and all its ancestors that can be derived.
+
+\emph{edb} and \emph{idb} for $P$ are the following:
+\begin{align*}
+edb(P) =& \{\textsc{Parent}, \textsc{Man}, \textsc{Woman}\} \\
+idb(P) =& \{\textsc{Mother}, \textsc{Father}, \textsc{Ancestor}\}
+\end{align*}
+
+\relat{Parent}{}, \relat{Man}{}, \relat{Man}{} are \emph{edb} relations, because there are no rules for those relations. All of their contents must be provided as an input. On the other hand, \relat{Mother}{}, \relat{Father}{}, \relat{Ancestor}{} are \emph{idb} relations, since there are rules for computing them. Only one of them, \relat{Ancestor}{} is recursively defined.
+
+If $Anna, Chris, Patrick$ are some values in the domain, an example of an instantiation of the last rule is:
+$$\textsc{Ancestor}(Anna, Chris) :- \textsc{Ancestor} (Anna, Patrick), \textsc{Parent} (Patrick, Chris)$$
 \end{exmp}
 
 \subsection{Differences between Datalog and Prolog}
 Despite the close relation between Datalog and logic programming languages, there are some significant differences:
 \begin{itemize}
-\item in Prolog, one can use function symbols, which are not permitted in Datalog
-\item in Prolog, there is a cut operator which is not present in Datalog (some versions of Datalog have the notion of negation, but it is still different from the cut operator)
-\item Datalog programs focus on querying possibly large databases with a limited number of rules, whereas in logic programming the initial data is usually embedded in the source code of the program.
+\item in Prolog, one can use complex terms as arguments to predicates, for example $p(s(x), y)$, which is not permitted in Datalog, where the only allowed arguments are domain elements or variables: $p(x, y)$.
+\item in Prolog, there is a cut operator which is not present in Datalog. While some versions of Datalog have the notion of negation, but it is still different than the cut operator.
+\item Datalog requires the rules to be \emph{safe}, which means that every variable mentioned in a rule must be also mentioned at least once in a non-negated, non-arithmetic sense
+\item 
 \end{itemize}
 
-\todo{moze przyklady}
 
 \section{Datalog semantics}
 Semantics of a Datalog program can be defined using one of three different equivalent approaches.
@@ -293,7 +322,7 @@ In this section we show the fix-point semantics for Datalog programs. A central 
 
 Given a Datalog program $P$, let $\textbf{K}$ be a database instance over $sch(P)$.
 
-We say that a fact $R(v)$ is an \emph{immediate consequence} for $\textbf{K}$ and $P$ if $ \in \textbf{K}$ or there exists an instantiation $R(v) :- R_1(v_1), \dots, R_n(v_n)$ of a rule in $P$ such that $R_i(v_i) \in \textbf{K}$ for each $i = 1\dots n$.
+We say that a fact $R(v)$ is an \emph{immediate consequence} for $\textbf{K}$ and $P$ if $R(v) \in \textbf{K}$ or there exists an instantiation $R(v) :- R_1(v_1), \dots, R_n(v_n)$ of a rule in $P$ such that $R_i(v_i) \in \textbf{K}$ for each $i = 1\dots n$.
 
 The \emph{immediate consequence operator} for a Datalog program $P$ is a function $T_P: inst(sch(P)) \to inst(sch(P))$:
 $$T_P(\textbf{K}) = \{ F: F \text{ is a fact over } sch(P) \text{ and $F$ is an immediate consequence for } \textbf{K} \text{ and } P \}$$
@@ -323,7 +352,68 @@ $adom(P) \cup adom(\textbf{K})$ and the database schema $sch(P)$ of $P$ are all 
 We will now prove that this is the minimum fix-point of $T_P$ containing $\textbf{K}$. Let us suppose that $\textbf{J}$ is a fix-point of $T_P$ containing  $\textbf{K}$:  $\textbf{K} \subseteq \textbf{J}$. By applying $T_P$ $n$ times to both sides of the inequality, we have that $T_P^*(\textbf{K}) = T_P^n(\textbf{K}) \subseteq \textbf T_P^n(\textbf{J} = \textbf{J}$. Hence, $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$.
 
 
-\todo{example}
+\begin{exmp}
+Let us recall the example program $P$ from the previous section:
+
+\rdprog{}{
+  & \textsc{Mother} (parent, child) &&  & :- & && \textsc{Parent}(parent, child), \textsc{Woman}(parent) & \\
+  & \textsc{Father} (parent, child) &&  & :- & && \textsc{Parent}(parent, child), \textsc{Man}(parent) & \\
+  & \textsc{Ancestor} (ancestor, child) &&  & :- & && \textsc{Parent} (ancestor, child) &\\
+  & \textsc{Ancestor} (ancestor, child) &&  & :- & && \textsc{Ancestor} (ancestor, parent), \textsc{Parent} (parent, child) &\\
+}{}{}
+
+Given the following \emph{edb} database instance \textbf{K}:
+
+\begin{center}
+\begin{tabular}{l}
+\relat{Parent}{(Anna, Bill)}\\
+\relat{Parent}{(Bill, Chris)}\\
+\relat{Parent}{(Anna, David)}\\
+\relat{Parent}{(Chris, Eva)}\\
+\end{tabular}
+\quad
+\begin{tabular}{l}
+\relat{Woman}{(Anna)}\\
+\relat{Woman}{(Eva)}\\
+\relat{Man}{(Bill)}\\
+\relat{Man}{(Chris)}\\
+\relat{Man}{(David)}\\
+\end{tabular}
+\end{center}
+
+The minimal fix-point of $T_P$ containing \textbf{K} is:
+
+\begin{center}
+\begin{tabular}{l}
+\relat{Parent}{(Anna, Bill)}\\
+\relat{Parent}{(Bill, Chris)}\\
+\relat{Parent}{(Anna, David)}\\
+\relat{Parent}{(Chris, Eva)}\\
+\relat{Woman}{(Anna)}\\
+\relat{Woman}{(Eva)}\\
+\end{tabular}
+\quad
+\begin{tabular}{l}
+\relat{Man}{(Bill)}\\
+\relat{Man}{(Chris)}\\
+\relat{Man}{(David)}\\
+\relat{Mother}{(Anna, Bill)}\\
+\relat{Mother}{(Anna, David)}\\
+\relat{Father}{(Bill, Chris)}\\
+\relat{Father}{(Chris, Eva)}\\
+\end{tabular}
+\quad
+\begin{tabular}{l}
+\relat{Ancestor}{(Anna, Bill)}\\
+\relat{Ancestor}{(Bill, Chris)}\\
+\relat{Ancestor}{(Anna, David)}\\
+\relat{Ancestor}{(Chris, Eva)}\\
+\relat{Ancestor}{(Anna, Chris)}\\
+\relat{Ancestor}{(Anna, Eva)}\\
+\end{tabular}
+\end{center}
+
+\end{exmp}\label{ex:ancestors}
 
 \section{Evaluation of Datalog programs}
 The most straightforward evaluation algorithm for Datalog programs is the iterative evaluation derived from the fix-point definition of semantics. While being having very simple formulation, this method is not efficient in a typical case due to excessive redundant computation. The most basic optimization adressing this problem is \emph{semi-naive} evaluation, which tries to avoid computations that can not bring any new facts. Naive and semi-naive evaluations are examples of the bottom-up strategy, where new facts are inferred based on the facts currently known.
@@ -365,10 +455,72 @@ $I_i \leftarrow T_P(I_{i-1})$
 $\}$
 }
 
+\begin{exmp}
+As an example, let us consider the following program, which computes a transitive closure of a binary relation \relat{R}{}:
+\begin{align}
+\textsc{Tc}(x, y) &:-& \textsc{R}(x, y).
+\textsc{Tc}(x, y) &:-& \textsc{Tc}(x, z), \textsc{Tc}(z, y).
+\end{align}
+
+Given $K = \{\textsc{R}(1, 2), \textsc{R}(2, 3), \textsc{R}(3, 4), \textsc{R}(2, 5)\}$, the values produced in subsequent iterations are:
+
+$$I_1 \leftarrow \{\textsc{R}(1, 2), \textsc{R}(2, 3), \textsc{R}(3, 4), \textsc{R}(2, 5), \textsc{Tc}(1, 2), \textsc{Tc}(2, 3), \textsc{Tc}(3, 4), \textsc{Tc}(2, 5)\}$$
+$$I_2 \leftarrow \{\textsc{R}(1, 2), \textsc{R}(2, 3), \textsc{R}(3, 4), \textsc{R}(2, 5), \textsc{Tc}(1, 2), \textsc{Tc}(2, 3), \textsc{Tc}(3, 4), \textsc{Tc}(2, 5), \textsc{Tc}(1, 3), \textsc{Tc}(2, 4), \textsc{Tc}(1, 5)\}$$
+$$I_3 \leftarrow \{\textsc{R}(1, 2), \textsc{R}(2, 3), \textsc{R}(3, 4), \textsc{R}(2, 5), \textsc{Tc}(1, 2), \textsc{Tc}(2, 3), \textsc{Tc}(3, 4), \textsc{Tc}(2, 5), \textsc{Tc}(1, 3), \textsc{Tc}(2, 4), \textsc{Tc}(1, 5), \textsc{Tc}(1, 4)\}$$
+\end{exmp}\label{ex:naiveeval}
+
 \subsection{Semi-Naive evaluation}
+Example \ref{ex:naiveeval} shows that evaluation that strictly follows the fix-point semantics definition may be inefficient. Most of the facts is computed more than once.
+
 \emph{Semi-naive evaluation} is the most basic optimization used in Datalog evaluation. It comes from the following observation: in a Datalog program, if some rule $Q$ produced a fact $R(t)$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule with produce this fact in each subsequent iteration, because $I_j \supseteq I_i$ for $j > i$. The goal of this optimization is to avoid those computations after producing the fact for the first time. This is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration.
 
-\todo{example}
+Let $T^\Delta_P$ denote a function that evaluates rules of program $P$ so that at least one new fact, i. e. inferred in the previous iteration, is used in application of a rule. This function needs to know which facts are the new ones, so it takes two arguments: $I$, the full database instance and $\Delta$, a database instance containing the facts that were added in the last iteration. Note that this function does not necessarily return facts from $I$, so we will need to add them to the facts newly computed. The following code presents the algorithm for semi-naive evaluation: 
+
+
+\parbox{0.5\textwidth}{
+$P(\textbf{K}) = \{$
+
+{\addtolength{\leftskip}{5mm}
+
+$I_0 \leftarrow K$
+$\Delta_0 \leftarrow K$
+
+$i \leftarrow 0$
+
+\textbf{do}
+
+{\addtolength{\leftskip}{5mm}
+
+$i \leftarrow i + 1$
+
+$C_i \leftarrow T_P^\Delta(I_{i-1}, \Delta_{i-1})$
+
+$I_i \leftarrow C_i \cup I_{i-1}$
+
+$\Delta_i \leftarrow I_i - I_{i-1}$
+
+}
+
+\textbf{while} $\Delta_i \ne \emptyset$
+
+\textbf{return} $I_i$
+
+}
+
+$\}$
+}
+
+
+
+\begin{exmp}
+Let us consider the program and input from Example \ref{ex:naiveeval}. The facts computed by the Semi-naive evaluation in subsequent iterations would be:
+
+$$C_1 \leftarrow \{\textsc{Tc}(1, 2), \textsc{Tc}(2, 3), \textsc{Tc}(3, 4), \textsc{Tc}(2, 5)\}$$
+$$C_2 \leftarrow \{\textsc{Tc}(1, 3), \textsc{Tc}(2, 4), \textsc{Tc}(1, 5)\}$$
+$$C_3 \leftarrow \{\textsc{Tc}(1, 4)\}$$
+\end{exmp}\label{ex:naiveeval}
+
+Semi-naive evaluation does assure that each fact will be computed once, but it eliminates a significant portion of redundant computation.
 
 \subsection{Other strategies}
 \todo{Bottom-up, top-down, Magic sets, subsumptive queries.}
@@ -850,7 +1002,6 @@ If $f$ is monotone with respect to $\sqsubseteq$, i.e. $R_1 \subseteq R_2 \right
 \item $R^* = h(R^*)$, i.e. $R^*$ is a fix-point
 \item $R^* \sqsubseteq R$ for all $R$ such that $R = h(R)$, i.e. $R^*$ is smaller than any other fix-point
 \end{enumerate}
-\todo{Extract the definition of fix-point -- it does not have to be here, but where to put it?}
 \end{thm}
 
 \emph{Proof:} 
