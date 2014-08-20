@@ -13,6 +13,9 @@
 
 \usepackage{program}
 
+%\usepackage{tikz}
+%\usetikzlibrary{arrows}
+
 % Dane magistranta:
 
 \author{Marek Rogala}
@@ -690,7 +693,7 @@ Let $P$ be a program in \datalogneg and $n = |idb(P)|$ be then number of \emph{i
 \begin{defn}
 A program that has stratification is called \emph{stratifiable}.
 \end{defn}
-
+gm
 For each relation $R \in idb(P )$, $\rho(R)$ is called its \emph{stratum number}.
 
 $\rho$ corresponds to a partitioning of $P$ into several subprograms $P_1, P_2, \dots, P_n$. Each of those programs is called a \emph{stratum} of $P$. The $i$-th stratum consists of the rules from $P$ which have a relation with stratum number $i$ in their head. We say that those relations are \emph{defined} in $P_i$.
@@ -765,6 +768,8 @@ The name of the Pregel model comes from its initial proprietary implementation b
 
 The model of computation in Pregel is based on the L. Valiant's Bulk Synchronous Parallel model. The computation is performed in a sequence of \emph{supersteps}. In each superstep, the framework executes on each vertex a \emph{vertex program} provided by the user. Vertices communicate by messages: a message sent by a vertex in superstep $S$ is delivered to its recipient in superstep $S+1$.
 
+\todo{BSP + diagram}
+
 The main concept in implementing algorithms on Pregel is to "think like a vertex". User is required to express the algorithm as a function executed locally on each vertex, where communication between vertices is allowed only across supersteps. Those local functions are then combined by the framework in an efficient way to perform the whole computation. This approach, similar to what happens in the MapReduce model, is well suited for distributed computations, since all local functions can be executed completely independently. At the same time, the synchronous structure of computation makes it easier to reason about the semantics of a program than in asynchronous systems and allows for fault-tolerance mechanisms.
 
 A Pregel program takes a directed graph as an input and performs computations that are allowed to modify this graph.
@@ -776,40 +781,100 @@ The termination criterion is distributed. A vertex may \emph{vote to halt}. Init
 
 According to the original definition, the result of a computation are the values explicitly output by the vertices, but in most scenarios the graph state after the last superstep is assumed to be the output of the algorithm.
 
+In practice, computations are performed on a number of workers much smaller than the number of vertices in the graph. This allows distributing the vertices between workers in a workload-balanced manner.
+
 Let us consider the following example: for a strongly connected graph with an integer value assigned to each node, compute the minimum of those values. This can be implemented in Pregel using the following vertex program:
 
 \begin{figure}[h!]
 \parbox{0.8\textwidth}{
 $\text{vertexProgram}(\textit{vertex, superstepNumber, incomingMessages}) \{$
 
-~~~~$\textit{newValue} \leftarrow \min(\textit{incomingMessages} \cup \{\textit{vertex.data}\})$;
+~~~~$\textit{newValue} \leftarrow \min(\textit{incomingMessages} \cup \{\textit{vertex.value}\})$;
 
-~~~~\textbf{if} $superstepNumber = 0$ \textbf{or} $\textit{newValue} < \textit{vertexValue}$ \textbf{then}
+~~~~\textbf{if} $superstepNumber = 0$ \textbf{or} $\textit{newValue} < \textit{vertex.value}$ \textbf{then}
 
 ~~~~~~~~\textbf{foreach} $\textit{edge} \in \textit{vertex.outgoingEdges}$ \textbf{do}
 
 ~~~~~~~~~~~~~~\text{sendMessage}$(\textit{edge.targetVertex, newValue})$;
 
-~~~~~~~~$\textit{vertexValue} \leftarrow \textit{newValue}$;
+~~~~~~~~$\textit{vertex.value} \leftarrow \textit{newValue}$;
 
 ~~~~\text{voteToHalt()};
 
 $\}$
 }
-\caption{Pregel vertex program for computing minimum value among graph nodes:}
+\caption{Pregel vertex program for computing maximum value among graph nodes}
 \end{figure}
 
-In the first superstep, a vertex sends its value to all neighbors, and votes to halt. Upon reception of any new values, a vertex is activated and if the received values are lower than the value stored in the vertex, it is updated, and messages with the new value are sent. An example computation is presented on the image below.
+In the first superstep, a vertex sends its value to all neighbors, and votes to halt. Upon reception of any new values, a vertex is activated and if the received values are greater than the value stored in the vertex, it is updated, and messages with the new value are sent. An example computation is presented on the figure below. This figure comes from the original white paper about Pregel \cite{pregel}.
 
-\todo{obrazek o obliczaniu min-value jak z pracy o pregelu}
+\begin{center}
+\includegraphics[width=0.6\textwidth]{PregelMaxVal.png}
+\end{center}
 
-For another example, let us see how single source shortest paths can be computed using Pregel.
+For another example, let us see how single source shortest paths can be computed using Pregel. 
+We assume that the value for each vertex is initially set to $\infty$.
+In the first superstep the source vertex updates its value to $0$ and sends messages to its neighbors with a new distance. In the following supersteps,
+other vertices update their distances and send messages to their neighbors with a new possible distance. Each vertex votes to halt in each superstep, so when no more messages with distance updates are sent, the algorithm terminates. This will always happen in a finite number of supersteps, as long as all edges have non-negative lengths. At the end of computation, each vertex has its minimum distance from \textit{SOURCE} associated with it, or $\infty$ if it is not reachable.
 
-\todo{najkrótsze ścieżki - przykład}
+\begin{figure}[h!]
+\parbox{0.8\textwidth}{
+$\text{vertexProgram}(\textit{vertex, superstepNumber, incomingMessages}) \{$
 
-\todo{krótko o własnej implementacji Google'a}
+~~~~$\textit{initialDistance} \leftarrow \textbf{if }(vertex.id = SOURCE)~0~\textbf{else}~\infty$
+
+~~~~$\textit{minDistance} \leftarrow \min(\textit{incomingMessages} \cup \{\textit{initialDistance}\})$;
+
+~~~~\textbf{if} $\textit{newValue} < \textit{vertex.value}$ \textbf{then}
+
+~~~~~~~~$\textit{vertex.value} \leftarrow \textit{minDistance}$
+
+~~~~~~~~\textbf{foreach} $\textit{edge} \in \textit{vertex.outgoingEdges}$ \textbf{do}
+
+~~~~~~~~~~~~~~\text{sendMessage}$(\textit{edge.targetVertex, minDistance + edge.length})$;
+
+~~~~\text{voteToHalt()};
+
+$\}$
+}
+
+\caption{Pregel vertex program for shortest paths from \textit{SOURCE} to all other vertices}
+\end{figure}
+
+
+An important goal in large dataset computations is to achieve fault-tolerance, so the computation can be continued in case of a failure of some of the machines in the cluster. In Pregel, this is achieved by \emph{checkpointing}. Once in a few supersteps, the workers are required to save their state to the disk. When any of the workers fails, the computation is resumed from the last checkpoint.
+
+In addition to the general model, Pregel also has some additional features enhancing usability and efficiency, such as \emph{aggregators} for efficiently gathering and broadcasting global values and \emph{combiners} which can reduce the network bandwidth used by merging messages send from vertices placed on a given node.
+
+The original implementation by Google engineers is proprietary and was never released to the public. It is written entirely in C++ and tightly connected to the internal Google infrastructure, including the distributed file systems and execution environment.
 
 \section{Giraph}
+
+Giraph\cite{giraph} is an open-source implementation of the Pregel model.
+
+Giraph is built on top of Hadoop \cite{hadoop}, the widely-adopted framework for large datasets processing. Hadoop is a platform for big datasets computing at scale, consisting of HDFS --- distributed file system, YARN --- framework for managing the cluster and scheduling tasks, Hadoop MapReduce --- an open implementation of the MapReduce model and libraries for using these elements in other projects.
+
+
+
+\todo{
+Giraph was
+initially developed at Yahoo! and it was incubated at the Apache Foundation during summer
+2011. In 2012 Giraph was promoted as Apache Top Level Project. Giraph is a (open source)
+loose implementation of Google Pregel, and it is released under the Apache License. In 2013
+the 1.0 version was released, as a proof of its stability and the number of features added
+since its initial release. Giraph enlists contributors by Facebook, Twitter, LinkedIn, and it is
+currently used in production at some of these companies and others. Giraph shares with
+Pregel its computational model and its programming paradigm, but it extends the Pregel API
+and architecture by introducing a Master compute function, out-of-core capabilities, etc., and
+removing the single-point-of-failure (SPoF) represented by the master.
+}
+\todo{
+Web and online social graphs have been rapidly growing in size and scale during the past decade. In 2008, Google estimated that the number of web pages reached over a trillion. Online social networking and email sites, including Yahoo!, Google, Microsoft, Facebook, LinkedIn, and Twitter, have hundreds of millions of users and are expected to grow much more in the future. Processing these graphs plays a big role in relevant and personalized information for users, such as results from a search engine or news in an online social networking site.
+Graph processing platforms to run large-scale algorithms (such as page rank, shared connections, personalization-based popularity, etc.) have become quite popular. Some recent examples include Pregel and HaLoop. For general-purpose big data computation, the map-reduce computing model has been well adopted and the most deployed map-reduce infrastructure is Apache Hadoop. We have implemented a graph-processing framework that is launched as a typical Hadoop job to leverage existing Hadoop infrastructure, such as Amazon's EC2. Giraph builds upon the graph-oriented nature of Pregel but additionally adds fault-tolerance to the coordinator process with the use of ZooKeeper as its centralized coordination service.
+Giraph follows the bulk-synchronous parallel model relative to graphs where vertices can send messages to other vertices during a given superstep. Checkpoints are initiated by the Giraph infrastructure at user-defined intervals and are used for automatic application restarts when any worker in the application fails. Any worker in the application can act as the application coordinator and one will automatically take over if the current application coordinator fails.}
+
+różnce: master compute, out of core (na dysku)
+
 
 \section{Spark}
 Spark with GraphX
@@ -1250,6 +1315,7 @@ single source shortest path algorithm.} ESA, 1998.
 \bibitem{datomic} http://www.datomic.com, Accessed: September 18th, 2014
 \bibitem{giraph} http://giraph.apache.com, Accessed: September 18th, 2014
 \bibitem{sparkwww} http://spark.apache.com, Accessed: September 18th, 2014
+\bibitem{hadoop} http://hadoop.apache.com, Accessed: September 18th, 2014
 
 
 \bibitem{magicsetsexist} Mario Alviano, Nicola Leone, Marco Manna, Giorgio Terracina, Pierfrancesco Veltri: \textit{Magic-Sets for Datalog with Existential Quantifiers.} Datalog 2012: 31-43
@@ -1258,7 +1324,11 @@ single source shortest path algorithm.} ESA, 1998.
 \bibitem{magicsets} Francois Bancilhon, David Maier, Yehoshua Sagiv, Jeffrey D Ullman: \textit{Magic sets and other strange ways to implement logic programs}. In Proceedings of the fifth ACM SIGACT-SIGMOD symposium on Principles of database systems (PODS '86). ACM, New York, NY, USA.
 \bibitem{subsumptivequeries} K. Tuncay Tekle, Yanhong A. Liu: \textit{More efficient datalog queries: subsumptive tabling beats magic sets.} In Proceedings of the 2011 ACM SIGMOD International Conference on Management of data (SIGMOD '11). ACM, New York, NY, USA.
 
+\bibitem{giraphbook} Claudio Martella, Roman Shaposhnik, Dionysios Logothetis: \textit{Giraph in Action}, Early access edition, http://www.manning.com/martella/
+
 \end{thebibliography}
+
+\todo{http://giraph.apache.org/literature.html}
 
 
 \end{document}
