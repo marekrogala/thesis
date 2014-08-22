@@ -142,7 +142,6 @@ Despite the close relation between Datalog and logic programming languages, ther
 \item in Prolog, one can use complex terms as arguments to predicates, for example $p(s(x), y)$, which is not permitted in Datalog, where the only allowed arguments are domain elements or variables: $p(x, y)$.
 \item in Prolog, there is a cut operator which is not present in Datalog. While some versions of Datalog have the notion of negation, but it is still different than the cut operator.
 \item Datalog requires the rules to be \emph{safe}, which means that every variable mentioned in a rule must be also mentioned at least once in a non-negated, non-arithmetic sense
-\item 
 \end{itemize}
 
 
@@ -253,6 +252,7 @@ The minimal fix-point of $T_P$ containing \textbf{K} is:
 
 \end{exmp}\label{ex:ancestors}
 
+
 \section{Evaluation of Datalog programs}
 The most straightforward evaluation algorithm for Datalog programs is the iterative evaluation derived from the fix-point definition of semantics. While being having very simple formulation, this method is not efficient in a typical case due to excessive redundant computation. The most basic optimization adressing this problem is \emph{semi-naive} evaluation, which tries to avoid computations that can not bring any new facts. Naive and semi-naive evaluations are examples of the bottom-up strategy, where new facts are inferred based on the facts currently known.
 
@@ -311,10 +311,14 @@ I_3 \leftarrow \{&\textsc{R}(1, 2), \textsc{R}(2, 3), \textsc{R}(3, 4), \textsc{
 \end{align*}
 \end{exmp}\label{ex:naiveeval}
 
+\subsection{Datalog is inflationary}
+
+A simple observation is that the immediate consequence operator $T_P$ for any program $P$ is \emph{inflationary}, i. e. it possibly adds facts to the database, but can never remove any fact. In other words, $T_P(\bf{I}) \supseteq \bf{I}$ for any $I$. As a consequence, in an iterative evaluation which uses $T_P$, the database instance $\bf{I}_i$ inferred in step $i$ is a superset any of the database instance $\bf{I}_j$ that was derived in a previous step $j < i$. To name this property, we say that such semantics is \emph{inflationary}.
+
 \subsection{Semi-Naive evaluation}
 A straightforward implementation of $T_P$ definition is to perform a natural join on subgoal relations and a projection to head variables. Example \ref{ex:naiveeval} shows that such implementation may be inefficient, because most of the facts is computed more than once.
 
-\emph{Semi-naive evaluation} is the most basic optimization used in Datalog evaluation, which computes $T_P$ in a different way. It comes from the following observation: in a Datalog program, if some rule $Q$ produced a fact $R(t)$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule with produce this fact in each subsequent iteration, because $I_j \supseteq I_i$ for $j > i$. The goal of this optimization is to avoid those computations after producing the fact for the first time. This is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration. 
+\emph{Semi-naive evaluation} is the most basic optimization used in Datalog evaluation, in which $T_P$ in an optimized way. It comes from the following observation: in a Datalog program, if some rule $Q$ produced a fact $R(t)$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule with produce this fact in each subsequent iteration, because of the inflationary semantics of the language. The goal of this optimization is to avoid those computations after producing the fact for the first time. This is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration. 
 
 Let $T^\Delta_P$ denote a function that evaluates rules of program $P$ so that at least one new fact is used in application of a rule. This function needs to know which facts are the new ones, so it takes two arguments: $I$, the full database instance and $\Delta$, a database instance containing the facts that were added in the last iteration. Note that this function does not necessarily return facts from $I$, so we will need to add them to the facts newly computed to get the same result as $T_P$: $T_P(I_i) = I_i \cup T_P^\Delta(I_i, \Delta_i)$ for each $i$. The following code presents the algorithm for semi-naive evaluation: 
 
