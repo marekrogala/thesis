@@ -139,7 +139,7 @@ Unfortunately, there is no solid implementation of SociaLite available. The inte
 
 The goal of this work is to bridge the gap between the theoretical idea for SociaLite and a practical implementation and to draw a path towards its usage in the industry. We show how to translate SociaLite declarative programs into Pregel "think-like-a-vertex" programs and introduce a compiler that enables SociaLite programs to be executed on existing infrastructure. This allows its users to write and execute SociaLite programs without any additional effort to build a dedicated server infrastructure for that.
 
-This works presents an experimental implementation of the SociaLite language on the Apache Spark platform. Spark is an open-source project which provides a general platform for processing large datasets which has gained a huge momentum since the initial white paper in 2010 \cite{spark} and inclusion into Apache Incubator in June 2013. Distinctive features of Spark are the ability keep cached data in nodes memory, which gives impressive speedups over other environments like Hadoop MapReduce and a powerful API allowing for various usages including MapReduce, machine learning, computations on graphs and stream data processing. In February 2014 Spark became a top-level project of the Apache Foundation, and in since July 2014 it is included in the Cloudera CDH, a popular enterprise platform for Hadoop deployment. Spark is already a stable, well-tested platform which is being intensively developed and can be expected to become a new industry standard in large datasets processing. For these reasons, it has been chosen as the most promising implementation platform for the S2P compiler.
+This works presents an experimental implementation of the SociaLite language on the Apache Spark platform. Spark \cite{spark2} is an open-source project which provides a general platform for processing large datasets which has gained a huge momentum since the initial white paper in 2010 \cite{spark} and inclusion into Apache Incubator in June 2013. Distinctive features of Spark are the ability keep cached data in nodes memory, which gives impressive speedups over other environments like Hadoop MapReduce and a powerful API allowing for various usages including MapReduce, machine learning, computations on graphs and stream data processing. In February 2014 Spark became a top-level project of the Apache Foundation, and in since July 2014 it is included in the Cloudera CDH, a popular enterprise platform for Hadoop deployment. Spark is already a stable, well-tested platform which is being intensively developed and can be expected to become a new industry standard in large datasets processing. For these reasons, it has been chosen as the most promising implementation platform for the S2P compiler.
 
 The work consists of six chapters. In Chapter~\ref{r:datalog} we recall definitions of Datalog and its evaluation methods while Chapter~\ref{r:pregel} contains an introduction to the Pregel computation model. In Chapter~\ref{r:socialite} we describe the extensions introduced by SociaLite and provide formal definitions and general-case proofs which the original papers lack. Chapter \ref{r:s2p} shows the translation procedure from SociaLite to Pregel programs implemented in the S2P compiler, which is described in Chapter~\ref{r:implementation}. In Chapter~\ref{r:summary} we sketch the possible future work and the path to industrial implementation of the language using the S2P compiler.
 
@@ -850,37 +850,61 @@ The original implementation by Google engineers is proprietary and was never rel
 
 \section{Giraph}
 
-Giraph\cite{giraph} is an open-source implementation of the Pregel model.
+Giraph\cite{giraph} is an open-source implementation of the Pregel model. It implements the original Pregel loosely, adding a few extensions to the version originally described by Google. Those extensions include introducing a possibility to perform computations on the master node, capabilities to work with a support of external memory and removing the single-point-of-failure (SPoF) by adding spare master nodes, which can become active when the primary master node fails.
 
 Giraph is built on top of Hadoop \cite{hadoop}, the widely-adopted framework for large datasets processing. Hadoop is a platform for big datasets computing at scale, consisting of HDFS --- distributed file system, YARN --- framework for managing the cluster and scheduling tasks, Hadoop MapReduce --- an open implementation of the MapReduce model and libraries for using these elements in other projects.
 
+Development of Giraph was started by Yahoo!. The project was donated to the Apache Foundation as an incubator project in 2011. It became a Top Level Project of the Apache Foundation in 2012. A stable version 1.0 was released in 2013. There are several large companies including Facebook, Twitter and LinkedIn using the project extensively and engaged in the development. The most active user is Facebook, which executes Giraph programs on social graphs with up to $10^12 edges$ \cite{giraphfb}. In 2013, Facebook published an article \cite{giraphfb} stating that analyzing so large graphs was impossible with the software available in 2012. The article describes the optimizations and enhancements made in Giraph to be able to run jobs with this amount of data on their infrastructure:
+\begin{itemize}
+\item Flexible graph input: vertices and edges can be loaded from several sources and the framework takes care of distributing them correctly before the start of computation. This eliminates the need for preprocessing the graph with a MapReduce job so that each vertex data is in the same place as all its edges.
+\item Multithreaded execution of on a single machine, which allows for better resource sharing than in case of workers distributed across different machines.
+\item Memory usage optimization: by serializing the data using primitive types instead of Java objects, the memory usage was significantly reduced, resulting in 10 times lower execution time.
+\item Sharded aggregators: instead of aggregators being stored and distributed by the master node, they are stored in a distributed way, which scales better for very large datasets.
+\end{itemize}
+One of Google Pregel creators and the primary author of the original white paper describing it, Grzegorz Malewicz, also works on Facebook's data infrastructure graph processing team which develops Giraph.
 
 
-\todo{
-Giraph was
-initially developed at Yahoo! and it was incubated at the Apache Foundation during summer
-2011. In 2012 Giraph was promoted as Apache Top Level Project. Giraph is a (open source)
-loose implementation of Google Pregel, and it is released under the Apache License. In 2013
-the 1.0 version was released, as a proof of its stability and the number of features added
-since its initial release. Giraph enlists contributors by Facebook, Twitter, LinkedIn, and it is
-currently used in production at some of these companies and others. Giraph shares with
-Pregel its computational model and its programming paradigm, but it extends the Pregel API
-and architecture by introducing a Master compute function, out-of-core capabilities, etc., and
-removing the single-point-of-failure (SPoF) represented by the master.
-}
 \todo{
 Web and online social graphs have been rapidly growing in size and scale during the past decade. In 2008, Google estimated that the number of web pages reached over a trillion. Online social networking and email sites, including Yahoo!, Google, Microsoft, Facebook, LinkedIn, and Twitter, have hundreds of millions of users and are expected to grow much more in the future. Processing these graphs plays a big role in relevant and personalized information for users, such as results from a search engine or news in an online social networking site.
-Graph processing platforms to run large-scale algorithms (such as page rank, shared connections, personalization-based popularity, etc.) have become quite popular. Some recent examples include Pregel and HaLoop. For general-purpose big data computation, the map-reduce computing model has been well adopted and the most deployed map-reduce infrastructure is Apache Hadoop. We have implemented a graph-processing framework that is launched as a typical Hadoop job to leverage existing Hadoop infrastructure, such as Amazon's EC2. Giraph builds upon the graph-oriented nature of Pregel but additionally adds fault-tolerance to the coordinator process with the use of ZooKeeper as its centralized coordination service.
-Giraph follows the bulk-synchronous parallel model relative to graphs where vertices can send messages to other vertices during a given superstep. Checkpoints are initiated by the Giraph infrastructure at user-defined intervals and are used for automatic application restarts when any worker in the application fails. Any worker in the application can act as the application coordinator and one will automatically take over if the current application coordinator fails.}
-
-różnce: master compute, out of core (na dysku)
-
+Graph processing platforms to run large-scale algorithms (such as page rank, shared connections, personalization-based popularity, etc.) have become quite popular. Some recent examples include Pregel and HaLoop. For general-purpose big data computation, the map-reduce computing model has been well adopted and the most deployed map-reduce infrastructure is Apache Hadoop. We have implemented a graph-processing framework that is launched as a typical Hadoop job to leverage existing Hadoop infrastructure, such as Amazon's EC2. Giraph builds upon the graph-oriented nature of Pregel but additionally adds fault-tolerance to the coordinator process with the use of ZooKeeper as its centralized coordination service.}
 
 \section{Spark}
-Spark with GraphX
+Apache Spark \cite{spark, spark2} is an open-source framework for distributed data analytics. It started in 2009 in the AMPLab at University of California, Berkeley. Since that time it has gained a huge momentum and has quickly growing community of users and contributors \cite{sparkgrowingcommunity}. Since 2009, over 250 individual developers contributed to Spark, and its permanent contributors come from 12 companies and institutions \cite{sparkwww}. Among others, it is being used by companies such as Yahoo, IBM, Intel, Alibaba, Cloudera and Databricks.
+
+Spark's computational model is able to express programs in more specialized models such as MapReduce and Pregel and is also suitable for new applications that these systems do not support, like interactive data mining and stream data processing.
+
+The two key advantages of Spark are:
+\begin{itemize}
+\item its impressive speed: Spark is in some cases even 100 times faster than equivalent computations in Hadoop MapReduce
+\item its simplicity and ease of use: it offers  APIs in Scala, Java, Python which allow developers to quickly develop programs performing even complicated calculations and a standalone running mode which lets developers set up environment and prototype programs locally without the need to set up Apache Hadoop 
+\end{itemize}
+
+Similarly to Apache Giraph, Spark is a Top-Level Project of the Apache Foundation. Previously to promotion as a Top-Level Project in February 2014 \cite{sparktoplevel}, it was an in the Apache Incubator program since June 2013. 
+
+Spark fits into the Hadoop ecosystem by being able to run on Hadoop clusters without any additional installation and supporting data input from various Hadoop data stores such as HDFS, HBase and Cassandra. It is not tied, however, to Hadoop infrastructure: it can also run as a standalone deployment in a cluster or on other distributed platforms such as Mesos \cite{mesos} and Amazon EC2 \cite{ec2}.
+
+\subsection{Resilient Distributed Datasets}
+The key concept in Spark is the \emph{RDD} or \emph{Resilient Distributed Dataset}. RDDs are an abstraction of distributed memory, which let the programmer perform distributed computations. They are stored in a way that is transparent to the user and assure fault tolerance.
+
+Other distributed memory abstractions, such as distributed key-value stores and databases, provide a fine-grained interface to the memory, like reads and updates of particular cells in a table. In contrast to such systems, RDDs provide only a \emph{coarse-grained} interface: operations that are applied to the whole dataset, such as map, filter and join. This allows for achieving fault-tolerance by storing only the history of operations that were used to build a dataset, called its \emph{lineage}, instead of replicating the data to be able to recover it. An additional advantage is that the RDDs do not need to be materialised, unless it is actually necessary. Since parallel computations generally apply some transformation to multiple elements of a dataset, in most cases they can be expressed easily with coarse-grained operation on datasets.
+
+RDDs can be created only in two ways: loading a dataset from a distributed storage or from another dataset by applying coarse-grained functional operations called \emph{transformations}, such as \emph{map}, \emph{filter} and \emph{join}. For greater efficiency, the user can also control the \emph{persistence} of an RDD by indicating which RDDs are intended to be used in the future and as such should be materialised in the memory and the \emph{partitioning} of an RDD by indicating the key by which the records of RDD should be partitioned across the machines. Finally, the user can perform \emph{actions} on an RDD. Actions return a value of exports the dataset to some persistent storage. Avaiable actions include \emph{count}, which returns the number of elements in the RDD, \emph{collect}, which returns the records from the dataset and \emph{save}, which exports the records to an external storage.
+
+\subsection{High level tools}
+Spark offers a set of high level tools that demonstrate the capabilities of the Resilient Distributed Dataset model. Those tools are implemented as relatively small libraries on top of Spark's core. Currently available tools are:
+\begin{itemize}
+\item Spark SQL, allowing to seamlessly integrate SQL queries into Spark programs,
+\item Spark Streaming, which supports working on on-line streams of data
+\item MLlib, which is an implementation of common machine learning algorithms for classification, regression, clustering and dimensionality reduction
+\item GraphX, providing an interface for creating efficient graph algorithms, integrated with pre- and post- processing with regular Spark transformations
+\end{itemize}
+
+\subsection{Pregel API}
+One of the elements of the GraphX library is a general Pregel API, which allows for expressing programs written in the Pregel model and working on RDDs.
+Chapter \ref{r:implementation} describes an implementation of a Datalog API for Spark, which employs the method for translating Datalog and SociaLite programs to the Pregel model and uses Spark's Pregel API.
 
 \section{Other extensions}
-Giraph++
+\todo{Giraph++, is it necessary?}
 
 
 
@@ -1301,6 +1325,7 @@ single source shortest path algorithm.} ESA, 1998.
 \bibitem{SV89} Y. Sagiv, M. Y. Vardi:  \textit{Safety of datalog queries over infinite databases}.  Proc. ACM Symp. on Principles of Database Systems, 1989.
 
 \bibitem{spark} Matei Zaharia, Mosharaf Chowdhury, Michael J. Franklin, Scott Shenker, Ion Stoica: \textit{Spark: Cluster Computing with Working Sets}, HotCloud 2010
+\bibitem{spark2} Matei Zaharia, Mosharaf Chowdhury, Tathagata Das, Ankur Dave, Justin Ma, Murphy McCauley, Michael J. Franklin, Scott Shenker, Ion Stoica: \textit{Resilient distributed datasets: a fault-tolerant abstraction for in-memory cluster computing.} In Proceedings of the 9th USENIX conference on Networked Systems Design and Implementation (NSDI'12), 2012
 \bibitem{pointanalysis} J. Whaley, M. S. Lam: \textit{Cloning-based context-sensitive pointer alias analyses using binary decision diagrams} In PLDI, 2004.
 \bibitem{boomanalysis} P. Alvaro, T. Condie, N. Conway, K. Elmeleegy, J. M. Hellerstein, R. C. Sears: \textit{Boom analytics: Exploring data-centric, declarative programming for the cloud}, In EuroSys, 2010.
 \bibitem{dataloganalysis} P. Alvaro, W. R. Marczak, N. Conway, J. M. Hellerstein, D. Maier, R. Sears. \textit{Dedalus: Datalog in time and space.} In Datalog, 2010
@@ -1316,7 +1341,11 @@ single source shortest path algorithm.} ESA, 1998.
 \bibitem{giraph} http://giraph.apache.com, Accessed: September 18th, 2014
 \bibitem{sparkwww} http://spark.apache.com, Accessed: September 18th, 2014
 \bibitem{hadoop} http://hadoop.apache.com, Accessed: September 18th, 2014
-
+\bibitem{giraphfb} https://www.facebook.com/notes/facebook-engineering/scaling-apache-giraph-to-a-trillion-edges/10151617006153920, Accessed: September 18th, 2014
+\bibitem{sparktoplevel} https://blogs.apache.org/foundation/entry/the\_apache\_software\_foundation\_announces50, Accessed: September 18th, 2014
+\bibitem{sparkgrowingcommunity} http://databricks.com/blog/2013/10/27/the-growing-spark-community.html, Accessed: September 18th, 2014
+\bibitem{mesos} http://mesos.apache.org, Accessed: September 18th, 2014
+\bibitem{ec2} http://aws.amazon.com, Accessed: September 18th, 2014
 
 \bibitem{magicsetsexist} Mario Alviano, Nicola Leone, Marco Manna, Giorgio Terracina, Pierfrancesco Veltri: \textit{Magic-Sets for Datalog with Existential Quantifiers.} Datalog 2012: 31-43
 \bibitem{disjunctivedatalog} Mario Alviano, Wolfgang Faber, Nicola Leone, Marco Manna: \textit{Disjunctive datalog with existential quantifiers: Semantics, decidability, and complexity issues.} TPLP 12(4-5): 701-718 (2012)
