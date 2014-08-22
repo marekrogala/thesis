@@ -1,0 +1,381 @@
+
+\chapter{SociaLite}\label{r:socialite}
+
+\todo{zastanów się co w jakiej kolejności jest najważniejsze (i zrozumiałe dla czytelnika)}
+
+SociaLite (\cite{socialite, distsoc}) is a graph query language based on Datalog. While Datalog allows to express some of graph algorithms
+in an elegant and succinct way, many practical problems cannot be efficiently solved with Datalog programs. 
+
+SociaLite allows a programmer to write intuitive queries using declarative semantics, which can often be executed as efficiently as highly optimized dedicated programs. The queries can then be executed in a distributed environment.
+
+Most significant extension over Datalog in SociaLite is the ability to combine recursive rules with aggregation. Under some conditions, such rules can be evaluated incrementally and thus as efficiently as regular recursion in Datalog.
+
+\cite{socialite} introduces \emph{Sequential SociaLite}, intended to be executed on one machine, consisting of two main extensions: \emph{recursive aggregate functions} and \emph{tail-nested tables}. Recursive aggregate functions are the most important feature in Socialite -- in \ref{s:recaggr} we present a complete definition and proofs of correctness of that extension, which are missing in \cite{socialite}. Tail-nested tables are a much more straightforward extension -- an optimization of data layout in memory. They are described in \ref{s:tnt}
+
+\cite{distsoc} extends Sequential Socialite to \emph{Distributed SociaLite}, executable on a distributed architecture. It introduces a \emph{location operator}, which determines how the data and computations can be distributed. The programmer does not have to think about how to distribute the data between machines or manage the communication between them. He only specifies an abstract \emph{location} for each row in the data, and the data and computations are automatically sharded. Distributed SociaLite is covered in section \ref{s:distributed}
+
+Additionally, thanks to the declarative semantics of Datalog and SociaLite, it is possible to provide an important optimization: the \emph{delta stepping} technique, which is an effective way of parallelizing the Dijkstra algorithm \cite{deltastep}. In SociaLite, this technique can be applied automatically to a certain class of recursive aggregate programs. \todo{zostaw sobie TODO i zastanówi się czy to dasz radę zrobić (potrzebny tu komentarz)
+Być może będzie oddzielny rozdział o optymalizacji i te akapity wylądują tam (że oni robili to i to, a ty to i to, bo bardziej pasowało). Wtedy tu wystarczy wspomnieć że w socialite je mają.}
+
+In distributed computations on large graphs, an approximate result is often enough. Usually we can observe the \emph{long tail} phenomenon in the computation, where a good approximate solution is achieved quickly, but it takes a long time to get to the optimal one. In SociaLite, by simply stopping the computation, we can obtain an approximate solution found so far. \cite{distsoc} also shows a method which can significantly reduce memory requirements by storing the intermediate results in an approximate way using Bloom filters. Those topics are covered in section \ref{s:approxdist} \todo{to np. nie będzie jasne dopóki nie wiemy więcej}
+
+\section{Datalog with recursive aggregate functions}\label{s:recaggr}
+
+In this section we introduce the recursive aggregate functions extension from SociaLite. Since the original SociaLite consists of several extensions to Datalog, we will call the language defined here \emph{Datalog with recursive aggregate functions}, abbreviated \datalogra.
+
+\subsection{Motivation}
+Most graph algorithms are essentially some kind of iteration or recursive computation. Simple recursion can be expressed easily in Datalog. However, in many problems the computation results are gradually refined in each iteration, until the final result is reached. Examples of such algorithms are the Dijkstra algorithm for single source shortest paths or PageRank. Usually, it is difficult or impossible to express such algorithms in Datalog efficiently, as it would require computing much more intermediate results than it is actually needed to obtain the solution. We will explain that on an example: a simple program that computes shortest paths from a source node.
+
+A straightforward Datalog program for computing single source shortest paths (starting from node $1$) is presented below. Due to limitations of Datalog, this program computes all possible path lengths from node $1$ to other nodes in the first place, and after that for each node the minimal distance is chosen. Not only this approach results in bad performance, but causes the program to execute infinitely if a loop in the graph is reachable from the source node. \todo{czy to jest w Datalogu?
+trzeba wyjaśnić że to już jest rozszerzenie a teraz tylko chodzi o sposób wyliczania i zapętlanie}
+
+\dprog{}{
+  & \textsc{Path} (t, d) &&  & \assign & && \textsc{Edge} (1, t, d). & \\
+  & \textsc{Path} (t, d) &&  & \assign & && \textsc{Path} (s, d_1), \textsc{Edge} (s, t, d_2), d = d_1 + d_2. & \\
+  & \textsc{MinPath} (t, \textsc{Min}(d)) &&  & \assign & && \textsc{Path} (t, d). &
+}{Datalog query for computing shortest paths from node 1 to other nodes}{ex:ssspdatalog}
+
+\datalogra allows aggregation to be combined with recursion under some conditions. This allows us to write straightforward programs for such problems, which finish execution in finite time and often are much more efficient than Datalog programs. An example \datalogra program that computes single source shortest paths is presented below. The relation $\textsc{Path}$ is declared so that for each \textit{target} the values in \textit{dist} column are aggregated using minimum operator.
+
+
+\dprog{
+  $\textsc{Edge}(\text{int } \textit{src}, \text{int } \textit{sink}, \text{int } \textit{len}) $ \\
+  $\textsc{Path}(\text{int } \textit{target}, \text{int } \textit{dist} \text{ aggregate } \textsc{Min}) $
+}{
+  & \textsc{Path} (1, 0). &&  & & &&  & \\
+  & \textsc{Path} (t, d) &&  & \assign & && \textsc{Path} (s, d_1), \textsc{Edge} (s, t, d_2), d = d_1 + d_2. &
+}{SociaLite query for computing shortest paths from node 1 to other nodes}{ex:ssspsocialite}
+
+While being very useful, recursive aggregation rules not always have an unambiguous solution. This is the case only under some conditions on the rules and the aggregation function itself.
+
+Typically, Datalog programs semantics is defined using the fixed point of instance inclusion. This requires that the subsequent computation iterations only add tuples to the database instance, but never remove tuples from the instance. This is the reason for which program \ref{ex:ssspdatalog} is inefficient. When recursive aggregate functions are allowed, this is not the case: a tuple in the instance can be replaced with a different one because a new aggregated value appeared. Consequently, in order to define SociaLite programs semantics in terms of fixed point, we need to use a different order on database instances.
+
+First, we will define a meet operation and show the order that it induces. Then we will show that if the aggregation function is a meet operation and corresponding rules are monotone with respect to this induced order, then the result of the program is unambiguously defined. We will also show how it can be computed efficiently.
+
+\subsection{Meet operation and induced ordering}
+\begin{defn}
+A binary operation is a \emph{meet} operation if it is idempotent, commutative and associative.
+\end{defn}
+\todo{Maybe remind definitions of semi-lattice and partial order?}
+
+\subsubsection{Order induced by a meet operation}
+
+A meet operation $\sqcap$ defines a semi-lattice: it induces a partial order $\preceq_\sqcap$ over its domain, such that the result of the operation for any two elements is the least upper bound of those elements with respect to $\preceq_\sqcap$
+
+\begin{exmp}
+$\max(a, b)$ for $a, b \in \mathbb{N}$ is a meet operation; it is:
+\begin{itemize}
+\item idempotent -- $\max(a, a) = a$
+\item commutative -- $\max(a, b) = \max(b, a)$
+\item associative -- $\max(a, \max(b, c)) = \max(\max(a, b), c)$
+\end{itemize}
+It induces the partial order $\le$: for any two $a, b \in \mathbb{N}$, $\max(a, b)$ is their least upper bound with respect to $\le$.
+
+
+On the contrary, $+$ is not a meet operation, since it is not idempotent: $1+1 \ne 1$.
+\end{exmp}
+
+\subsection{A program in \datalogra}
+A \datalogra program is a Datalog program, with additional aggregation function defined for some of the relations:
+For each relation $R$, there can be one column $\aggcol_R \in {1, \dots ar_R}$ chosen for which an aggregation function $\aggfun_R$ is provided. The rest of the columns are called the \emph{qualifying columns}. Intuitively, after each step of computation, we group the tuples in the relation by the qualifying columns and aggregate the column $\aggcol_R$ using $\aggfun_R$. Value $\aggcol_R = \bf{none}$ means that $R$ is a regular relation with no aggregation.
+
+For simplicity, we assume that if a relation has an aggregated column, then it is always the last one: $\aggcol_R = ar_R$.
+
+Syntactically, we require that each relation is declared at the top of the program as on the example below. In declaration of a relation, aggregated column can be specified by adding keyword \textit{aggregate} and name of the aggregate function next to the column declaration.
+
+\begin{figure}[h!]
+\narrow{
+  $\textsc{P}(\text{int } \textit{a}, \text{int } \textit{b} \text{ aggregate } \textsc{F}) $\\
+  $\textsc{R}(\text{int } \textit{src}, \text{int } \textit{sink}, \text{int } \textit{len}) $ 
+  \begin{flalign*}
+  & \textsc{P} (x_1, \dots, x_{ar_P}) &&  & \assign & && Q_{P,1}(x_1, \dots, x_{ar_P}) & \\
+  &  &&  & \dots & && & \\
+  & \textsc{P} (x_1, \dots, x_{ar_P}) &&  & \assign & && Q_{P,m}(x_1, \dots, x_{ar_P}) & \\
+  & \textsc{R} (x_1, \dots, x_{ar_R}) &&  & \assign & && Q_{R,1}(x_1, \dots, x_{ar_R}) & \\
+  &  &&  & \dots & && & \\
+  & \textsc{R} (x_1, \dots, x_{ar_R}) &&  & \assign & && Q_{R,m}(x_1, \dots, x_{ar_R}) & \\
+  \end{flalign*}
+  \caption{Structure of a program in \datalogra.}
+}
+\end{figure}
+
+\subsubsection{Aggregation operation $g_R$}
+An important step in the evaluation of a \datalogra program is grouping the tuples in an instance of each relation and performing the aggregation within each group. We can put that into a formal definition as function $g_R$, which takes a relation instance which may contain multiple tuples with the same set of qualifying parameters and performs the aggregation.
+\begin{defn}\label{d:aggregationoperationgr}
+For a relation $R$ of arity $ar_R = k$, in let us define $g: \bf{dom}^k \to \bf{dom}^k$:
+$$
+g_R(I) = \begin{cases}
+\{(x_1, \dots, x_{k-1}, \aggfun_R(\{y: (x_1, \dots, x_{k-1}, y) \in I\}): (x_1, \dots, x_{k-1}, x_k) \in I\} & \text{if } \aggcol_R \ne \bf{none} \\
+I & \text{otherwise}
+\end{cases}
+$$
+\end{defn}
+
+If $R$ has an aggregated column, $g_R$ groups the tuples in relation instance $I$ by qualifying parameters and performs the aggregation using $\aggfun_R$. For non-aggregated relations, $g_R$ is an identity function.
+
+\subsubsection{Order on relation instances}
+In Datalog, we can prove that there is a unique least fixed point for any program. The fundamental fact needed for this proof is that during the evaluation of a Datalog program, if the state of a relation is $I_1$ at some point and $I_2$ at some other point, we know that $I_1 \subseteq I_2$. In \datalogra this property no longer holds: a tuple in $I_1$ can be replaced with different tuple with a lower value in the aggregated column. To be able to define semantics of programs in \datalogra using least fixed point, we need to use a custom order on relation instances.
+
+\begin{defn}
+Let $R$ be a relation. Let us define comparison $\sqsubseteq_R$ on relation instances as follows:
+\begin{align}
+I_1 \sqsubseteq_R I_2 \iff \forall_{(q_1, ..., q_{n-1}, v) \in g_R(I_1)} \exists_{(q_1, ..., q_{n-1}, v') \in g_R(I_2)} v \preceq_{\aggfun_R} v' & \text{ if } \aggcol_R \ne \bf{none} \\
+I_1 \sqsubseteq_R I_2 \iff \forall_{(q_1, ..., q_n) \in g_R(I_1)} \exists_{(q_1, ..., q_n) \in g_R(I_2)} & otherwise
+\end{align}
+\end{defn}
+
+\begin{note}
+If $R$ does not have an aggregated column, $g_R(I) = I$ for any $I$, so $\sqsubseteq_R$ is simply the inclusion order $\subseteq$. 
+\end{note}
+
+\begin{lem}
+For any $R$, $\sqsubseteq_R$ is a partial order.
+\end{lem}
+
+\emph{Proof:}
+
+If $R$ does not have an aggregated column, $\sqsubseteq_R$ is the same as inclusion order $\subseteq$, which is a partial order.
+
+If $R$ does have an aggregated column, then:
+
+\begin{itemize}
+\item $\sqsubseteq_R$ is reflexive: for each $R$, we have that  $\forall_{(q_1, ..., q_{n-1}, v) \in g(R)} \exists_{(q_1, ..., q_{n-1}, v) \in g(R)} v \preceq_{\aggfun_R} v $ because $\preceq_{\aggfun_R}$ is reflexive. Hence, $R \sqsubseteq_R R$.
+\item $\sqsubseteq_R$ is antisimmetric \todo{No, it is not antisimmetric, so this is not a partial order --- how to deal with that?}
+\item $\sqsubseteq_R$ is transitive: if $A \sqsubseteq_R B$ and $B \sqsubseteq_R  C$, then $\forall_{(q_1, ..., q_{n-1}, a) \in g(A)} \exists_{(q_1, ..., q_{n-1}, b) \in g(B)} a \preceq_{\aggfun_R} b $ and $\forall_{(q_1, ..., q_{n-1}, b) \in g(B)} \exists_{(q_1, ..., q_{n-1}, c) \in g(C)} b \preceq_{\aggfun_R} c$.
+
+$\preceq_{\aggfun_R}$ is transitive, so $\forall_{(q_1, ..., q_{n-1}, a) \in g(A)} \exists_{(q_1, ..., q_{n-1}, c) \in g(C)} a \preceq_{\aggfun_R} c $, which means that $A \sqsubseteq_R C$.
+\end{itemize}
+
+\todo{Because of lack of antisimmetry it is only a preorder, not a partial order ---> how to deal with that?}
+
+\todo{dodatkowy komentarz?}
+
+\begin{exmp}
+Let $R$ be a relation with arity $3$, with the last column aggregated using meet operation $\max$.
+We recall that for $ \max $, $ \preceq_{\max} $ is the usual order $ \le $.
+\begin{itemize}
+\item $\{(1, 2, 3)\} \sqsubseteq_R \{(1, 2, 5)\}$, because $3 \le 5$
+\item $\{(1, 2, 3)\} \sqsubseteq_R \{(1, 2, 5), (1, 7, 2)\}$ , because $3 \le 5$
+\item $\{(1, 2, 3), (1, 2, 8)\} \sqsubseteq_R \{(1, 2, 5)\}$ , because $g_R(\{(1, 2, 3), (1, 2, 8)\}) = \{(1,2,3)\}$ and $3 \le 5$
+\item $\{(1, 2, 3), (2, 8, 1)\}$ and  $\sqsubseteq_R \{(1, 2, 5), (1, 7, 2)\}$ are not comparable
+\item $\emptyset \sqsubseteq_R \{(1, 2, 3)\}$
+\end{itemize}
+\end{exmp}
+
+We can easily see that for any $R$ an empty relation instance $\emptyset$ is smaller under $\sqsubseteq_R$  than any other relation instance.
+
+
+\subsection{Semantics and evaluation - one relation case}\label{ss:semeval1rel}
+In this section we will show that the semantics of a \datalogra program can be unambiguously defined using least fixed point, as long as it satisfies some conditions. To simplify the reasoning, we will restrict our attention to programs with only one \emph{idb} relation. In the following section we extend the definitions and theorems presented here to the general case of many \emph{idb} relations.
+
+Let $P$ be a \datalogra program, with only one \emph{idb} relation $R$ of arity $k$ in the form of:
+
+\begin{figure}[h!]
+\narrow{
+%  $\textsc{R}(x_1, \dots, x_{k-1}, x_k [\text{ aggregate } \textsc{F}]) $\\
+  \begin{flalign*}
+  & \textsc{R} (x_1, \dots, x_k) &&  & \assign & && Q_1(x_1, \dots, x_k) & \\
+  &  &&  & \dots & && & \\
+  & \textsc{R} (x_1, \dots, x_k) &&  & \assign & && Q_m(x_1, \dots, x_k) & \\
+  \end{flalign*}
+}
+\end{figure}
+
+$Q_1, \dots, Q_m$ are rule bodies with free variables $x_1, \dots, x_k$. They may contain references to any of the \emph{edb} relations, which are constant during the evaluation or to the only \emph{idb} relation, $R$. We denote evaluation of rule body $Q$ in the context of an instance $I$ of the relation $Q$ as $E_I(Q)$.
+
+Since we consider only one relation $R$, we can simplify the notation: let $\sqsubseteq$ denote $\sqsubseteq_R$ and let $g$ denote the aggregation operation $g_R$ for relation $R$, as defined in Definition \ref{d:aggregationoperationgr}.
+
+Let us define $f: \bf{dom}^k \to \bf{dom}^k$ as the function that evaluates the rules $Q_1, ... Q_m$ based on the given instance of the relation $R$ and and returns its input extended with the set of generated tuples:
+$$ f(I) = I \cup \bigcup_{i=1..m} E_I(Q_i) $$
+
+Let $h = g \circ f$. 
+
+
+\begin{thm}
+If $f$ is monotone with respect to $\sqsubseteq$, i.e. $R_1 \subseteq R_2 \rightarrow f(R_1) \subseteq f(R_2)$, and there exists $n \ge 0 $, such that $h^n(\emptyset) = h^{n+1}(\emptyset)$, then $R^* = h^n(\emptyset)$ is the least fixed point of $h$, that is:
+\begin{enumerate}
+\item $R^* = h(R^*)$, i.e. $R^*$ is a fix-point
+\item $R^* \sqsubseteq R$ for all $R$ such that $R = h(R)$, i.e. $R^*$ is smaller than any other fix-point
+\end{enumerate}
+\end{thm}
+
+\emph{Proof:} 
+
+$g$ is monotone with respect to $\sqsubseteq$. Since we assumed that $f$ is monotone with respect to $\sqsubseteq$, $h = g \circ f$ is also monotone with respect to $\sqsubseteq$. 
+
+We know that $\emptyset$ is smaller under $\sqsubseteq$ than any other element.
+
+Let us suppose that $I'$ is any fix-point of $h$.  We know that $\emptyset \sqsubseteq I'$. Applying $h$ to both sides of the inequality $n$ times, we have that $I^* = h^n(\emptyset) \sqsubseteq h^n(I') = I'$, thanks to the monotonicity of $h$ with respect to $\sqsubseteq$. Therefore, the inductive fixed point $I^*$ is the least fixed point of $h$.
+
+In pseudocode, the evaluation algorithm is straightforward:
+
+\begin{figure}[h!]
+\narrow{
+$I_0 \leftarrow \emptyset$
+
+$i \leftarrow 0$
+
+do
+
+{\addtolength{\leftskip}{5mm}
+
+$i \leftarrow i + 1$
+
+$I_i \leftarrow h(I_{i-1})$
+
+}
+
+while $I_i \ne I_{i-1}$
+
+
+\caption{Naive evaluation algorithm for \datalogra programs with one \textit{idb} relation.}
+}
+\end{figure}
+
+
+
+\todo{open questions:
+\begin{itemize}
+\item How we compute recursive functions with non-meet aggregation operators? -- I can forbid that for now...
+\end{itemize}
+}
+
+
+\begin{comment}
+
+\subsection{Semi-naive evaluation -- one relation case}
+\emph{Semi-naive evaluation} is the most basic optimization used in Datalog. In comes from the following observation: in a Datalog program, if some rule $Q$ produced a tuple $t$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule with produce this tuple in each subsequent iteration, because $I_j \supseteq I_i$ for $j > i$. The goal of this optimization is to avoid such redundant computation. It is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration.
+
+In this section we give the algorithm for semi-naive evaluation in \datalogra and show that this optimization is valid.
+
+\subsubsection{Algorithm}
+
+\begin{figure}[h!]
+\narrow{
+$R_0 \leftarrow \emptyset, \Delta_0 \leftarrow \emptyset$
+
+$i \leftarrow 0$
+
+do
+
+{\addtolength{\leftskip}{5mm}
+
+$i \leftarrow i + 1$
+
+$T_i \leftarrow \bigcup_{l=1..n} f(R_{i-1})$
+
+$R_i \leftarrow g_k(T_i \cup R_{i-1})$
+
+$\Delta_k^i \leftarrow R_k^i - R_k^{i-1}$
+
+}
+
+while not for all $k$ $\Delta_k^i = \emptyset$
+
+\caption{Semi-Naive evaluation algorithm for \datalogra programs with one \textit{idb} relation.}
+}
+\end{figure}
+
+\end{comment}
+
+
+\subsection{Semantics and evaluation - multiple relations case}
+In this section we extend \datalogra semantics from \ref{ss:semeval1rel} to a general case of possibly many \emph{idb} relations.
+
+Let $P$ be a \datalogra program, with $w$ \emph{idb} relations $R_1, R_2, \dots, R_w$ of arities $k_1, k_2, \dots, k_w$ respectively.
+
+\begin{figure}[h!]
+\narrow{
+%  $\textsc{R}(x_1, \dots, x_{k-1}, x_k [\text{ aggregate } \textsc{F}]) $\\
+  \begin{flalign*}
+  & \textsc{R$_1$} (x_1, \dots, x_{k_1}) &&  & \assign & && Q_{1,1}(x_1, \dots, x_{k_1}) & \\
+  &  &&  & \dots & && & \\
+  & \textsc{R$_1$} (x_1, \dots, x_{k_1}) &&  & \assign & && Q_{1,{m_1}}(x_1, \dots, x_{k_1}) & \\
+  &  &&  & \dots & && & \\
+  & \textsc{R$_w$} (x_1, \dots, x_{k_w}) &&  & \assign & && Q_{w, 1}(x_1, \dots, x_{k_w}) & \\
+  &  &&  & \dots & && & \\
+  & \textsc{R$_w$} (x_1, \dots, x_{k_w}) &&  & \assign & && Q_{w, {m_w}}(x_1, \dots, x_{k_w}) & \\
+  \end{flalign*}
+}
+\end{figure}
+
+For $i = 1, \dots, w$, $Q_{i,1}, \dots, Q_{i,m}$ are rule bodies with free variables $x_1, \dots, x_{k_w}$. They may contain references to the \emph{idb} relations $R_1, R_2, \dots R_w$ and the \emph{edb} relations, which are constant during the evaluation. We denote evaluation of rule body $Q$ in the context of an instance $I_1, \dots I_w$ of the relation $R_1, \dots, R_w$ as $E_(I_1, \dots, I_w)(Q)$.
+
+For $i = 1, \dots, w$, $Q_{i,1}, \dots, Q_{i,m}$, let us define $f_i: P(\bf{dom}^{k_1}) \times \dots \times P(\bf{dom}^{k_w}) \to P(\bf{dom}^{k_i})$ as the function that evaluates the rules $Q_{i,1}, ... Q_{i, m_w}$ for relation $R_i$ based on the given instances of the relations $R_1, \dots, R_w$:
+$$ f_i(I_1, \dots I_w) = I_i \cup \bigcup_{i=1..{m_w}} E_(I_1, \dots, I_w)(Q_i) $$
+
+Let $h_i = g_{R_i} \circ f_i$. Let $h(I_1, \dots, I_w) = (h_1(I_1, \dots, I_w), \dots, h_w(I_1, \dots, I_w))$
+
+Let $\sqsubseteq = \sqsubseteq_{R_1} \times \dots \sqsubseteq_{R_w}$.
+
+\begin{thm}
+If $h$ is monotone with respect to $\sqsubseteq$, i.e. $I \subseteq I' \rightarrow h(I) \subseteq f(I')$, and there exists $n \ge 0 $, such that $h^n(\emptyset) = h^{n+1}(\emptyset)$, then $I^* = h^n(\emptyset)$ is the least fixed point of $h$, that is:
+\begin{enumerate}
+\item $I^* = h(I^*)$, i.e. $I^*$ is a fix-point
+\item $I^* \sqsubseteq I$ for all $I$ such that $I = h(I)$, i.e. $I^*$ is smaller than any other fix-point
+\end{enumerate}
+\todo{Extract the definition of fix-point -- it does not have to be here, but where to put it?}
+\end{thm}
+
+\emph{Proof:} 
+
+We know that $\emptyset$ is smaller under $\sqsubseteq$ than any other element.
+
+Let us suppose that $I'$ is any fix-point of $h$.  We know that $\emptyset \sqsubseteq I'$. Applying $h$ to both sides of the inequality $n$ times, we have that $I^* = h^n(\emptyset) \sqsubseteq h^n(I') = I'$, thanks to the monotonicity of $h$ with respect to $\sqsubseteq$. Therefore, the inductive fixed point $I^*$ is the least fixed point of $h$.
+
+In pseudocode, the evaluation algorithm is straightforward:
+
+\begin{figure}[h!]
+\narrow{
+$I_0 \leftarrow (\emptyset, \dots, \emptyset)$
+
+$i \leftarrow 0$
+
+do
+
+{\addtolength{\leftskip}{5mm}
+
+$i \leftarrow i + 1$
+
+$I_i \leftarrow h(I_{i-1})$
+
+}
+
+while $I_i \ne I_{i-1}$
+
+\caption{Naive evaluation algorithm for \datalogra programs with multiple \textit{idb} relations.}
+}
+\end{figure}
+
+
+\todo{open questions:
+\begin{itemize}
+\item How we compute recursive functions with non-meet aggregation operators? -- I can forbid that for now...
+\end{itemize}
+}
+
+
+\subsection{Semi-naive evaluation -- one relation case}
+\emph{Semi-naive evaluation} is the most basic optimization used in Datalog evaluation. In comes from the following observation: in a Datalog program, if some rule $Q$ produced a tuple $t$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule with produce this tuple in each subsequent iteration, because $I_j \supseteq I_i$ for $j > i$. The goal of this optimization is to avoid such redundant computation. It is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration.
+
+This optimization can be applied in \datalogra as well. To achieve this, we need to define function $f$ and the evaluation operation $E_I(Q)$ in a different way.
+
+
+
+
+\subsection{\datalogra with negation}
+\todo{Basically we do the same thing as in regular Datalog -- stratification}
+
+
+\section{Tail-nested tables}\label{s:tnt}
+Another important extension in SociaLite are \emph{tail nested tables}, which optimize the memory layout so that it can be accessed in a faster way. While being very useful in practice, this optimization is not crucial for running such programs on distributed architecture. \todo{I don't want to have this in the compiler, but maybe describe here?}
+
+\section{Distributed SociaLite}\label{s:distributed}
+
+\section{Delta stepping in Distributed SociaLite}\label{s:deltastep}
+
+\section{Approximate evaluation in Distributed SociaLite}\label{s:approxdist}
+
+
+
+

@@ -1,0 +1,58 @@
+
+\chapter{Translating SociaLite programs to Pregel}\label{r:s2p}
+
+
+\begin{verbatim}
+
+SociaLite to Giraph compilation plan
+
+Input: AST from parser
+Goal output: Giraph program
+
+AST is in the form:
+Program (
+	[Declarations]
+	[Rules]
+)
+
+Put all declarations in Env. There are 3 kinds of declarations:
+constant value
+sharded table
+non-sharded table
+Sharded tables define ranges of vertices on which they will be stored. -> compute number of vertices (N).
+Non-sharded tables will be stored on Master node.
+Verify semantic validity of each rule according to Enviroment.
+Build rules graph.
+*Divide rules into strata based on negations.
+Find recursive cycles and for each rule identify in which recursive cycles it is.
+*Check that each recursive cycle is within one strata (error otherwise)
+add artificial rules and tables so that all computation is based on local data, and the only communication with other vertices is by sending new results to them
+We require that each table appears only once on the left side (but can have many alternative conditions sets on the right side). Compute method in vertex v will be waiting until it receives some new_data to be put in dest_table in its shard.
+For each regular rule:
+	result[u](args) :- 	   conditions_set_1;
+   conditions_set_2;
+   ...
+   conditions_set_n.
+emit:
+if new_data not present in dest_table:
+save dest_table(new_data)
+	for each conditions_set:
+if dest_table in conditions_set:
+			try find new results from this rule using new_data
+			if found, send them to destination vertex u
+For each aggregation in recursive cycle:
+		result[u](args, AGREGATE(arg)) :- 	conditions_set_1;
+   			conditions_set_2
+   			...
+   			conditions_set_n.
+check whether it is a meet operation and monotonic. If yes, then emit code similar to the one above, but instead of checking if data is present in dest_table, apply aggregation upon receiving new_data, before saving it.
+If not, then additionally before looking for new results send out messages to invalidate previously generated results
+For each global (non-sharded) aggregation, generate a Giraph aggregator for it.
+
+
+
+\end{verbatim}
+
+
+
+

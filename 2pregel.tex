@@ -1,0 +1,151 @@
+
+\chapter{The Pregel model for graph computations and its implementations}\label{r:pregel}
+
+Pregel is a computational model designed for large graph computations, introduced in 2010 by Google engineers \cite{pregel}. Its goal is to streamline implementation of graph algorithms by providing a framework which lets the programmer forget about distributing the computation, implementing the graph topology and addressing fault tolerance issues and instead focus on the problem at hand.
+
+Previously available were graph algorithm libraries such as BGL\cite{bgl} and GraphBase \cite{GraphBase} designed for a single computer, and this limited in the scale of problems they could solve, and parallel graph frameworks such Parallel BGL \cite{parallelbgl}, which did not address issues crucial in large data processing, such as fault-tolerance. Graph algorithms also used to be expressed as a series of MapReduce iterations, but this adds a significant overhead because of the need to dump the state of computation to disk after each iteration.
+
+Since introduction of Pregel, there have been many systems developed based on this model, most notably Apache Giraph, the open source implementation of the Pregel model. Pregel has been included in other, more general frameworks such as Spark as one of the available APIs. There have also been extensions to the model, such as Giraph++ \cite{giraphpp}.
+
+In the first section of this chapter, the Pregel model is described. The subsequent sections cover the most important open-source implementations of the model: Apache Giraph and Apache Spark's GraphX.
+
+\section{Pregel model and its original implementation}
+
+The name of the Pregel model comes from its initial proprietary implementation by Google and honors Leonard Euler, a famous Swiss mathematician and physicist and also a pioneer of the graph theory. In 1735, he formulated the first theorem in graph theory: a solution to an old question whether a Königsberg citizen could take a walk around the city so that he crossed each of the seven city's bridges exactly once. Euler concluded that it is impossible, because the graph bridges form is not what we today call an Euler graph --- a graph in which every vertex has an even degree. The name of river that flows through Königsberg and which the famous bridges spanned is Pregel.
+
+The model of computation in Pregel is based on the L. Valiant's Bulk Synchronous Parallel model. The computation is performed in a sequence of \emph{supersteps}. In each superstep, the framework executes on each vertex a \emph{vertex program} provided by the user. Vertices communicate by messages: a message sent by a vertex in superstep $S$ is delivered to its recipient in superstep $S+1$.
+
+\pomysl{Może warto dać tutaj dragram ilustrujący BSP, z obliczeniami, komunikacją i barierą?}
+
+The main concept in implementing algorithms on Pregel is to "think like a vertex". User is required to express the algorithm as a function executed locally on each vertex, where communication between vertices is allowed only across supersteps. Those local functions are then combined by the framework in an efficient way to perform the whole computation. This approach, similar to what happens in the MapReduce model, is well suited for distributed computations, since all local functions can be executed completely independently. At the same time, the synchronous structure of computation makes it easier to reason about the semantics of a program than in asynchronous systems and allows for fault-tolerance mechanisms.
+
+A Pregel program takes a directed graph as an input and performs computations that are allowed to modify this graph.
+Each vertex of the graph has a unique, constant \emph{vertex identifier} and is associated with some \emph{vertex data}, which can be modified during the computation, and \emph{outgoing edges}. Each such edge has a target vertex and some modifiable \emph{edge data}. The algorithm logic is described using the \emph{vertex program}.
+
+A computation is performed as a sequence of \emph{supersteps}. In each superstep the vertex program is concurrently executed on each vertex. The program is the same for each vertex, but can depend on the vertex identifier. The program executed on vertex $V$ receives messages sent to $V$ in the previous superstep. It can modify the vertex data and the data of its outgoing edges, send messages to other vertices to be delivered in the next superstep and change the topology of graph by adding or removing vertices or edges. A vertex can send messages not only to its neighbors, but also to other vertices if it knows their identifiers.
+
+The termination criterion is distributed. A vertex may \emph{vote to halt}. Initially, all vertices are in the \emph{active} state. If a vertex votes to halt, its state changes to \emph{inactive}. If an inactive vertex receives a message from another vertex, it is moved back to the active state. The vertex program is executed only on the active vertices. The computation is terminated when all vertices are in the inactive state.
+
+According to the original definition, the result of a computation are the values explicitly output by the vertices, but in most scenarios the graph state after the last superstep is assumed to be the output of the algorithm.
+
+In practice, computations are performed on a number of workers much smaller than the number of vertices in the graph. This allows distributing the vertices between workers in a workload-balanced manner.
+
+Let us consider the following example: for a strongly connected graph with an integer value assigned to each node, compute the minimum of those values. This can be implemented in Pregel using the following vertex program:
+
+\begin{figure}[h!]
+\parbox{0.8\textwidth}{
+$\text{vertexProgram}(\textit{vertex, superstepNumber, incomingMessages}) \{$
+
+~~~~$\textit{newValue} \leftarrow \min(\textit{incomingMessages} \cup \{\textit{vertex.value}\})$;
+
+~~~~\textbf{if} $superstepNumber = 0$ \textbf{or} $\textit{newValue} < \textit{vertex.value}$ \textbf{then}
+
+~~~~~~~~\textbf{foreach} $\textit{edge} \in \textit{vertex.outgoingEdges}$ \textbf{do}
+
+~~~~~~~~~~~~~~\text{sendMessage}$(\textit{edge.targetVertex, newValue})$;
+
+~~~~~~~~$\textit{vertex.value} \leftarrow \textit{newValue}$;
+
+~~~~\text{voteToHalt()};
+
+$\}$
+}
+\caption{Pregel vertex program for computing maximum value among graph nodes}
+\end{figure}
+
+In the first superstep, a vertex sends its value to all neighbors, and votes to halt. Upon reception of any new values, a vertex is activated and if the received values are greater than the value stored in the vertex, it is updated, and messages with the new value are sent. An example computation is presented on the figure below. This figure comes from the original white paper about Pregel \cite{pregel}.
+
+\begin{center}
+\includegraphics[width=0.6\textwidth]{PregelMaxVal.png}
+\end{center}
+
+For another example, let us see how single source shortest paths can be computed using Pregel. 
+We assume that the value for each vertex is initially set to $\infty$.
+In the first superstep the source vertex updates its value to $0$ and sends messages to its neighbors with a new distance. In the following supersteps,
+other vertices update their distances and send messages to their neighbors with a new possible distance. Each vertex votes to halt in each superstep, so when no more messages with distance updates are sent, the algorithm terminates. This will always happen in a finite number of supersteps, as long as all edges have non-negative lengths. At the end of computation, each vertex has its minimum distance from \textit{SOURCE} associated with it, or $\infty$ if it is not reachable.
+
+\begin{figure}[h!]
+\parbox{0.8\textwidth}{
+$\text{vertexProgram}(\textit{vertex, superstepNumber, incomingMessages}) \{$
+
+~~~~$\textit{initialDistance} \leftarrow \textbf{if }(vertex.id = SOURCE)~0~\textbf{else}~\infty$
+
+~~~~$\textit{minDistance} \leftarrow \min(\textit{incomingMessages} \cup \{\textit{initialDistance}\})$;
+
+~~~~\textbf{if} $\textit{newValue} < \textit{vertex.value}$ \textbf{then}
+
+~~~~~~~~$\textit{vertex.value} \leftarrow \textit{minDistance}$
+
+~~~~~~~~\textbf{foreach} $\textit{edge} \in \textit{vertex.outgoingEdges}$ \textbf{do}
+
+~~~~~~~~~~~~~~\text{sendMessage}$(\textit{edge.targetVertex, minDistance + edge.length})$;
+
+~~~~\text{voteToHalt()};
+
+$\}$
+}
+
+\caption{Pregel vertex program for shortest paths from \textit{SOURCE} to all other vertices}
+\end{figure}
+
+
+An important goal in large dataset computations is to achieve fault-tolerance, so the computation can be continued in case of a failure of some of the machines in the cluster. In Pregel, this is achieved by \emph{checkpointing}. Once in a few supersteps, the workers are required to save their state to the disk. When any of the workers fails, the computation is resumed from the last checkpoint.
+
+In addition to the general model, Pregel also has some additional features enhancing usability and efficiency, such as \emph{aggregators} for efficiently gathering and broadcasting global values and \emph{combiners} which can reduce the network bandwidth used by merging messages send from vertices placed on a given node.
+
+The original implementation by Google engineers is proprietary and was never released to the public. It is written entirely in C++ and tightly connected to the internal Google infrastructure, including the distributed file systems and execution environment.
+
+\section{Giraph}
+
+Giraph\cite{giraph} is an open-source implementation of the Pregel model. It implements the original Pregel loosely, adding a few extensions to the version originally described by Google. Those extensions include introducing a possibility to perform computations on the master node, capabilities to work with a support of external memory and removing the single-point-of-failure (SPoF) by adding spare master nodes, which can become active when the primary master node fails.
+
+Giraph is built on top of Hadoop \cite{hadoop}, the widely-adopted framework for large datasets processing. Hadoop is a platform for big datasets computing at scale, consisting of HDFS --- distributed file system, YARN --- framework for managing the cluster and scheduling tasks, Hadoop MapReduce --- an open implementation of the MapReduce model and libraries for using these elements in other projects.
+
+Development of Giraph was started by Yahoo!. The project was donated to the Apache Foundation as an incubator project in 2011. It became a Top Level Project of the Apache Foundation in 2012. A stable version 1.0 was released in 2013. There are several large companies including Facebook, Twitter and LinkedIn using the project extensively and engaged in the development. The most active user is Facebook, which executes Giraph programs on social graphs with up to $10^12 edges$ \cite{giraphfb}. In 2013, Facebook published an article \cite{giraphfb} stating that analyzing so large graphs was impossible with the software available in 2012. The article describes the optimizations and enhancements made in Giraph to be able to run jobs with this amount of data on their infrastructure:
+\begin{itemize}
+\item Flexible graph input: vertices and edges can be loaded from several sources and the framework takes care of distributing them correctly before the start of computation. This eliminates the need for preprocessing the graph with a MapReduce job so that each vertex data is in the same place as all its edges.
+\item Multithreaded execution of on a single machine, which allows for better resource sharing than in case of workers distributed across different machines.
+\item Memory usage optimization: by serializing the data using primitive types instead of Java objects, the memory usage was significantly reduced, resulting in 10 times lower execution time.
+\item Sharded aggregators: instead of aggregators being stored and distributed by the master node, they are stored in a distributed way, which scales better for very large datasets.
+\end{itemize}
+It is worth mentioning that one of Google Pregel creators and the primary author of the original white paper about it, Grzegorz Malewicz, is one of the members of Facebook's data infrastructure graph processing team which develops Giraph \cite{giraphfb}.
+
+\section{Spark}
+Apache Spark \cite{spark, spark2} is an open-source framework for distributed data analytics. It started in 2009 in the AMPLab at University of California, Berkeley. Since that time it has gained a huge momentum and has quickly growing community of users and contributors \cite{sparkgrowingcommunity}. Since 2009, over 250 individual developers contributed to Spark, and its permanent contributors come from 12 companies and institutions \cite{sparkwww}. Among others, it is being used by companies such as Yahoo, IBM, Intel, Alibaba, Cloudera and Databricks.
+
+Spark's computational model is able to express programs in more specialized models such as MapReduce and Pregel and is also suitable for new applications that these systems do not support, like interactive data mining and stream data processing.
+
+The two key advantages of Spark are:
+\begin{itemize}
+\item its impressive speed: Spark is in some cases even 100 times faster than equivalent computations in Hadoop MapReduce
+\item its simplicity and ease of use: it offers  APIs in Scala, Java, Python which allow developers to quickly develop programs performing even complicated calculations and a standalone running mode which lets developers set up environment and prototype programs locally without the need to set up Apache Hadoop 
+\end{itemize}
+
+Similarly to Apache Giraph, Spark is a Top-Level Project of the Apache Foundation. Previously to promotion as a Top-Level Project in February 2014 \cite{sparktoplevel}, it was an in the Apache Incubator program since June 2013. 
+
+Spark fits into the Hadoop ecosystem by being able to run on Hadoop clusters without any additional installation and supporting data input from various Hadoop data stores such as HDFS, HBase and Cassandra. It is not tied, however, to Hadoop infrastructure: it can also run as a standalone deployment in a cluster or on other distributed platforms such as Mesos \cite{mesos} and Amazon EC2 \cite{ec2}.
+
+\subsection{Resilient Distributed Datasets}
+The key concept in Spark is the \emph{RDD} or \emph{Resilient Distributed Dataset}. RDDs are an abstraction of distributed memory, which let the programmer perform distributed computations. They are stored in a way that is transparent to the user and assure fault tolerance.
+
+Other distributed memory abstractions, such as distributed key-value stores and databases, provide a fine-grained interface to the memory, like reads and updates of particular cells in a table. In contrast to such systems, RDDs provide only a \emph{coarse-grained} interface: operations that are applied to the whole dataset, such as map, filter and join. This allows for achieving fault-tolerance by storing only the history of operations that were used to build a dataset, called its \emph{lineage}, instead of replicating the data to be able to recover it. An additional advantage is that the RDDs do not need to be materialised, unless it is actually necessary. Since parallel computations generally apply some transformation to multiple elements of a dataset, in most cases they can be expressed easily with coarse-grained operation on datasets.
+
+RDDs can be created only in two ways: loading a dataset from a distributed storage or from another dataset by applying coarse-grained functional operations called \emph{transformations}, such as \emph{map}, \emph{filter} and \emph{join}. For greater efficiency, the user can also control the \emph{persistence} of an RDD by indicating which RDDs are intended to be used in the future and as such should be materialised in the memory and the \emph{partitioning} of an RDD by indicating the key by which the records of RDD should be partitioned across the machines. Finally, the user can perform \emph{actions} on an RDD. Actions return a value of exports the dataset to some persistent storage. Avaiable actions include \emph{count}, which returns the number of elements in the RDD, \emph{collect}, which returns the records from the dataset and \emph{save}, which exports the records to an external storage.
+
+\subsection{Higher level tools}
+Spark offers a set of high level tools that demonstrate the capabilities of the Resilient Distributed Dataset model. Those tools are implemented as relatively small libraries on top of Spark's core. Currently available tools are:
+\begin{itemize}
+\item Spark SQL, allowing to seamlessly integrate SQL queries into Spark programs,
+\item Spark Streaming, which supports working on on-line streams of data
+\item MLlib, which is an implementation of common machine learning algorithms for classification, regression, clustering and dimensionality reduction
+\item GraphX, providing an interface for creating efficient graph algorithms, integrated with pre- and post- processing with regular Spark transformations
+\end{itemize}
+
+\subsection{Pregel API}
+One of the elements of the GraphX library is a general Pregel API, which allows for expressing programs written in the Pregel model and working on RDDs.
+Chapter \ref{r:implementation} describes an implementation of a Datalog API for Spark, which employs the method for translating Datalog and SociaLite programs to the Pregel model and uses Spark's Pregel API.
+
+\section{Other frameworks}
+\pomysl{Tutaj można by opisać inne frameworki: GPS, GraphLab, Giraph++. Ale może nie potrzeba?}
+
+
