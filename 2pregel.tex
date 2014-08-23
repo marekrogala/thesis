@@ -46,18 +46,23 @@ $\text{vertexProgram}(\textit{vertex, superstepNumber, incomingMessages}) \{$
 
 ~~~~~~~~$\textit{vertex.value} \leftarrow \textit{newValue}$;
 
-~~~~\text{voteToHalt()};
+~~~~\textbf{else}
+
+~~~~~~~~\text{voteToHalt()};
 
 $\}$
 }
 \caption{Pregel vertex program for computing maximum value among graph nodes}
 \end{figure}
 
-In the first superstep, a vertex sends its value to all neighbors, and votes to halt. Upon reception of any new values, a vertex is activated and if the received values are greater than the value stored in the vertex, it is updated, and messages with the new value are sent. An example computation is presented on the figure below. This figure comes from the original white paper about Pregel \cite{pregel}.
+In the first superstep, a vertex sends its value to all neighbors, and votes to halt. Upon reception of any new values, a vertex is activated and if the received values are greater than the value stored in the vertex, it is updated, and messages with the new value are sent. An example computation is presented on figure \ref{img:pregelmaxval}. This figure comes from the original white paper about Pregel \cite{pregel}.
 
+\begin{figure}[h]
 \begin{center}
 \includegraphics[width=0.6\textwidth]{PregelMaxVal.png}
+\caption{Example Pregel computation of maximum value among the nodes. Nodes that voted to halt are marked gray. Source: \cite{pregel}}
 \end{center}
+\end{figure}\label{img:pregelmaxval}
 
 For another example, let us see how single source shortest paths can be computed using Pregel. 
 We assume that the value for each vertex is initially set to $\infty$.
@@ -97,7 +102,7 @@ The original implementation by Google engineers is proprietary and was never rel
 
 \section{Giraph}
 
-Giraph\cite{giraph} is an open-source implementation of the Pregel model. It implements the original Pregel loosely, adding a few extensions to the version originally described by Google. Those extensions include introducing a possibility to perform computations on the master node, capabilities to work with a support of external memory and removing the single-point-of-failure (SPoF) by adding spare master nodes, which can become active when the primary master node fails.
+Giraph \cite{giraph} is an open-source implementation of the Pregel model. It implements the original Pregel loosely, adding a few extensions to the version originally described by Google. Those extensions include introducing a possibility to perform computations on the master node, capabilities to work with a support of external memory and removing the single-point-of-failure (SPoF) by adding spare master nodes, which can become active when the primary master node fails.
 
 Giraph is built on top of Hadoop \cite{hadoop}, the widely-adopted framework for large datasets processing. Hadoop is a platform for big datasets computing at scale, consisting of HDFS --- distributed file system, YARN --- framework for managing the cluster and scheduling tasks, Hadoop MapReduce --- an open implementation of the MapReduce model and libraries for using these elements in other projects.
 

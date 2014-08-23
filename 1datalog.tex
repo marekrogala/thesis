@@ -549,7 +549,7 @@ A program can have multiple stratifications, but it can be shown that $P(\textbf
 
 \subsection{Datalog with non-recursive aggregation}\label{ss:datalognra}
 
-Datalog with negation and arithmetics is already a useful language, but for some queries one more feature is necessary: aggregation using a certain function $f$. Aggregation works similarly to $\textsc{GroupBy}$ clause in SQL: when aggregation is applied to a certain column of a relation, all the facts in the relation are grouped by their values in the remaining columns and for each 
+Datalog with negation and arithmetics is already a useful language, but for some queries one more feature is necessary: aggregation using a certain function $f$. Aggregation works similarly to $\textsc{GroupBy}$ clause in SQL: when aggregation is applied to $i$-th column of a relation, all the facts in the relation are grouped by their values in the remaining columns and for each group the value in $i$-th column is obtained by applying the aggregation function.
 Let us consider the following example of relation $\textsc{Rel}$:
 
 \begin{centab}{ | c | }
@@ -577,7 +577,9 @@ If aggregation with function $\textsc{Min}$ is applied to the last column of thi
   \hline
 \end{centab}
 
-A simple version of aggregation can be introduced in Datalog by allowing only to aggregate \emph{edb} relations. The semantics and evaluation is then straightforward. This definition can be extended in a simple way using the stratification method described in the previous section. Semantics for a program is defined if can be stratified in such a way that each aggregation is applied to a relation defined in a preceding stratum. Aggregation of a relation from the same stratum, i. e. recursive aggregation, is much more difficult and is discussed in Chapter \ref{r:socialite}.
+A simple version of aggregation can be introduced in Datalog by allowing the rules for aggregated relations to use only \emph{edb} relations in subgoals. The semantics and evaluation is then straightforward: such rules can be evaluated within a single application of the $T_P$ operator, and the aggregation can be applied immediately.
+
+This definition can be extended in a simple way using the stratification method described in the previous section. Semantics for a program is defined if it can be stratified in such a way that each aggregation rule uses in its subgoals only relations defined in preceding strata. Aggregation of a relation from the same stratum, i. e. recursive aggregation, is much more complicated and is discussed in Chapter \ref{r:socialite}.
 
 For an example, let us recall the program from example \ref{ex:pathsdatalog}, which computes for a given graph the lengths of all existing paths from source to other vertices. An interesting question in often what is the shortest path to each vertex. This question can be answered using aggregation, by computing the minimum of distances for each vertex: 
 
@@ -587,6 +589,8 @@ For an example, let us recall the program from example \ref{ex:pathsdatalog}, wh
   & \textsc{MinPath} (t, \textsc{Min}(d)) &&  & \assign & && \textsc{Path} (t, d). &
 }{Datalog query for computing all path lengths from a given source}{ex:pathsdatalogaggregate}
 
-In this example, there are two strata: \relat{Edge}{} is an \emph{edb} relation, \relat{Path}{} belongs to the first stratum and \relat{MinPath}{} belongs to the second stratum.
+This syntax means that after inferring all possible facts using the rule for \relat{MinPath}, this relation should be aggregated using the minimum function. If there is aggregation used in a rule for some relation, there can be no other rules for this relation.
+
+In this example, there are two strata: \relat{Edge}{} is an \emph{edb} relation, \relat{Path}{} belongs to the first stratum and \relat{MinPath}{} belongs to the second stratum. Hence, \relat{MinPath}{} can be computed after computation of \relat{Path}{} is finished.
 
 
