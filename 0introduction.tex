@@ -18,33 +18,29 @@ Recently, there is an outbreak of frameworks and languages for large graphs proc
 
 In the frameworks currently available one needs to implement a graph algorithm in a specified model, for example Pregel's "think like a vertex", using a programming language like Java, Scala or Python. On the other hand, query languages, such as SQL, are a bad fit for graph data because of limited support of iteration. Yet, one of the advantages of query languages over general-purpose programming languages is that they are available for a much broader group of users: they are used not only by programmers, but also by analysts and data scientists. Queries are often optimized by query engines automatically. With the rise of graph computational problems, we need an easier way to extract information from graphs: a query language for effectively expressing data queries typical for graphs.
 
-The Socialite \cite{socialite, distsoc} language is one of the most interesting propositions. It is based on a classical query language --- \margp{"the"}{ -- tutaj powinno być? wydaje mi się że nie...} Datalog \cite{fod}. In Datalog, the problem is expressed in a declarative way as a set of rules. Declarative semantics makes it easy to distribute the computations, since no execution flow is embedded in the program code. It also gives many possibilities for optimizations and approximate evaluation. At the same time, Datalog's support for recursion is crucial, since most graph algorithms have iterative nature. However, most practical graph algorithms cannot be expressed efficiently in Datalog because of the language limitations. With a few extensions to original Datalog, the most important of which is recursive aggregation, SociaLite makes it easy to write intuitive programs which can be executed very efficiently.
+The Socialite \cite{socialite, distsoc} language is one of the most interesting propositions. It is based on a classical query language --- Datalog \cite{fod}. In Datalog, the problem is expressed in a declarative way as a set of rules. Declarative semantics makes it easy to distribute the computations, since no execution flow is embedded in the program code. It also gives many possibilities for optimizations and approximate evaluation. At the same time, Datalog's support for recursion is crucial, since most graph algorithms have iterative nature. However, most practical graph algorithms cannot be expressed efficiently in Datalog because of the language limitations. With a few extensions to original Datalog, the most important of which is recursive aggregation, SociaLite makes it easy to write intuitive programs which can be executed very efficiently.
 
 Unfortunately, there is no solid implementation of SociaLite available. The interpreter published by the authors is undocumented and contains many bugs. It is hard to imagine it being adopted in the industry in the foreseeable future. At the same time, papers \cite{socialite} and \cite{distsoc} which introduced SociaLite contain certain simplifications and are not specific about some important details in definitions and proofs.
 
 The goal of this thesis is to bridge the gap between the theoretical idea for SociaLite and a practical implementation and to draw a path towards its usage in the industry. We show how to translate SociaLite declarative programs into Pregel "think-like-a-vertex" programs and introduce a compiler that enables SociaLite programs to be executed on existing infrastructure. This allows its users to write and execute SociaLite programs without any additional effort to build a dedicated server infrastructure for that.
 
-We present an experimental implementation of the SociaLite language on the Apache Spark platform. Spark \cite{spark2} is an open-source project which provides a general platform for processing large datasets which has gained a huge momentum since the initial white paper in 2010 \cite{spark} and inclusion into Apache Incubator in June 2013. Distinctive features of Spark are the to ability keep cached data in node's memory, which gives impressive speedups over other environments like Hadoop MapReduce, and a powerful API allowing for various usages including MapReduce, machine learning, computations on graphs and stream data processing. In February 2014 Spark became a top-level project of the Apache Foundation, and in since July 2014 it is included in the Cloudera CDH, a popular enterprise platform for Hadoop deployment. Spark is already a \margp{bez a}{ale to jest \emph{a} od \emph{a platform}}  stable, well-tested platform which is being intensively developed and can be expected to become a new industry standard in large datasets processing. For these reasons, it has been chosen as the most promising implementation platform for the S2P compiler.
+We present an experimental implementation of the SociaLite language on the Apache Spark platform. Spark \cite{spark2} is an open-source project which provides a general platform for processing large datasets which has gained a huge momentum since the initial white paper in 2010 \cite{spark} and inclusion into Apache Incubator in June 2013. Distinctive features of Spark are the to ability keep cached data in node's memory, which gives impressive speedups over other environments like Hadoop MapReduce, and a powerful API allowing for various usages including MapReduce, machine learning, computations on graphs and stream data processing. In February 2014 Spark became a top-level project of the Apache Foundation, and in since July 2014 it is included in the Cloudera CDH, a popular enterprise platform for Hadoop deployment. Spark is already a stable, well-tested platform which is being intensively developed and can be expected to become a new industry standard in large datasets processing. For these reasons, it has been chosen as the most promising implementation platform for the S2P compiler.
 
 The thesis consists of six chapters. In Chapter~\ref{r:datalog} we recall definitions of Datalog and its evaluation methods while Chapter~\ref{r:pregel} contains an introduction to the Pregel computation model. In Chapter~\ref{r:socialite} we describe the extensions introduced by SociaLite and provide formal definitions and general-case proofs which the original papers lack. Chapter \ref{r:s2p} shows the translation procedure from SociaLite to Pregel programs implemented in the S2P compiler, which is described in Chapter~\ref{r:implementation}. In Chapter~\ref{r:summary} we sketch the possible future work and the path to industrial implementation of the language using the S2P compiler.
 
 \section{Basic definitions}\label{r:basicdefs}
 We start by giving some basic definitions which will be used in this paper.
 
-The languages considered in the paper operate on databases, which consist of relations identified by relation names, for example \relat{R}{}, \relat{P}{}, \relat{Tc}{}, \relat{Path}{} or \relat{Edge}{}. Relation names will be usually denoted by a $R$.  \margp{wymień litery / oznaczenia jakie będą używane}{ --- czy to o to chodziło?}
+The languages considered in the paper operate on databases, which consist facts over relations identified by relation names, for example \relat{R}{}, \relat{P}{}, \relat{Tc}{}, \relat{Path}{} or \relat{Edge}{}.
 
 The relations contain facts, which are tuples of values from a countable infinite set $\textbf{dom}$ called the \emph{domain}. The programs that we will consider use variables from a set $\bf{var}$, which is disjoint from $\bf{dom}$. 
 
 Elements of $\bf{dom}$ are called \emph{constants}, whereas elements of $\bf{var}$ are called \emph{(free) variables}.
-In examples and definitions we will use strings starting with a lowercase letter as variables, for example: $a$, $b$, $x$, $length$, $dist$. We will use numbers and strings starting with an uppercase letter as constants. \margp{wymień oznaczenia}{czy o to chodziło?}
-
-\margp{jak się ma database schema do database?}{Najpierw definuję schemę a potem database (instance). Zmieniłem teraz w definicji \emph{database instance} na po prostu \emph{database}. Czy coś tu jeszcze powinienem zmienić?}
+In examples and definitions we will use strings starting with a lowercase letter as variables, for example: $a$, $b$, $x$, $length$, $dist$. We will use numbers and strings starting with an uppercase letter as constants, for example $1$, $2$, \textit{A}, \textit{B}, \textit{Alice} and \textit{Bob}.
 
 \begin{defn}
 
-\margp{najpierw potrzebna def relacji i arity}{Zmieniłem tutaj trochę i powinno być bardziej precyzyjnie, proszę o sprawdzenie.}
-
-A \emph{database schema} is a tuple $(N, ar)$, where $N$ is some set and $ar:~N~\to~\mathbb{N}^+$ is a function. The elements of $N$ are called \emph{relation names} $R$. For each relation name $R$, the value $ar(R)$ is called the \emph{arity} of $R$.
+A \emph{database schema} is a tuple $(N, ar)$, where $N$ is the set of \emph{relation names} and $ar:~N~\to~\mathbb{N}^+$ assigns \emph{arities} to relation names. 
 
 For a database schema $\sigma = (N, ar)$ and a relation name $R$ we will write $R \in \sigma$ as a shorthand for $R \in N$. If $R \in \sigma$, we say that $R$ is a relation name in $\sigma$ with arity $ar(R)$.
 
@@ -52,22 +48,34 @@ Given a database schema $\sigma$, let $R$ be a relation name in $\sigma$ with ar
 
 A \emph{relation} or \emph{relation instance} over $R$ is defined as a finite set of facts over $R$.
 
-A \emph{database} $\bf{I}$ over database schema $\sigma$ is a union \margp{a $\to$ an}{ sprawdziłem że jest \emph{a union}} of relations over $R$, where $R \in \sigma$. 
+A \emph{database} or \emph{database instance} over database schema $\sigma$ is a union of relations over $R$, where $R \in \sigma$. We typically use bold uppercase letters for databases, for example $\textbf{I}$, $\textbf{J}$ or $\textbf{K}$. 
 
+We denote the set of all possible relations over a relation name $R$ by $\inst(R)$. Similarly, we denote the set of all possible databases over a database schema $\sigma$ by $\inst(\sigma)$.
 \end{defn}
 
-\begin{defn}
-For a given set $V \subseteq \textbf{var}$ of free variables, a function $\nu: V \to \textbf{dom}$ is called a \emph{valuation} over $V$.
+\begin{defn}[Valuation]
+For a given set $V \subseteq \textbf{var}$ of free variables, a function $\nu:~V~\to~\textbf{dom}$ is called a \emph{valuation} of $V$.
+Valuation is naturally extended to $\textbf{dom} \cup \textbf{var}$ as an identity function on constants. It is also extended to a function from tuples over $\textbf{dom} \cup \textbf{var}$ to tuples over $\textbf{dom}$ by applying the valuation to each element of the tuple.
 \end{defn}
 
-\begin{defn}
+\begin{exmp}
+Let $\sigma = (\{\textsc{Edge}, \textsc{Parent}\}, ar)$ be a database schema such that $ar(\textsc{Edge}) = 3, ar(\textsc{Parent}) = 2$. 
+
+\relat{Edge}{(1, 2, 17)} and \relat{Edge}{(1, 3, 5)} are facts over \relat{Edge}{}, whereas \relat{Parent}{(Alice, Bob)} and \relat{Parent}{(Bob, Chris)} are facts over \relat{Parent}{}. 
+
+$I = \{\relat{Edge}{(1, 2, 17)}, \relat{Edge}{(1, 3, 5)}\}$ is a relation instance over \relat{Edge}{}.
+
+$\textbf{K} = \{\relat{Edge}{(1, 2, 17)}, \relat{Parent}{(Alice, Bob)}, \relat{Parent}{(Bob, Chris)}\}$ is a database instance over~$\sigma$.
+
+For variables $x, y, z \in \textbf{dom}$, $\nu$ such that $\nu(x) = 1, \nu(y) = 7, \nu(z) = Alice$ is a valuation of $\{x, y, z\}$. For constants $\nu$ is identity: $\nu(Bob) = Bob, \nu(7) = 7$. $\nu$ can be applied to tuples: $\nu(x, Bob, 9, z) = (1, Bob, 9, Alice)$.
+
+\end{exmp}
+
+\begin{defn}[Fix-point]
 If $f$ is a function $f: D \to D$ and $f(x) = x$ for an $x \in D$, then $x$ is called a \emph{fix-point} of $f$.
 \end{defn}
 
-\todo{Powerset $\ps$}
-\todo{inst(sigma)}
-\todo{monotone}
-
-\begin{defn}
-
+\begin{defn}[Monotonicity]
+Function $f: D \to C$ is monotone with respect to order $\sqsubseteq$ if $x \sqsubseteq y \rightarrow f(x) \sqsubseteq f(y)$ for each $x, y \in D$.
 \end{defn}
+
