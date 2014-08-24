@@ -27,9 +27,9 @@ In distributed computations on large graphs, an approximate result is often enou
 
 % In SociaLite, by simply stopping the computation, we can obtain an approximate solution found so far. \cite{distsoc} also shows a method which can significantly reduce memory requirements by storing the intermediate results in an approximate way using Bloom filters. Those topics are covered in section \ref{s:approxdist} \todo{to np. nie będzie jasne dopóki nie wiemy więcej}
 
-\section{Datalog with recursive aggregate functions}\label{s:recaggr}
+\section{Datalog with recursive aggregation}\label{s:recaggr}
 
-In this section we introduce the recursive aggregation extension from SociaLite. Since the original SociaLite consists of several extensions to Datalog, not only of recursive aggregation, we will call the language defined here \emph{Datalog with recursive aggregate functions}, abbreviated \datalogra.
+In this section we introduce the recursive aggregation extension from SociaLite. Since the original SociaLite consists of several extensions to Datalog, not only of recursive aggregation, we will call the language defined here \emph{Datalog with recursive aggregation}, abbreviated \datalogra.
 
 \subsection{Motivation}
 Most graph algorithms are essentially some kind of iteration or recursive computation. Simple recursion can be expressed easily in Datalog. However, in many problems the computation results are gradually refined in each iteration, until the final result is reached. Examples of such algorithms are the Dijkstra algorithm for single source shortest paths or PageRank. Usually, it is difficult or impossible to express such algorithms in Datalog efficiently, as it would require computing much more intermediate results than it is actually needed to obtain the solution. We will explain that on an example: a simple program that computes shortest paths from a source node.
@@ -62,7 +62,7 @@ For each relation name $R$, there can be one column $\aggcol_R \in {1, \dots ar(
 
 To simplify the notation, we assume that if a relation has an aggregated column, then it is always the last one: $\aggcol_R = ar_R$.
 
-Syntactically, we require that each relation is declared at the top of the program as on the example below.
+Syntactically, we require that each \emph{idb} relation is declared at the top of the program as on the example below.
 In declaration of a relation, aggregated column can be specified by adding keyword \textit{aggregate} and name of the aggregate function next to the column declaration. This syntax allows for providing multiple rules for aggregated relation in the program.
 
 An example of a program in \datalogra in show on Figure \ref{fig:datalograexampleprogram}.
@@ -84,7 +84,7 @@ An example of a program in \datalogra in show on Figure \ref{fig:datalograexampl
 \end{figure}\label{fig:datalograexampleprogram}
 
 
-\subsection{Inflationary semantics for \datalogra}
+\subsection{Aggregation-aware order over databases for inflationary \datalogra}
 While being very useful, recursive aggregation rules not always have an unambiguous solution. This is the case only under some conditions on the rules and the aggregation function itself.
 
 Typically, Datalog programs semantics is defined using the fixed point of the immediate consequence operato $T_P$. This definition assumes that $T_P$ is inflationary with respect to inclusion order on database instances. This requirement means that $T_P$ only adds facts to the database instance, but never removes facts from it. This is also the reason for which program \ref{ex:ssspdatalog} is inefficient: the inflationary semantics forces all suboptimal distances to nodes to be kept in the database and as such, used in subsequent iterations.
@@ -165,7 +165,7 @@ $$
 
 If $R$ has an aggregated column, $g_R$ groups the facts in relation instance $I$ by qualifying parameters and performs the aggregation using $\aggfun_R$. For non-aggregated relations, $g_R$ is an identity function.
 
-\subsubsection{Order on relation instances}
+\subsubsection{Order over relation instances}
 In Datalog, we can prove that there is a unique least fixed point for any program. The fundamental fact needed for this proof is that it is inflationary: during iterative evaluation of any Datalog program, if the state of a relation is $I_1$ in some step and $I_2$ at a later step, we know that $I_1 \subseteq I_2$. In \datalogra this property no longer holds: a fact in $I_1$ can be replaced with different fact with a lower value in the aggregated column. To be able to define semantics of programs in \datalogra using least fixed point, we need to use a custom order on relation instances. This order is built based on the function $g_R$.
 
 \begin{defn}
@@ -220,239 +220,172 @@ $\le_{\aggfun_R}$ is transitive, because it is a partial order, so $\forall_{(q_
 
 \end{prof}
 
-\subsubsection{Order on aggregated relation instances}
+\subsubsection{Order over relation instances after aggregation}
 
 We already know that $\sqsubseteq_R$ is a pre-order over the set of all possible relation instances $\ps({\bf dom}^{ar(R)})$, but because of lack of antisimmetry, it is not guaranteed to be a partial order. However, if we restrict to the relation instances that are possible after aggregation is applied, the relation is antisimmetric.
 
-For any $R$ such that $k=ar(R)$, let $G_R$ denote the set of relation instances that can be obtained by applying $g_R$ to any relation instance:
-$$G_R = \{g_R(I): I \in \ps({\bf dom}^k)$$
+For any $R$ such that $k=ar(R)$, let $Z_R$ denote the set of relation instances that can be obtained by applying $g_R$ to any relation instance:
+$$Z_R = \{g_R(I): I \in \ps({\bf dom}^k)\}$$
 
 
 \begin{lem}
-For any $R$ such that $k=ar(R)$ and $\aggcol_R \ne {\bf none}$, if $I \in G_R$, then $g_R(I) = I$ and for each $x_1, \dots, x_{n-1}$ there is at most one $x_n$ such that $R(x_1, \dots, x_n) \in I$.
+For any $R$ such that $k=ar(R)$ and $\aggcol_R \ne {\bf none}$, if $I \in Z_R$, then $g_R(I) = I$ and for each $x_1, \dots, x_{n-1}$ there is at most one $x_n$ such that $R(x_1, \dots, x_n) \in I$.
 \end{lem}\label{lem:fixgr}
-
 \begin{prof}
 $I = g_R(I')$ for some $I'$. By definition of $g_R$, there is at most one fact $R(x_1, \dots, x_n)$ in $g_R(I')$ for each $(x_1, \dots, x_{n-1})$. Hence, in application of $g_R$ to $I$ the aggregated value for each $x_1, \dots, x_{n-1}$ is simply $x_n$, so $g_R(I) = I$.
 \end{prof}
 
 \begin{lem}
-For any $R$ such that $k=ar(R)$, $\sqsubseteq_R$ is a partial order over $G_R$.
+For any $R$ such that $k=ar(R)$, $\sqsubseteq_R$ is a partial order over $Z_R$.
 \end{lem}
-
 \begin{prof}
-
 If $R$ does not have an aggregated column, $\sqsubseteq_R$ is the same as inclusion order $\subseteq$, which is a partial order.
 
-If $R$ does have an aggregated column, then by Lemma \ref{lem:preorder} it is a pre-order over $\ps({\bf dom}^k)~\supseteq~G_R$, so it only remains to be shown that $\sqsubseteq_R$ is antisimmetric.
+If $R$ does have an aggregated column, then by Lemma \ref{lem:preorder} it is a pre-order over $\ps({\bf dom}^k)~\supseteq~Z_R$, so it only remains to be shown that $\sqsubseteq_R$ is antisimmetric.
 
-Let $A, B$ be any relation instances from $G_R$. Let us suppose that $A \sqsubseteq_R B$ and $B \sqsubseteq_R A$. To prove antisimmetry, we need to show that $A = B$. By definition of $\sqsubseteq_R$, we have that:
+Let $A, B$ be any relation instances from $Z_R$. Let us suppose that $A \sqsubseteq_R B$ and $B \sqsubseteq_R A$. To prove antisimmetry, we need to show that $A = B$. By definition of $\sqsubseteq_R$, we have that:
 \begin{align*}
 \forall_{(q_1, ..., q_{n-1}, a) \in g(A)} \exists_{(q_1, ..., q_{n-1}, b) \in g(B)}~a~\le_{\aggfun_R}~b \\
 \forall_{(q_1, ..., q_{n-1}, b) \in g(B)} \exists_{(q_1, ..., q_{n-1}, a) \in g(A)}~b~\le_{\aggfun_R}~a
 \end{align*}
-Since $A, B \in G_R$ we know that there exist $A', B'$ such that $A = g_R(A'), B = g_R(B')$. By Lemma \ref{lem:fixgr}, $g_R(A) = g_R(g_R(A')) = g_R(A') = A$, and similarly $g_R(B) = B$, so we can formulas above are equivalent to:
+Since $A, B \in Z_R$ we know that there exist $A', B'$ such that $A = g_R(A'), B = g_R(B')$. By Lemma \ref{lem:fixgr}, $g_R(A) = g_R(g_R(A')) = g_R(A') = A$, and similarly $g_R(B) = B$, so we can formulas above are equivalent to:
 \begin{align*}
 \forall_{(q_1, ..., q_{n-1}, a) \in A} \exists_{(q_1, ..., q_{n-1}, b) \in B}~a~\le_{\aggfun_R}~b \\
 \forall_{(q_1, ..., q_{n-1}, b) \in B} \exists_{(q_1, ..., q_{n-1}, a) \in A}~b~\le_{\aggfun_R}~a
 \end{align*}
 
-Let $t = R(x_1, \dots, x_{n-1}, a)$ be any fact in $A$. We know that there exists $b$ such that $(x_1, ..., x_{n-1}, b) \in B$ and $a~\le_{\aggfun_R}~b$. Futher, we know that there exists $(x_1, ..., x_{n-1}, a') \in A$ such that $b~\le_{\aggfun_R}~a'$. By Lemma \ref{lem:fixgr}, it must hold that $a = a'$. Since $a~\le_{\aggfun_R}~b~\le_{\aggfun_R}~a'$, we have that $a = b$, so $t \in B$. Therefore, $A \subseteq B$, because $t$ was chosen as any element of $A$. Because of symmetry of the proof, it also holds that $B \subseteq A$, so $A = B$.
+Let $t = R(x_1, \dots, x_{n-1}, a)$ be any fact in $A$. We know that there exists $b$ such that $(x_1, ..., x_{n-1}, b) \in B$ and $a~\le_{\aggfun_R}~b$. Futher, we know that there exists $(x_1, ..., x_{n-1}, a') \in A$ such that $b~\le_{\aggfun_R}~a'$. By Lemma \ref{lem:fixgr}, it must hold that $a = a'$. Since $a~\le_{\aggfun_R}~b~\le_{\aggfun_R}~a'$, we have that $a = b$, so $t \in B$. Therefore, $A \subseteq B$, because $t$ was chosen as any element of $A$. Because of symmetry of the proof, it also holds that $B \subseteq A$, so $A = B$. This means that $\sqsubseteq_R$ is indeed antisimmetric.
 
+$\sqsubseteq_R$ is an antisimmetric pre-order over $Z_R$, so it is a partial order over this set.
 \end{prof}
 
+\subsubsection{Order over database instances}
 
-\subsection{Semantics and evaluation - one relation case}\label{ss:semeval1rel}
-In this section we will show that the semantics of a \datalogra program can be unambiguously defined using least fixed point, as long as it satisfies some conditions. To simplify the reasoning, we will restrict our attention to programs with only one \emph{idb} relation. In the following section we extend the definitions and theorems presented here to the general case of many \emph{idb} relations.
+In regular Datalog, database instances can be compared using the inclusion order. We can extend the custom order defined on relation instances to an order on database instances in a straightforward way, by comparing the databases relation-by-relation:
 
-Let $P$ be a \datalogra program, with only one \emph{idb} relation $R$ of arity $k$ in the form of:
+\begin{defn}
+Let $\sigma$ be a database schema and $\textbf{K}, \textbf{L}$ be database instances over $\sigma$. Let $R_1, \dots, R_n$ be relation names in $\sigma$. By definition, $\textbf{K}$ is a union of relation instances $I_1, \dots I_n$ over $R_1, \dots, R_n$ respectively. Similarly, $\textbf{L}$ is a union of relation instances $J_1, \dots J_n$ over $R_1, \dots, R_n$ respectively.  Let the order $\sqsubseteq_\sigma$ on database instances over $\sigma$ be defined as:
+$$\textbf{K} \sqsubseteq_\sigma \textbf{L} \iff \forall_{i=1, \dots, n}~I_i \sqsubseteq_{R_i} J_i$$
+\end{defn}
 
+\begin{rem}
+Note that if there is no aggregation, all relation instances are simply compared using the regular inclusion order. Since relation instances for different relation names are always disjoint, $\sqsubseteq_\sigma$ is the same as $\subseteq$ in this case.
+\end{rem}
+
+\subsection{Semantics for \datalogra programs}\label{ss:semdra}
+In this subsection we will show that the semantics of a \datalogra program can be unambiguously defined using least fixed point of the newly introduced order, as long as it satisfies some conditions. 
+
+
+
+Let $P$ be a \datalogra program, with $w$ \emph{idb} relations $R_1, R_2, \dots, R_w$ of arities $k_1, k_2, \dots, k_w$ respectively. $P$ has the form of:
 \begin{figure}[h!]
+
+
 \narrow{
-%  $\textsc{R}(x_1, \dots, x_{k-1}, x_k [\text{ aggregate } \textsc{F}]) $\\
+  $R_1(x_1, \dots, x_{k-1}, x_k~[\text{ aggregate } F_1]) $\\
+  $R_w(x_1, \dots, x_{k-1}, x_k~[\text{ aggregate } F_w]) $\\
   \begin{flalign*}
-  & \textsc{R} (x_1, \dots, x_k) &&  & \assign & && Q_1(x_1, \dots, x_k) & \\
+  & R_1 (x_1, \dots, x_{k_1}) &&  & \assign & && Q_{1,1}(x_1, \dots, x_{k_1}) & \\
   &  &&  & \dots & && & \\
-  & \textsc{R} (x_1, \dots, x_k) &&  & \assign & && Q_m(x_1, \dots, x_k) & \\
+  & R_1 (x_1, \dots, x_{k_1}) &&  & \assign & && Q_{1,{m_1}}(x_1, \dots, x_{k_1}) & \\
+  &  &&  & \dots & && & \\
+  & R_w (x_1, \dots, x_{k_w}) &&  & \assign & && Q_{w, 1}(x_1, \dots, x_{k_w}) & \\
+  &  &&  & \dots & && & \\
+  & R_w (x_1, \dots, x_{k_w}) &&  & \assign & && Q_{w, {m_w}}(x_1, \dots, x_{k_w}) & \\
   \end{flalign*}
 }
 \end{figure}
 
-$Q_1, \dots, Q_m$ are rule bodies with free variables $x_1, \dots, x_k$. They may contain references to any of the \emph{edb} relations, which are constant during the evaluation or to the only \emph{idb} relation, $R$. We denote evaluation of rule body $Q$ in the context of an instance $I$ of the relation $Q$ as $E_I(Q)$.
+The program has $m_i$ rules for computing $R_i$, for each $i$. $Q_{1, 1}, \dots, Q_{1, m_i}$ for $i = 1, \dots, w$ are bodies of these rules, with free variables $x_1, \dots, x_{k_i}$. Relation $R_i$ may have an aggregation function $\aggfun_{R_i}$ defined for column $\aggcol_{R_i}$. Each such $\aggfun_{R_i}$ is required to be a join operator. $\aggcol_{R_i}$ is allowed to be any column in $1, 2, \dots, k_i$, but to simplify the notation we assume it may be only the last column $k_i$.
 
-Since we consider only one relation $R$, we can simplify the notation: let $\sqsubseteq$ denote $\sqsubseteq_R$ and let $g$ denote the aggregation operation $g_R$ for relation $R$, as defined in Definition \ref{d:aggregationoperationgr}.
+The subgoals in the rule bodies may refer to any relation of an arbitrary set of \emph{edb} relations $edb(P)$, which are constant during the evaluation, and to any of the \emph{idb} relations, $R_1, \dots, R_w$.
 
-Let us define $f: \bf{dom}^k \to \bf{dom}^k$ as the function that evaluates the rules $Q_1, ... Q_m$ based on the given instance of the relation $R$ and and returns its input extended with the set of generated tuples:
-$$ f(I) = I \cup \bigcup_{i=1..m} E_I(Q_i) $$
-
-Let $h = g \circ f$. 
+By definition, $P$ is a program $P'$ in regular Datalog, with $\aggcol$ and $\aggfun$ additionally defined. $P$ can be treated as a triple $(P', \aggcol, \aggfun)$. Hence, exists an immediate consequence operator $T_P'$ for regular Datalog part of program $P$. This operator will be the base for defining $P$'s semantics in \datalogra.
 
 
-\begin{thm}
-If $f$ is monotone with respect to $\sqsubseteq$, i.e. $R_1 \subseteq R_2 \rightarrow f(R_1) \subseteq f(R_2)$, and there exists $n \ge 0 $, such that $h^n(\emptyset) = h^{n+1}(\emptyset)$, then $R^* = h^n(\emptyset)$ is the least fixed point of $h$, that is:
-\begin{enumerate}
-\item $R^* = h(R^*)$, i.e. $R^*$ is a fix-point
-\item $R^* \sqsubseteq R$ for all $R$ such that $R = h(R)$, i.e. $R^*$ is smaller than any other fix-point
-\end{enumerate}
-\end{thm}
+Another important building block in \datalogra semantics is an aggregation operator on database instances. Intuitively, it applies of the corresponding aggregation operator $g_R$ to each relation instance $I$ of relation $R$ in a database instance.
 
-\emph{Proof:} 
+\begin{defn}
+\todo{moze lepiej $G_P$ ?}
+Let $\sigma$ be a database schema and $\textbf{K}$ be a database instance over $\sigma$. Let $R_1, \dots, R_n$ be relation names in $\sigma$. By definition, $\textbf{K}$ is a union of relation instances $I_1, \dots I_n$ over $R_1, \dots, R_n$ respectively. %Assuming $\aggcol_{R_i}$ and $\aggfun_{R_i}$ are defined for each $i$, 
+Let the \emph{aggregation operator} $G_\sigma$ for $\textbf{K}$ be defined as:
 
-$g$ is monotone with respect to $\sqsubseteq$. Since we assumed that $f$ is monotone with respect to $\sqsubseteq$, $h = g \circ f$ is also monotone with respect to $\sqsubseteq$. 
+$$G_\sigma(\textbf{K}) = \bigcup_{i = 1}^n g_{R_i}(I_i)$$
 
-We know that $\emptyset$ is smaller under $\sqsubseteq$ than any other element.
+%In this definition, $\aggcol$ and $\aggfun$ are assumed to be known.
+\end{defn}
 
-Let us suppose that $I'$ is any fix-point of $h$.  We know that $\emptyset \sqsubseteq I'$. Applying $h$ to both sides of the inequality $n$ times, we have that $I^* = h^n(\emptyset) \sqsubseteq h^n(I') = I'$, thanks to the monotonicity of $h$ with respect to $\sqsubseteq$. Therefore, the inductive fixed point $I^*$ is the least fixed point of $h$.
+We can now define an immediate consequence operator for \datalogra programs.
 
-In pseudocode, the evaluation algorithm is straightforward:
+\begin{defn}
+The \emph{immediate consequence operator} for a \datalogra program $P = (P', \aggcol, \aggfun)$, where $P'$ is a program in Datalog, is a function $T_P: inst(sch(P)) \to inst(sch(P))$:
+$$T_P = G_{sch(P)} \circ T_{P'}$$
+\end{defn}
 
-\begin{figure}[h!]
-\narrow{
-$I_0 \leftarrow \emptyset$
-
-$i \leftarrow 0$
-
-do
-
-{\addtolength{\leftskip}{5mm}
-
-$i \leftarrow i + 1$
-
-$I_i \leftarrow h(I_{i-1})$
-
-}
-
-while $I_i \ne I_{i-1}$
-
-
-\caption{Naive evaluation algorithm for \datalogra programs with one \textit{idb} relation.}
-}
-\end{figure}
-
-
-
-\todo{open questions:
-\begin{itemize}
-\item How we compute recursive functions with non-meet aggregation operators? -- I can forbid that for now...
-\end{itemize}
-}
-
-
-\begin{comment}
-
-\subsection{Semi-naive evaluation -- one relation case}
-\emph{Semi-naive evaluation} is the most basic optimization used in Datalog. In comes from the following observation: in a Datalog program, if some rule $Q$ produced a tuple $t$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule with produce this tuple in each subsequent iteration, because $I_j \supseteq I_i$ for $j > i$. The goal of this optimization is to avoid such redundant computation. It is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration.
-
-In this section we give the algorithm for semi-naive evaluation in \datalogra and show that this optimization is valid.
-
-\subsubsection{Algorithm}
-
-\begin{figure}[h!]
-\narrow{
-$R_0 \leftarrow \emptyset, \Delta_0 \leftarrow \emptyset$
-
-$i \leftarrow 0$
-
-do
-
-{\addtolength{\leftskip}{5mm}
-
-$i \leftarrow i + 1$
-
-$T_i \leftarrow \bigcup_{l=1..n} f(R_{i-1})$
-
-$R_i \leftarrow g_k(T_i \cup R_{i-1})$
-
-$\Delta_k^i \leftarrow R_k^i - R_k^{i-1}$
-
-}
-
-while not for all $k$ $\Delta_k^i = \emptyset$
-
-\caption{Semi-Naive evaluation algorithm for \datalogra programs with one \textit{idb} relation.}
-}
-\end{figure}
-
-\end{comment}
-
-
-\subsection{Semantics and evaluation - multiple relations case}
-In this section we extend \datalogra semantics from \ref{ss:semeval1rel} to a general case of possibly many \emph{idb} relations.
-
-Let $P$ be a \datalogra program, with $w$ \emph{idb} relations $R_1, R_2, \dots, R_w$ of arities $k_1, k_2, \dots, k_w$ respectively.
-
-\begin{figure}[h!]
-\narrow{
-%  $\textsc{R}(x_1, \dots, x_{k-1}, x_k [\text{ aggregate } \textsc{F}]) $\\
-  \begin{flalign*}
-  & \textsc{R$_1$} (x_1, \dots, x_{k_1}) &&  & \assign & && Q_{1,1}(x_1, \dots, x_{k_1}) & \\
-  &  &&  & \dots & && & \\
-  & \textsc{R$_1$} (x_1, \dots, x_{k_1}) &&  & \assign & && Q_{1,{m_1}}(x_1, \dots, x_{k_1}) & \\
-  &  &&  & \dots & && & \\
-  & \textsc{R$_w$} (x_1, \dots, x_{k_w}) &&  & \assign & && Q_{w, 1}(x_1, \dots, x_{k_w}) & \\
-  &  &&  & \dots & && & \\
-  & \textsc{R$_w$} (x_1, \dots, x_{k_w}) &&  & \assign & && Q_{w, {m_w}}(x_1, \dots, x_{k_w}) & \\
-  \end{flalign*}
-}
-\end{figure}
-
-For $i = 1, \dots, w$, $Q_{i,1}, \dots, Q_{i,m}$ are rule bodies with free variables $x_1, \dots, x_{k_w}$. They may contain references to the \emph{idb} relations $R_1, R_2, \dots R_w$ and the \emph{edb} relations, which are constant during the evaluation. We denote evaluation of rule body $Q$ in the context of an instance $I_1, \dots I_w$ of the relation $R_1, \dots, R_w$ as $E_(I_1, \dots, I_w)(Q)$.
-
-For $i = 1, \dots, w$, $Q_{i,1}, \dots, Q_{i,m}$, let us define $f_i: P(\bf{dom}^{k_1}) \times \dots \times P(\bf{dom}^{k_w}) \to P(\bf{dom}^{k_i})$ as the function that evaluates the rules $Q_{i,1}, ... Q_{i, m_w}$ for relation $R_i$ based on the given instances of the relations $R_1, \dots, R_w$:
-$$ f_i(I_1, \dots I_w) = I_i \cup \bigcup_{i=1..{m_w}} E_(I_1, \dots, I_w)(Q_i) $$
-
-Let $h_i = g_{R_i} \circ f_i$. Let $h(I_1, \dots, I_w) = (h_1(I_1, \dots, I_w), \dots, h_w(I_1, \dots, I_w))$
-
-Let $\sqsubseteq = \sqsubseteq_{R_1} \times \dots \sqsubseteq_{R_w}$.
+The immediate consequence operator can be used to define semantics for a \datalogra program as its fix-point, similarly to the definition of Datalog's semantics.
 
 \begin{thm}
-If $h$ is monotone with respect to $\sqsubseteq$, i.e. $I \subseteq I' \rightarrow h(I) \subseteq f(I')$, and there exists $n \ge 0 $, such that $h^n(\emptyset) = h^{n+1}(\emptyset)$, then $I^* = h^n(\emptyset)$ is the least fixed point of $h$, that is:
-\begin{enumerate}
-\item $I^* = h(I^*)$, i.e. $I^*$ is a fix-point
-\item $I^* \sqsubseteq I$ for all $I$ such that $I = h(I)$, i.e. $I^*$ is smaller than any other fix-point
-\end{enumerate}
-\todo{Extract the definition of fix-point -- it does not have to be here, but where to put it?}
+Let $P$ be a program in \datalogra and $P = (P', \aggcol, \aggfun)$ where $P'$ is a program in Datalog. Let $\textbf{K}$ be a database instance over $edb(P)$. Let $\sigma = sch(P)$.
+
+If $T_{P'}$ is monotone with respect to $\sqsubseteq_\sigma$, then there exists a finite minimal fix-point of $T_P$ containing $\textbf{K}$. We denote this fix-point by $P(\textbf{K})$.
 \end{thm}
+\begin{prof}
+$G_\sigma$ is monotone with respect to $\sqsubseteq_\sigma$. Since we assumed that $T_{P'}$ is monotone with respect to $\sqsubseteq_\sigma$, $T_P = G_\sigma \circ T_{P'}$ is also monotone with respect to $\sqsubseteq_\sigma$ as a composition of two monotone functions. 
 
-\emph{Proof:} 
+Because of monotonicity of $T_P$, we have inductively that $T_P^i(\textbf{K}) \sqsubseteq_\sigma T_P^{i+1}(\textbf{K})$ for each $i \ge 0$. Therefore:
+$$\textbf{K} \sqsubseteq_\sigma T_P(\textbf{K}) \sqsubseteq_\sigma T_P^2(\textbf{K}) \sqsubseteq_\sigma T_P^3(\textbf{K}) \sqsubseteq_\sigma \dots$$
 
-We know that $\emptyset$ is smaller under $\sqsubseteq$ than any other element.
+$adom(P) \cup adom(\textbf{K})$ and the database schema $sch(P)$ of $P$ are all finite, so there is a finite number $n$ of database instances over $sch(P)$ using those values. Hence, the sequence $\{T_P^i(\textbf{K})\}_i$ reaches a fix-point: $T_P^n(\textbf{K}) = T_P^{n+1}(\textbf{K})$. Let us denote this fix-point by $T_P^*(\textbf{K})$.
 
-Let us suppose that $I'$ is any fix-point of $h$.  We know that $\emptyset \sqsubseteq I'$. Applying $h$ to both sides of the inequality $n$ times, we have that $I^* = h^n(\emptyset) \sqsubseteq h^n(I') = I'$, thanks to the monotonicity of $h$ with respect to $\sqsubseteq$. Therefore, the inductive fixed point $I^*$ is the least fixed point of $h$.
+We will now prove that this is the minimum fix-point of $T_P$ containing $\textbf{K}$. Let us suppose that $\textbf{J}$ is a fix-point of $T_P$ containing  $\textbf{K}$:  $\textbf{K} \sqsubseteq_\sigma \textbf{J}$. By applying $T_P$ $n$ times to both sides of the inequality, we have that $T_P^*(\textbf{K}) = T_P^n(\textbf{K}) \sqsubseteq_\sigma \textbf T_P^n(\textbf{J} = \textbf{J}$. Hence, $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$.
 
-In pseudocode, the evaluation algorithm is straightforward:
+\todo{Czy ten dowód to nie jest zbyt mocne powtórzenie \ref{t:datalogfixpointsem}?}
+\end{prof}
 
-\begin{figure}[h!]
-\narrow{
-$I_0 \leftarrow (\emptyset, \dots, \emptyset)$
+\subsection{Evaluation}
+A straightforward way to evaluate $P(\textbf{K})$, i. e. to compute the minimal fix-point of $T_P$ containing $\textbf{K}$ is to iteratively apply $T_P$ to $\textbf{K}$ until a fix-point is reached. This algorithm, used also in Datalog and described in detail in Section \ref{ss:datalognaiveeval}, can be directly applied also in \datalogra. The only difference is the immediate consequence operator which is used: to evaluate \datalogra programs, one needs to use the $T_P$ operator for \datalogra, which takes into account the aggregation to be applied.
+
+\subsubsection{Semi-naive evaluation} Semi-naive evaluation, the most basic optimization technique used in Datalog evaluation, can be easily adopted in \datalogra.
+
+In semi-naive evaluation of Datalog, which is described in Section \ref{ss:seminaiveevaldatalog}, $T_P$ in a more efficient way than in the naive evaluation. To achieve this, a $T^\Delta_P$ function is used. $T_P^\Delta(I, \Delta)$ evaluates rules of program $P$ on database instance $I$ and a set of new facts from last iteration $\Delta$, so that at least one new fact is used in application of each rule. Output of $T^\Delta_P$ is then merged with the current database instance.
+
+In evaluation of a program $P$ in \datalogra, such that $P = (P', \aggcol, \aggfun)$ where $P'$ is a Datalog program, we can use this technique to efficiently compute $T_{P'}$. The full algorithm is presented on the following pseudocode:
+
+
+\parbox{0.5\textwidth}{
+$P(\textbf{K}) = \{$
+
+{\addtolength{\leftskip}{5mm}
+
+$I_0 \leftarrow K$
+$\Delta_0 \leftarrow K$
 
 $i \leftarrow 0$
 
-do
+\textbf{do}
 
 {\addtolength{\leftskip}{5mm}
 
 $i \leftarrow i + 1$
 
-$I_i \leftarrow h(I_{i-1})$
+$C_i \leftarrow T_P^\Delta(I_{i-1}, \Delta_{i-1})$
+
+$I_i \leftarrow G_\sigma(C_i \cup I_{i-1})$
+
+$\Delta_i \leftarrow I_i - I_{i-1}$
 
 }
 
-while $I_i \ne I_{i-1}$
+\textbf{while} $\Delta_i \ne \emptyset$
 
-\caption{Naive evaluation algorithm for \datalogra programs with multiple \textit{idb} relations.}
+\textbf{return} $I_i$
+
 }
-\end{figure}
 
+$\}$
+}
 
-
-\subsection{Semi-naive evaluation -- one relation case}
-\emph{Semi-naive evaluation} is the most basic optimization used in Datalog evaluation. In comes from the following observation: in a Datalog program, if some rule $Q$ produced a fact $t$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule with produce this tuple in each subsequent iteration, because $I_j \supseteq I_i$ for $j > i$. The goal of this optimization is to avoid such redundant computation. It is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration.
-
-This optimization can be applied in \datalogra as well. To achieve this, we need to define function $f$ and the evaluation operation $E_I(Q)$ in a different way.
-
-
-
+The only difference from the algorithm for Datalog without aggregation described in Section \ref{ss:seminaiveevaldatalog} is that is each step $G_\sigma$ is applied to the newly computed database instance.
 
 \subsection{\datalogra with negation}
 \todo{Basically we do the same thing as in regular Datalog -- stratification}
@@ -462,11 +395,12 @@ This optimization can be applied in \datalogra as well. To achieve this, we need
 Another important extension in SociaLite are \emph{tail nested tables}, which optimize the memory layout so that it can be accessed in a faster way. While being very useful in practice, this optimization is not crucial for running such programs on distributed architecture. \todo{I don't want to have this in the compiler, but maybe describe here?}
 
 \section{Distributed SociaLite}\label{s:distributed}
+\todo{koniecznie}
 
 \section{Delta stepping in Distributed SociaLite}\label{s:deltastep}
-
+\todo{moze?}
 \section{Approximate evaluation in Distributed SociaLite}\label{s:approxdist}
-
+\todo{moze?}
 
 
 

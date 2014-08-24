@@ -165,7 +165,7 @@ The \emph{immediate consequence operator} for a Datalog program $P$ is a functio
 $$T_P(\textbf{K}) = \{ F: F \text{ is a fact over } sch(P) \text{ and $F$ is an immediate consequence for } \textbf{K} \text{ and } P \}$$
 
 \begin{lem}
-Operator $T_P$ for any Datalog program $P$ is a monotone function.
+Operator $T_P$ for any Datalog program $P$ is a monotone function with respect to inclusion order.
 \end{lem}
 \emph{Proof.} Given any $\textbf{I}, \textbf{J} \in inst(sch(P))$ such that $\textbf{I} \subseteq \textbf{J}$, let $F$ be a fact in $T_P(\textbf{I})$.
 By definition, $F$ is an immediate consequence of $\textbf{I}$, so either $F$ is in $\textbf{I}$ or it there exists an instantiation
@@ -173,7 +173,7 @@ By definition, $F$ is an immediate consequence of $\textbf{I}$, so either $F$ is
 In the first case $F \in \textbf{I} \subseteq \textbf{J}$, so $F \in \textbf{J}$. 
 In the second case, each $F_i \in \textbf{I} \subseteq \textbf{J}$, so the instantiation also exists in $\textbf{J}$. 
 Hence, $F$ is also an immediate consequence of $\textbf{J}$, and thus $F \in T_P(\textbf{J})$. 
-Since $F$ was arbitrarily chosen, we have that $T_P(\textbf{I}) \subseteq T_P(\textbf{I})$ and $T_P$ is a monotone function.
+Since $F$ was arbitrarily chosen, we have that $T_P(\textbf{I}) \subseteq T_P(\textbf{I})$ and $T_P$ is a monotone function with respect to $\subseteq$.
 
 \begin{thm}
 For any $P$ and an instance $\textbf{K}$ over $edb(P)$, there exists a finite minimal fix-point of $T_P$ containing $\textbf{K}$.
@@ -182,7 +182,7 @@ For any $P$ and an instance $\textbf{K}$ over $edb(P)$, there exists a finite mi
 The definition of $T_P$ implies that $\textbf{K} \subseteq T_P(\textbf{K})$.
 Because of monotonicity of $T_P$, we have inductively that $T_P^i(\textbf{K}) \subseteq T_P^{i+1}(\textbf{K})$.
 Hence, we have that:
-$$\textbf{K} \subseteq T_P(\textbf{K}) \subseteq T_P^2(\textbf{K}) \subseteq T_P^3(\textbf{K}) \subseteq \dots$$.
+$$\textbf{K} \subseteq T_P(\textbf{K}) \subseteq T_P^2(\textbf{K}) \subseteq T_P^3(\textbf{K}) \subseteq \dots$$
 
 $adom(P) \cup adom(\textbf{K})$ and the database schema $sch(P)$ of $P$ are all finite, so there is a finite number $n$ of database instances over $sch(P)$ using those values. Hence, the sequence $\{T_P^i(\textbf{K})\}_i$ reaches a fix-point: $T_P^n(\textbf{K}) = T_P^{n+1}(\textbf{K})$. Let us denote this fix-point by $T_P^*(\textbf{K})$.
 
@@ -260,7 +260,7 @@ There are also other, more optimized evaluation methods, such as Magic Sets and 
 
 This section briefly describes the ways to evaluate Datalog programs.
 
-\subsection{Naive evaluation}
+\subsection{Naive evaluation}\label{ss:datalognaiveeval}
 In naive evaluation, the computation starts with the initial database containing the \emph{edb} relations and repeatedly applies all the rules, until a fixpoint is reached.
 
 In pseudocode, if $T_P$ is the immediate consequence operator, the algorithm for evaluation of a program $P$ on an input $\textbf{K}$ can be written as:
@@ -315,12 +315,12 @@ I_3 \leftarrow \{&\textsc{R}(1, 2), \textsc{R}(2, 3), \textsc{R}(3, 4), \textsc{
 
 A simple observation is that the immediate consequence operator $T_P$ for any program $P$ is \emph{inflationary}, i. e. it possibly adds facts to the database, but can never remove any fact. In other words, $T_P(\bf{I}) \supseteq \bf{I}$ for any $I$. As a consequence, in an iterative evaluation which uses $T_P$, the database instance $\bf{I}_i$ inferred in step $i$ is a superset any of the database instance $\bf{I}_j$ that was derived in a previous step $j < i$. To name this property, we say that such semantics is \emph{inflationary}.
 
-\subsection{Semi-Naive evaluation}
+\subsection{Semi-Naive evaluation}\label{ss:seminaiveevaldatalog}
 A straightforward implementation of $T_P$ definition is to perform a natural join on subgoal relations and a projection to head variables. Example \ref{ex:naiveeval} shows that such implementation may be inefficient, because most of the facts is computed more than once.
 
 \emph{Semi-naive evaluation} is the most basic optimization used in Datalog evaluation, in which $T_P$ in an optimized way. It comes from the following observation: in a Datalog program, if some rule $Q$ produced a fact $R(t)$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule with produce this fact in each subsequent iteration, because of the inflationary semantics of the language. The goal of this optimization is to avoid those computations after producing the fact for the first time. This is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration. 
 
-Let $T^\Delta_P$ denote a function that evaluates rules of program $P$ so that at least one new fact is used in application of a rule. This function needs to know which facts are the new ones, so it takes two arguments: $I$, the full database instance and $\Delta$, a database instance containing the facts that were added in the last iteration. Note that this function does not necessarily return facts from $I$, so we will need to add them to the facts newly computed to get the same result as $T_P$: $T_P(I_i) = I_i \cup T_P^\Delta(I_i, \Delta_i)$ for each $i$. The following code presents the algorithm for semi-naive evaluation: 
+Let $T^\Delta_P$ denote a function that evaluates rules of program $P$ so that at least one new fact is used in application of a rule. This function needs to know which facts are the new ones, so it takes two arguments: $I$, the full database instance and $\Delta$, a database instance containing the facts that were added in the last iteration. Note that this function does not necessarily return facts from $I$, so we will need to add them to the facts newly computed to get the same result as $T_P$: $T_P(I_i) = I_i \cup T_P^\Delta(I_i, \Delta_i)$ for each $i$. The following pseudocode presents the algorithm for semi-naive evaluation: 
 
 
 \parbox{0.5\textwidth}{
