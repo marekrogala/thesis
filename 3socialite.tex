@@ -92,7 +92,7 @@ When recursive aggregate functions are allowed, the semantics is not inflationar
 
 In this section, we will describe the idea introduced in \cite{socialite}. However, the original description lacks precision and details. Here we give the definitions in a precise way.
 
-First, we will define what a \emph{join operation} is and show the order that it induces. Then we will show that if the aggregation function is a meet operation and corresponding rules are monotone with respect to this induced order, then the result of the program is unambiguously defined. We will also show that it can be computed efficiently using the semi-naive evaluation.
+First, we will define what a \emph{join operation} is and show the order that it induces. Then we will show that if the aggregation function is a join operation and corresponding rules are monotone with respect to this induced order, then the result of the program is unambiguously defined. We will also show that it can be computed efficiently using the semi-naive evaluation.
 
 \subsubsection{Join operation and induced ordering}
 We start by recalling the definitions of idempotency, commutativity and associativity for binary operations.
@@ -123,7 +123,7 @@ $\max(a, b)$ for $a, b \in \mathbb{N}$ is a join operation; it is:
 \item associative --- $\max(a, \max(b, c)) = \max(\max(a, b), c)$
 \end{itemize}
 
-Similarly, minimum of two numbers is a join operation. On the contrary, $+$ is not a meet operation, since it is not idempotent: $1+1 \ne 1$.
+Similarly, minimum of two numbers is a join operation. On the contrary, $+$ is not a join operation, since it is not idempotent: $1+1 \ne 1$.
 \end{exmp}
 
 \subsubsection{Order induced by a join operation}
@@ -338,10 +338,9 @@ $\adom(P) \cup \adom(\textbf{K})$ and the database schema $\sch(P)$ of $P$ are a
 
 We will now prove that this is the minimum fix-point of $T_P$ containing $\textbf{K}$. Let us suppose that $\textbf{J}$ is a fix-point of $T_P$ containing  $\textbf{K}$:  $\textbf{K} \sqsubseteq_\sigma \textbf{J}$. By applying $T_P$ $n$ times to both sides of the inequality, we have that $T_P^*(\textbf{K}) = T_P^n(\textbf{K}) \sqsubseteq_\sigma \textbf T_P^n(\textbf{J} = \textbf{J}$. Hence, $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$.
 
-\todo{Czy ten dowód to nie jest zbyt mocne powtórzenie \ref{t:datalogfixpointsem}?}
 \end{prof}
 
-\todo{Przykład: SSSP, dowód monotoniczności}
+\todo{Przykład: program obliczający najkrótsze ścieżki i dowód monotoniczności $T_{P'}$}
 
 \subsection{Evaluation}
 A straightforward way to evaluate $P(\textbf{K})$, i. e. to compute the minimal fix-point of $T_P$ containing $\textbf{K}$, is to iteratively apply $T_P$ to $\textbf{K}$ until a fix-point is reached. This algorithm, used also in Datalog and described in detail in Section \ref{ss:datalognaiveeval}, can be directly applied also in \datalogra. The only difference is the immediate consequence operator which is used: to evaluate \datalogra programs, one needs to use the $T_P$ operator for \datalogra, which takes into account the aggregation to be applied.
