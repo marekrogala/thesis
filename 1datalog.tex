@@ -498,7 +498,7 @@ For any $P$ and an instance $\textbf{K}$ over $\edb(P)$, if there exists $n \ge 
 \end{thm}
 \emph{Proof.} See second part of the proof for Theorem \ref{t:datalogfixpointsem}.
 
-\subsection{Datalog with negation}
+\subsection{Datalog with negation}\label{ss:datalogneg}
 Pure version of Datalog permits recursion, but provides no negation. Negation allows to answer queries such as "which pairs of the nodes in graph are not connected?". There are several ways of adding negation to Datalog. One of the most prominent of them is the \emph{stratified semantics}, which we will present in this section. 
 
 In Datalog with negation, or \datalogneg, each relational subgoal may be negated, i. e. preceded with the negation symbol $!$. The negated subgoals are called \emph{negative} subgoals, and the rest of the subgoals is called \emph{positive} subgoals. Arithmetic comparisons and assignments are not allowed to be negated.

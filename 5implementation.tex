@@ -3,11 +3,23 @@
 \chapter{Datalog on Spark}\label{r:implementation}
 
 \todo{
-  Opis narzędzia
+  Opis narzędzia, jak się go używa (przykłady), w jaki sposób tłumaczy Dataloga na Sparka, porównania z SociaLite i Spark GraphX API
+  + o tym że oryginalny SociaLite nie działa
 }
 
+
+Zalety implementacji na Sparku:
+\begin{itemize}
+\item dzięki implementacji na Sparku można mieszać zapytania Datalogowe z kodem Sparka, np. wykorzystywać go do rozszerzenia istniejących programów
+\item można skorzystać z tego że Spark ma całą integrację z HDFS i innymi
+\item uzytkownicy Sparka nie potrzebują dodatkowych inwestycji w  infrastrukturę
+\item korzystamy z wbudowanych, dopracowanych i ciągle dopracowywanych optymalizacji Sparka
+\item mamy fault-tolerance zapewnione przez Sparka. Czyli dopracowane i plus jest taki, że nie ma konieczności zapisu na dysk: pamiętane są ścieżki wywołań które doprowadziły do określonego wyniku (sprawdzić jak to dokładnie działa)
+\end{itemize}
+
+
 \pomysl{typowe problemy na grafach
-porównamy się z SociaLite i Spark Pregel API
+porównamy się z SociaLite i Spark Pregel API/GraphX
 further work: narzędzie pozwalające sprawdzić lub teoretyczny wynik jak sprawdzać, czy jest monotoniczność pozwalająca robić rekurencyjną agregację
 }
 

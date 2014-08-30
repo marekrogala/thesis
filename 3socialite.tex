@@ -387,20 +387,37 @@ $\}$
 
 The only difference from the algorithm for Datalog without aggregation described in Section \ref{ss:seminaiveevaldatalog} is that is each step $G_\sigma$ is applied to the newly computed database instance.
 
-\subsection{\datalogra with negation}
-\todo{Basically we do the same thing as in regular Datalog -- stratification}
+\subsection{Stratified \datalogra}
+Negation can be introduced to \datalogra in the same way as to regular Datalog: by stratification. Intuitively, if there is are no recursive calls are not negated, then the program's can be divided into smaller subprograms, called \emph{strata}, so that there is no cyclic dependency between relations defined in different strata. The whole program can be then evaluated by evaluating the subprograms for each stratum in the topological order. Stratification and semantics for \datalogneg are described in detail in \ref{ss:datalogneg}.
 
+We have already defined semantics for \datalogra without negation. It can be naturally extended to semantics of semi-positive \datalogra programs, i. e. programs in \datalogra that can also use \edb relations in a negated subgoal. This defines the semantics for an individual stratum.
 
-\section{Tail-nested tables}\label{s:tnt}
-Another important extension in SociaLite are \emph{tail nested tables}, which optimize the memory layout so that it can be accessed in a faster way. While being very useful in practice, this optimization is not crucial for running such programs on distributed architecture. \todo{I don't want to have this in the compiler, but maybe describe here?}
+To obtain the semantics of a general program in \datalogra with negation, let us notice that stratification can be applied to \datalogra programs with negation just like to regular \datalogneg programs. The only difference is that when $P$ is partitioned into the strata $P_1, \dots, P_n$, each stratum $P_i$ can contain recursive aggregation. In other words, it each $P_i$ is a semi-positive \datalogra program. Therefore, each $P_i$ is evaluated using the \datalogra semantics, insted of a regular Datalog semantics.
+
+%\section{Tail-nested tables}\label{s:tnt}
+%Another important extension in SociaLite are \emph{tail nested tables}, which optimize the memory layout so that it can be accessed in a faster way. While being very useful in practice, this optimization is not crucial for running such programs on distributed architecture. \todo{I don't want to have this in the compiler, but maybe describe here?}
 
 \section{Distributed SociaLite}\label{s:distributed}
-\todo{koniecznie}
+Running a program on a single machine significantly limits the scale of problems which can be addressed. Large datasets cannot be fit into one computer's memory, and the running time is usually too large for practical applications. To be able to perform computations on large datasets, they must be distributed across multiple machines. This rule also applies to programs in Datalog and in its variants such as \datalogra.
 
-\section{Delta stepping in Distributed SociaLite}\label{s:deltastep}
-\todo{moze?}
-\section{Approximate evaluation in Distributed SociaLite}\label{s:approxdist}
-\todo{moze?}
+The second paper on SociaLite \cite{distsoc} describes one of the possible ways to distribute evaluation of such programs. It proposes that each relation is distributed across workers based on the values in the first column. The facts from relations are sharded either with a hash function, or by dividing the possible values range into equal parts. The first column, by which the sharding is done, is distinguished by writing it separately in [], for example:
+$$\textsc{Path}[v](d) :- \textsc{Edge}[1](v, d)$$
 
+The evaluation is performed on the workers, which are coordinated by a \emph{master node} and send each other the facts they need. Fault tolerance is achieved by checkpointing the state of the computation on distributed file system every few evaluation steps.
 
+In Chapter \ref{r:implementation} we present an alternative way of paralellizing Datalog evaluation --- by translating the program into a set of Apache Spark's native operations on RDDs.
+
+\pomysl{
+Ewentualnie opisać też:
+Delta stepping in Distributed SociaLite %\section{Delta stepping in Distributed SociaLite}\label{s:deltastep}
+Approximate evaluation in Distributed SociaLite %\section{Approximate evaluation in Distributed SociaLite}\label{s:approxdist}
+}
+
+\section{Original SociaLite}
+
+The version of Datalog presented here differs from original description found in the original papers introducting SociaLite \cite{socialite, distsoc}.
+
+We presented a precise definition of a \datalogra program and the well-defined conditions for it to have an unambiguous soluion. While the original papers contains these conditions, it lacks precise definitions of the notions used, such as the order on database instances.
+
+In our definition, the syntax for declaring the aggregated column and function is to place them in the relation declaration, while in the original paper it is connected with the rules. We believe that this can enhance the readibility of \datalogra programs.
 
