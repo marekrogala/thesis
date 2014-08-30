@@ -1,5 +1,5 @@
 
-\chapter*{Introduction}
+\chapter{Introduction}
 \addcontentsline{toc}{chapter}{Introduction}
 In recent years, the humanity has created many graph datasets much larger than those available ever before.
 Those graphs became a very popular object of research. Most notable examples are \emph{the Web graph} -- a graph of Internet websites and links between them, and all kinds of social networks. Other interesting graphs include transportation routes, similarity of scientific articles or citations among them.
@@ -29,6 +29,8 @@ We present an experimental implementation of the SociaLite language on the Apach
 The thesis consists of six chapters. In Chapter~\ref{r:datalog} we recall definitions of Datalog and its evaluation methods while Chapter~\ref{r:pregel} contains an introduction to the Pregel computation model. In Chapter~\ref{r:socialite} we describe the extensions introduced by SociaLite and provide formal definitions and general-case proofs which the original papers lack. Chapter \ref{r:s2p} shows the translation procedure from SociaLite to Pregel programs implemented in the S2P compiler, which is described in Chapter~\ref{r:implementation}. In Chapter~\ref{r:summary} we sketch the possible future work and the path to industrial implementation of the language using the S2P compiler.
 
 \section{Basic definitions}\label{r:basicdefs}
+\todo{Wstawić dodatkową narrację}
+
 We start by giving some basic definitions which will be used in this paper.
 
 The languages considered in the paper operate on databases, which consist facts over relations identified by relation names, for example \relat{R}{}, \relat{P}{}, \relat{Tc}{}, \relat{Path}{} or \relat{Edge}{}.

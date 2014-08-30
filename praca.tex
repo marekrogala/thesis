@@ -2,9 +2,10 @@
 
 \usepackage{amsmath, amsfonts,amssymb,amsthm,epsfig,epstopdf,url,array,bm,color}
 
-\usepackage{polski}
-\usepackage[english,polish]{babel}
+%\usepackage{polski}
+%\usepackage[english,polish]{babel}
 \usepackage[utf8]{inputenc}
+\usepackage[OT4]{fontenc}
 
 \usepackage{verbatim}
 \usepackage{lmodern}
@@ -26,28 +27,27 @@
 
 \nralbumu{277570}
 
-\title{Deklaratywne zapytania na dużych grafach i ich rozproszone wyliczanie}
+\title{Declarative queries on large graphs and their distributed evaluation}
 
-\tytulang{Declarative queries on large graphs and their distributed evaluation}
+\tytulang{Deklaratywne zapytania na dużych grafach i ich rozproszone wyliczanie}
 
-\kierunek{Informatyka}
+\kierunek{Computer Science}
 
-\opiekun{dra Jacka Sroki\\
-  Instytut Informatyki\\
+\opiekun{dr Jacek Sroka\\
+  Institute of Informatics\\
   }
 
-\date{Wrzesień 2014}
+\date{September 2014}
 
 \dziedzina{ 
-11.3 Informatyka\\
+11.3 Computer Science\\ 
 }
 
-\klasyfikacja{Information Systems: Query languages }
+\klasyfikacja{Information Systems: Query languages}
 
 % Słowa kluczowe:
-\keywords{Przetwarzanie dużych grafów, deklaratywne języki zapytań, obliczenia na dużych zbiorach danych, Datalog, SociaLite, Apache Spark, Hadoop.
-%\\ Large graphs processing, Declarative query languages, Computations on large datasets, Datalog, SociaLite, Apache Spark, Hadoop
-}
+%\keywords{Przetwarzanie dużych grafów, Deklaratywne języki zapytań, Obliczenia na dużych zbiorach danych, Datalog, SociaLite, Apache Spark, Hadoop.}
+\keywords{Large graphs processing, Declarative query languages, Computations on large datasets, Datalog, SociaLite, Apache Spark, Hadoop}
 
 \theoremstyle{plain}
 \newtheorem{thm}{Theorem}[section]
@@ -117,12 +117,13 @@
 \maketitle
 
 \begin{abstract}
-W pracy przedstawiono metodę tłumaczenia programów zapisanych w Datalogu
-i jego rozszerzonych wersjach do programów w modelu obliczeniowym Google Pregel,
-oraz implementację prototypowego kompilatora wykorzystującego tę metodę do uruchamiania takich programów na platformie Apache Spark.
-Takie podejście pozwala na wykonywanie obliczeń na istniejących architekturach do obliczeń rozproszonych
-za pomocą deklaratywnego języka zapytań, znacznie prostszego niż dotychczas dostępne języki dla tych architektur.
+\todo{Sprawdzić, Przetłumaczyć}
+W pracy przedstawiono implementację narzędzia, będącego rozszerzeniem do platformy Apache Spark, służącej do wykonywania rozproszonych obliczeń. Prezentowane rozszerzenie umożliwia wykonywanie na Apache Spark zapytań zapisanych w deklaratywnym języku, opartym o Datalog i jego późniejsze rozszerzenia. Takie podejście pozwala na wykonywanie obliczeń na istniejących architekturach do obliczeń rozproszonych za pomocą deklaratywnego języka zapytań, ze swojej natury dostępnego dla szerszego grona użytkowników niż typowe języki programowania. Szczególny nacisk położono na zastosowanie takich deklaratywnych zapytań do wykonywania obliczeń na bardzo dużych grafach.
 \end{abstract}
+
+
+%W pracy przedstawiono implementację narzędzia, będącego rozszerzeniem do platformy Apache Spark, służącej do wykonywania rozproszonych obliczeń. Prezentowane rozszerzenie umożliwia wykonywanie na Apache Spark zapytań zapisanych w deklaratywnym języku, opartym o Datalog i jego późniejsze rozszerzenia. Takie podejście pozwala na wykonywanie obliczeń na istniejących architekturach do obliczeń rozproszonych za pomocą deklaratywnego języka zapytań, ze swojej natury dostępnego dla szerszego grona użytkowników niż typowe języki programowania. Szczególny nacisk położono na zastosowanie takich deklaratywnych zapytań do wykonywania obliczeń na bardzo dużych grafach.
+
 
 \tableofcontents
 %\listoffigures
@@ -135,8 +136,6 @@ za pomocą deklaratywnego języka zapytań, znacznie prostszego niż dotychczas 
 \input{2pregel.tex}
 
 \input{3socialite.tex}
-
-\input{4translation.tex}
 
 \input{5implementation.tex}
 

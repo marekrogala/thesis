@@ -10,7 +10,7 @@
 
 
 \def\@baseclass{report}
-\def\@rodzajpracy{magisterska}
+\def\@rodzajpracy{Master's}
 \DeclareOption{licencjacka}{\def\@rodzajpracy{licencjacka}}
 \DeclareOption*{\PassOptionsToClass{\CurrentOption}{\@baseclass}}
 \PassOptionsToClass{a4paper,twoside,openright,11pt}{\@baseclass}
@@ -36,23 +36,23 @@
     \let\footnoterule\relax
     \let \footnote \thanks
     \begin{center}%
-      {\LARGE\textbf{Uniwersytet Warszawski}\\
-        Wydzia\l{} Matematyki, Informatyki i Mechaniki\par}
+      {\LARGE\textbf{University of Warsaw}\\
+        Faculty of Mathematics, Informatics and Mechanics\par}
       \vspace{1cm plus 1fill} 
       {\Large\bf\@author\par}
       \vspace{0.2cm}
-      {\large Nr albumu: \@nralbumu\par}
+      {\large Student number: \@nralbumu\par}
       \vspace{8mm plus .1fill}
       {\Huge\textbf{\@title}\par}
       \vspace{8mm plus .1fill}
-      {\large\bf Praca \@rodzajpracy\\[3pt]
-        na kierunku \MakeUppercase{\@kierunek} \\
+      {\large\bf \@rodzajpracy\ Thesis\\[3pt]
+        in \MakeUppercase{\@kierunek} \\
 %----zakres---
         \@zakres \par}
       \vspace{2cm plus 1.5fill}
       \begin{flushright}\large
         \begin{tabular}{l}
-          Praca wykonana pod kierunkiem\\
+          Supervisor\\
           \bfseries \@opiekun
         \end{tabular}
       \end{flushright}
@@ -67,31 +67,28 @@
     \null
     \vfill
     
-   \textbf{\Large O\'swiadczenie kieruj¡cego prac¡ }
+   \textbf{\Large Supervisor's statement }
       \vspace{10mm}
-      
-   Potwierdzam, {\.z}e niniejsza praca zosta{\l}a przygotowana pod moim 
-   kierunkiem i kwalifikuje si¦ do przedstawienia jej w post¦powaniu 
-   o nadanie tytu{\l}u zawodowego. 
+
+Hereby I confirm that the present thesis was prepared under my supervision and
+that it fulfills the requirements for the degree of Master of Computer Science.
+
    \vspace{15mm}
    
-   Data \hfill Podpis kieruj¡cego prac¡ 
+   Date \hfill Supervisor's signature
    
    \vspace{3cm}
-   \textbf{\Large O\'swiadczenie autora (autor\'ow) pracy}
+   \textbf{\Large Author's statement}
     \vspace{10mm}
     
-   \'{S}wiadom odpowiedzialno\'sci prawnej o\'swiadczam, {\.z}e niniejsza praca dyplomowa zosta{\l}a 
-   napisana przeze mnie samodzielnie i nie zawiera tre\'sci uzyskanych w spos\'ob niezgodny 
-   z obowi¡zuj¡cymi przepisami. 
-   
-   O\'swiadczam r\'ownie{\.z}, {\.z}e przedstawiona praca nie by{\l}a 
-   wcze\'sniej przedmiotem procedur zwi¡zanych z uzyskaniem tytu{\l}u zawodowego w wy{\.z}szej uczelni. 
-   
-   O\'swiadczam ponadto, {\.z}e niniejsza wersja pracy jest identyczna z za{\l}¡czon¡ wersj¡ elektroniczn¡. 
+Hereby I declare that the presented thesis was prepared by me and none of its contents was obtained by means that are against the law.
+
+The thesis has never before been a subject of any procedure of obtaining an academic degree.
+
+Moreover, I declare that the present version of the thesis is identical to the attached electronic version.
    \vspace{15mm}
    
-   Data \hfill Podpis autora (autor\'ow) pracy
+   Date \hfill Author's signature
     \vspace{4cm}
   \end{titlepage}
   \setcounter{footnote}{0}%
@@ -137,26 +134,26 @@
 {\par  
   \vspace*{26pt}%
   \begin{center}%
-    \bfseries\large S{\l}owa kluczowe
+    \bfseries\large Keywords
     \@endparpenalty\@M
   \end{center}
   \@keywords\par
   \vspace*{26pt}%
   \begin{center}%
-    \bfseries\large Dziedzina pracy (kody wg programu Socrates-Erasmus)
+    \bfseries\large Thesis domain (Socrates-Erasmus subject area codes)
     \@endparpenalty\@M
   \end{center}
    \@dziedzina\par
   \vspace*{26pt}%
   \begin{center}%
-    \bfseries\large Klasyfikacja tematyczna
+    \bfseries\large Subject classification
     \@endparpenalty\@M
   \end{center}
   \@klasyfikacja\par
   \vspace*{26pt}%
 %-------------------nowosc----------------
   \begin{center}%
-    \bfseries\large Tytu{\l} pracy w j¦zyku angielskim
+    \bfseries\large Tytu{\l} pracy w j¦zyku polskim
     \@endparpenalty\@M
   \end{center}
   \@tytulang\par
