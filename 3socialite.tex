@@ -55,9 +55,9 @@ A straightforward program in Datalog extended with nonrecursive aggregation for 
 
 
 \subsection{A program in \datalogra}
-A \datalogra program is a Datalog program, with additional aggregation function defined for selected columns of some relations. This function needs to fulfill requirements that will be stated in the next section.
+A \datalogra program $P$ is a Datalog program, with additional aggregation function defined for selected columns of some relations. This function needs to fulfill requirements that will be stated in the next section.
 
-For each relation name $R$, there can be one column $\aggcol_R \in {1, \dots ar(R)}$ chosen for which an aggregation function $\aggfun_R$ is provided. This column is called the \emph{aggregated column}. The rest of the columns are called the \emph{qualifying columns}. Intuitively, after each step of computation, we group the facts in the relation by the qualifying columns and within each group we aggregate the values in the aggregated column using $\aggfun_R$. Value $\aggcol_R = \bf{none}$ means that $R$ is a regular relation with no aggregation.
+For each relation name $R \in idb(P)$, there can be one column $\aggcol_R(P) \in {1, \dots ar(R)}$ chosen for which an aggregation function $\aggfun_R(P)$ is provided. This column is called the \emph{aggregated column}. The rest of the columns are called the \emph{qualifying columns}. Intuitively, after each step of computation, we group the facts in the relation by the qualifying columns and within each group we aggregate the values in the aggregated column using $\aggfun_R(P)$. Value $\aggcol_R(P) = \bf{none}$ means that $R$ is a regular relation with no aggregation. Usually program $P$ can be clearly determined from the context. We will then simply write $\aggcol_R, \aggfun_R$ instead of $\aggcol_R(P), \aggfun_R(P)$.
 
 To simplify the notation, we assume that if a relation has an aggregated column, then it is always the last one: $\aggcol_R = ar_R$.
 
@@ -124,6 +124,11 @@ $\max(a, b)$ for $a, b \in \mathbb{N}$ is a join operation; it is:
 
 Similarly, minimum of two numbers is a join operation. On the contrary, $+$ is not a join operation, since it is not idempotent: $1+1 \ne 1$.
 \end{exmp}
+
+Since join operation is associative, we can skip parentheses and write: $ a_1 \sqcup a_2 \sqcup \dots \sqcup a_n$ instead of: $ a_1 \sqcup (a_2 \sqcup ( \dots \sqcup a_n) \dots )$.
+
+Join operation can be extended to finite sets of values in a straightforward way:
+$$\sqcup(\{a_1, \dots, a_n \}) = a_1 \sqcup a_2 \sqcup \dots \sqcup a_n$$
 
 \subsubsection{Order induced by a join operation}
 
@@ -420,3 +425,4 @@ We presented a precise definition of a \datalogra program and the well-defined c
 
 In our definition, the syntax for declaring the aggregated column and function is to place them in the relation declaration, while in the original paper it is connected with the rules. We believe that this can enhance the readibility of \datalogra programs.
 
+In \cite{socialite, distsoc} recursive aggregate functions are defined using \emph{meet operation}, which is dual to join operation, but induces a partial order in which the outcome of the operation is the greatest lower bound instead of the least upper bound. This requires the semantics of a program to be defined using a greatest fixed point. We decided to use join operations, as it allows the semantics to be defined with the least fixed point, consistently with regular Datalog.
