@@ -49,7 +49,7 @@ A straightforward program in Datalog extended with nonrecursive aggregation for 
   $\textsc{Edge}(\text{int } \textit{src}, \text{int } \textit{sink}, \text{int } \textit{len}) $ \\
   $\textsc{Path}(\text{int } \textit{target}, \text{int } \textit{dist} \text{ aggregate } \textsc{Min}) $
 }{
-  & \textsc{Path} (1, 0). &&  & & &&  & \\
+  & \textsc{Path} (t, d) &&  & \assign & && t = 1, d = 0. & \\
   & \textsc{Path} (t, d) &&  & \assign & && \textsc{Path} (s, d_1), \textsc{Edge} (s, t, d_2), d = d_1 + d_2. &
 }{SociaLite query for computing shortest paths from node 1 to other nodes}{ex:ssspsocialite}
 
@@ -135,7 +135,7 @@ $$\sqcup(\{a_1, \dots, a_n \}) = a_1 \sqcup a_2 \sqcup \dots \sqcup a_n$$
 A join operation over a set $P$ induces a partial order on $P$ that has some useful properties. In particular, $P$ with this ordering is a semi-lattice. We start by recalling the definitions of partial order and semi-lattice.
 
 \begin{defn}[Partial order]
-A binary relation $\le$ over a set $P$ is a \emph{partial order} if it is reflexive, antisymmetic and transitive, i. e. for each $x, y, z \in P$ the following properties are satisfied:
+A binary relation $\le$ over a set $P$ is a \emph{partial order} if it is reflexive, antisymmetic and transitive, i.e.\ for each $x, y, z \in P$ the following properties are satisfied:
 \begin{itemize}
 \item $x \le x$
 \item if $x \le y$ and $y \le x$ then $x = y$
@@ -168,7 +168,7 @@ $$
 
 If $R$ has an aggregated column, $g_R$ groups the facts in relation instance $I$ by qualifying parameters and performs the aggregation using $\aggfun_R$. For non-aggregated relations, $g_R$ is an identity function.
 
-\subsubsection{Order over relation instances}
+\subsubsection{Pre-order over relation instances}
 In Datalog, we can prove that there is a unique least fixed point for any program. The fundamental fact needed for this proof is that it is inflationary: during iterative evaluation of any Datalog program, if the state of a relation is $I_1$ in some step and $I_2$ at a later step, we know that $I_1 \subseteq I_2$. In \datalogra this property no longer holds: a fact in $I_1$ can be replaced with different fact with a lower value in the aggregated column. To be able to define semantics of programs in \datalogra using least fixed point, we need to use a custom order on relation instances. This order is built based on the function $g_R$.
 
 \begin{defn}
@@ -223,7 +223,7 @@ $\le_{\aggfun_R}$ is transitive, because it is a partial order, so $\forall_{(q_
 
 \end{prof}
 
-\subsubsection{Order over relation instances after aggregation}
+\subsubsection{Partial order over relation instances after aggregation}
 
 We already know that $\sqsubseteq_R$ is a pre-order over the set of all possible relation instances $\inst(R)$, but because of lack of antisimmetry, it is not guaranteed to be a partial order. However, if we restrict to the relation instances that are possible after aggregation is applied, the relation is antisimmetric.
 
@@ -309,20 +309,19 @@ By definition, $P$ is a program $P'$ in regular Datalog, with $\aggcol$ and $\ag
 Another important building block in \datalogra semantics is an aggregation operator over database instances. Intuitively, it applies of the corresponding aggregation operator $g_R$ to each relation instance $I$ of relation $R$ in a database instance.
 
 \begin{defn}[Aggregation operator over databases]
-\todo{moze lepiej $G_P$ ?}
-Let $\sigma$ be a database schema and $\textbf{K}$ be a database instance over $\sigma$. Let $R_1, \dots, R_n$ be relation names in $\sigma$. By definition, $\textbf{K}$ is a union of relation instances $I_1, \dots I_n$ over $R_1, \dots, R_n$ respectively. %Assuming $\aggcol_{R_i}$ and $\aggfun_{R_i}$ are defined for each $i$, 
-Let the \emph{aggregation operator} $G_\sigma$ for $\textbf{K}$ be defined as:
+Let $P$ be a program in \datalogra and $\textbf{K}$ be a database instance over $\sch(P)$. Let $R_1, \dots, R_n$ be relation names in $\sch(P)$. By definition, $\textbf{K}$ is a union of relation instances $I_1, \dots I_n$ over $R_1, \dots, R_n$ respectively. %Assuming $\aggcol_{R_i}$ and $\aggfun_{R_i}$ are defined for each $i$, 
+Let the \emph{aggregation operator} $G_P$ for $\textbf{K}$ be defined as:
 
-$$G_\sigma(\textbf{K}) = \bigcup_{i = 1}^n g_{R_i}(I_i)$$
+$$G_P(\textbf{K}) = \bigcup_{i = 1}^n g_{R_i}(I_i)$$
 
 %In this definition, $\aggcol$ and $\aggfun$ are assumed to be known.
 \end{defn}
 
-We can now define an immediate consequence operator for \datalogra programs.
+We can now define the immediate consequence operator for \datalogra programs.
 
 \begin{defn}[Immediate consequence operator for \datalogra]
 The \emph{immediate consequence operator} for a \datalogra program $P = (P', \aggcol, \aggfun)$, where $P'$ is a program in Datalog, is a function $T_P: \inst(\sch(P)) \to \inst(\sch(P))$:
-$$T_P = G_{\sch(P)} \circ T_{P'}$$
+$$T_P = G_P \circ T_{P'}$$
 \end{defn}
 
 The immediate consequence operator can be used to define semantics for a \datalogra program as its fix-point, similarly to the definition of Datalog's semantics.
@@ -333,7 +332,7 @@ Let $P$ be a program in \datalogra and $P = (P', \aggcol, \aggfun)$ where $P'$ i
 If $T_{P'}$ is monotone with respect to $\sqsubseteq_\sigma$, then there exists a finite minimal fix-point of $T_P$ containing $\textbf{K}$. We denote this fix-point by $P(\textbf{K})$.
 \end{thm}
 \begin{prof}
-$G_\sigma$ is monotone with respect to $\sqsubseteq_\sigma$. Since we assumed that $T_{P'}$ is monotone with respect to $\sqsubseteq_\sigma$, $T_P = G_\sigma \circ T_{P'}$ is also monotone with respect to $\sqsubseteq_\sigma$ as a composition of two monotone functions. 
+$G_P$ is monotone with respect to $\sqsubseteq_\sigma$. Since we assumed that $T_{P'}$ is monotone with respect to $\sqsubseteq_\sigma$, $T_P = G_P \circ T_{P'}$ is also monotone with respect to $\sqsubseteq_\sigma$ as a composition of two monotone functions. 
 
 Because of monotonicity of $T_P$, we have inductively that $T_P^i(\textbf{K}) \sqsubseteq_\sigma T_P^{i+1}(\textbf{K})$ for each $i \ge 0$. Therefore:
 $$\textbf{K} \sqsubseteq_\sigma T_P(\textbf{K}) \sqsubseteq_\sigma T_P^2(\textbf{K}) \sqsubseteq_\sigma T_P^3(\textbf{K}) \sqsubseteq_\sigma \dots$$
@@ -344,10 +343,60 @@ We will now prove that this is the minimum fix-point of $T_P$ containing $\textb
 
 \end{prof}
 
-\todo{Przykład: program obliczający najkrótsze ścieżki i dowód monotoniczności $T_{P'}$}
+\begin{exmp}
+As an example, let us recall the following program $P$ for computing shortest paths from a selected source to other vertices of a graph:
+
+
+\dprog{
+  $\textsc{Edge}(\text{int } \textit{src}, \text{int } \textit{sink}, \text{int } \textit{len}) $ \\
+  $\textsc{Path}(\text{int } \textit{target}, \text{int } \textit{dist} \text{ aggregate } \textsc{Min}) $
+}{
+  & \textsc{Path} (t, d) &&  & \assign & && t = 1, d = 0. & \\
+  & \textsc{Path} (t, d) &&  & \assign & && \textsc{Path} (s, d_1), \textsc{Edge} (s, t, d_2), d = d_1 + d_2. &
+}{\datalogra query for computing shortest paths from node 1 to other nodes}{}
+
+In this program, we have the following aggregation function and column for relation $\textsc{Path}$ defined:
+
+$$ \aggcol_\textsc{Path} = 2 $$
+$$ \aggfun_\textsc{Path} = \lambda x, y. \min(x, y) $$
+
+$\aggfun_\textsc{Path}$ is naturally a join operation. It induces a partial order $\ge$: for $a, b \in \mathbb{N}$, $\min(a, b)$ is the least upper bound of $a$ and $b$ with respect to $\ge$.
+
+The corresponding aggregation operator for \textsc{Path} is:
+$$g_\textsc{Path}(I) = \Big\{(x, t): (x, y) \in I \wedge t = \min(\{y: (x, y) \in I\})\Big\} $$
+
+The aggregation-aware ordering on instances of \textsc{Path} is then:
+$$ I_1 \sqsubseteq_\textsc{Path} I_2 \iff \forall_{(x, d) \in g_\textsc{Path}(I_1)} \exists_{(x', d') \in g_\textsc{Path}(I_2)} d \ge d' $$
+For \textsc{Edge}, the order on relation instaces is simply given by inclusion: $\sqsubseteq_\textsc{Edge} = \subseteq$.
+
+The order $\sqsubseteq$ on database instances over $\sch(P) = \{\textsc{Path}, \textsc{Edge}\}$ is as follows. Let \textbf{K}$_1$ and \textbf{K}$_2$ be any such database instances. By definition, $\textbf{K}_1 = P_1 \cup E_1$ and $\textbf{K}_2 = P_2 \cup E_2$, where $P_1, P_2$ are relations over \textsc{Path} and $E_1, E_2$ are relations over \textsc{Edge}.
+$$ K_1 \sqsubseteq K_2 \iff P_1 \sqsubseteq_\textsc{Path} P_2 \wedge E_1 \subseteq E_2 $$
+
+$P$ can be viewed as a Datalog program $P'$ with \aggcol and \aggfun additionally defined. As for any Datalog program, the immediate consequence operator for $T_{P'}(\textbf{K})$ is defined as the set of facts that are immediate consequences for $P'$ and \textbf{K}.
+
+For $P$ to be a \datalogra program, $T_{P'}$ is required to be monotone with respect to $\sqsubseteq$. We will now show that this is the case.
+
+Let \textbf{K}$_1$ and \textbf{K}$_2$ be database instances over $\sch(P)$, such that $\textbf{K}_1 \sqsubseteq \textbf{K}_2$. By definition, $\textbf{K}_1 = P_1 \cup E_1$ and $\textbf{K}_2 = P_2 \cup E_2$, where $P_1, P_2$ are relations over \textsc{Path} and $E_1, E_2$ are relations over \textsc{Edge}.  $\textbf{K}_1 \sqsubseteq \textbf{K}_2$ means that $E_1 \subseteq E_2$ and $P_1 \sqsubseteq_\textsc{Path} P_2$. We need to show that $T_{P'}(\textbf{K}_1) \sqsubseteq T_{P'}(\textbf{K}_2)$. This is by definition equivalent to $E'_1 \subseteq E'_2 \wedge P'_1 \sqsubseteq_\textsc{Path} P'_2$, where $E'_1, E'_2, P'_1, P'_2$ are such that $T_{P'}(\textbf{K}_i) = E'_i \cup P'_i$, $P'_i$ is a relation instance over \textsc{Path} and $E'_i$ is a relation instance over \textsc{Edge}, for $i = 1, 2$.
+
+Let us recall that by definition of immediate consequence, $R(v) \in T_{P'}(\textbf{I})$ if and only if $R(v)$ is an immediate consequence for $P'$ and \textbf{I}, i.e.\ $R(v) \in \textbf{I}$ or there exists an instantiation $R(v) \assign R_1(v_1), \dots, R_n(v_n)$ of a rule in $P'$ such that $R_i(v_i) \in \textbf{I}$ for each $i = 1\dots n$.
+
+For any \relat{Edge}{(x, y, z)}$ \in E'_1$, it must be true that \relat{Edge}{(x, y, z)}$ \in E_1$, since there are no rules with \textsc{Edge} in head. Hence, \relat{Edge}{(x, y, z)}$ \in E_2 \supseteq E_1$ and consequently \relat{Edge}{(x, y, z)}$ \in E'_2$, so $E'_1 \subseteq E'_2$.
+
+For any \relat{Path}{(x, y, z)}$ \in P'_1$, there are two options: either \relat{Path}{(x, y, z)}$ \in P_1$ or there exists corresponding instantiation of one of the two rules for \textsc{Path}.
+
+Let us consider the first case. Since \relat{Path}{(x, y)}$ \in P_1$, we know that there exists \relat{Path}{(x, y')$ \in g_\textsc{Path}(P_1)$ such that \relat{Path}{(x, y')}$ \subseteq_\textsc{Path} $ \relat{Path}{(x, y)}. Since $P_1 \subseteq_\textsc{Path} P_2$, there has to exist \relat{Path}{(x, y'')}$ \in fa
+
+
+it must be true that \relat{Edge}{(x, y, z)}$ \in E_1$, since there are no rules with \textsc{Edge} in head. Hence, \relat{Edge}{(x, y, z)}$ \in E_2 \supseteq E_1$ and consequently \relat{Edge}{(x, y, z)}$ \in E'_2$, so $E'_1 \subseteq E'_2$.
+
+
+
+
+
+\end{exmp}
 
 \subsection{Evaluation}
-A straightforward way to evaluate $P(\textbf{K})$, i. e. to compute the minimal fix-point of $T_P$ containing $\textbf{K}$, is to iteratively apply $T_P$ to $\textbf{K}$ until a fix-point is reached. This algorithm, used also in Datalog and described in detail in Section \ref{ss:datalognaiveeval}, can be directly applied also in \datalogra. The only difference is the immediate consequence operator which is used: to evaluate \datalogra programs, one needs to use the $T_P$ operator for \datalogra, which takes into account the aggregation to be applied.
+A straightforward way to evaluate $P(\textbf{K})$, i.e.\ to compute the minimal fix-point of $T_P$ containing $\textbf{K}$, is to iteratively apply $T_P$ to $\textbf{K}$ until a fix-point is reached. This algorithm, used also in Datalog and described in detail in Section \ref{ss:datalognaiveeval}, can be directly applied also in \datalogra. The only difference is the immediate consequence operator which is used: to evaluate \datalogra programs, one needs to use the $T_P$ operator for \datalogra, which takes into account the aggregation to be applied.
 
 \subsubsection{Semi-naive evaluation} Semi-naive evaluation, the most basic optimization technique used in Datalog evaluation, can be easily adopted in \datalogra.
 
@@ -374,7 +423,7 @@ $i \leftarrow i + 1$
 
 $C_i \leftarrow T_P^\Delta(I_{i-1}, \Delta_{i-1})$
 
-$I_i \leftarrow G_\sigma(C_i \cup I_{i-1})$
+$I_i \leftarrow G_P(C_i \cup I_{i-1})$
 
 $\Delta_i \leftarrow I_i - I_{i-1}$
 
@@ -389,12 +438,12 @@ $\Delta_i \leftarrow I_i - I_{i-1}$
 $\}$
 }
 
-The only difference from the algorithm for Datalog without aggregation described in Section \ref{ss:seminaiveevaldatalog} is that is each step $G_\sigma$ is applied to the newly computed database instance.
+The only difference from the algorithm for Datalog without aggregation described in Section \ref{ss:seminaiveevaldatalog} is that is each step $G_P$ is applied to the newly computed database instance.
 
 \subsection{Stratified \datalogra}
 Negation can be introduced to \datalogra in the same way as to regular Datalog: by stratification. Intuitively, if there is are no recursive calls are not negated, then the program's can be divided into smaller subprograms, called \emph{strata}, so that there is no cyclic dependency between relations defined in different strata. The whole program can be then evaluated by evaluating the subprograms for each stratum in the topological order. Stratification and semantics for \datalogneg are described in detail in \ref{ss:datalogneg}.
 
-We have already defined semantics for \datalogra without negation. It can be naturally extended to semantics of semi-positive \datalogra programs, i. e. programs in \datalogra that can also use \edb relations in a negated subgoal. This defines the semantics for an individual stratum.
+We have already defined semantics for \datalogra without negation. It can be naturally extended to semantics of semi-positive \datalogra programs, i.e.\ programs in \datalogra that can also use \edb relations in a negated subgoal. This defines the semantics for an individual stratum.
 
 To obtain the semantics of a general program in \datalogra with negation, let us notice that stratification can be applied to \datalogra programs with negation just like to regular \datalogneg programs. The only difference is that when $P$ is partitioned into the strata $P_1, \dots, P_n$, each stratum $P_i$ can contain recursive aggregation. In other words, it each $P_i$ is a semi-positive \datalogra program. Therefore, each $P_i$ is evaluated using the \datalogra semantics, insted of a regular Datalog semantics.
 
