@@ -132,16 +132,7 @@ $$\sqcup(\{a_1, \dots, a_n \}) = a_1 \sqcup a_2 \sqcup \dots \sqcup a_n$$
 
 \subsubsection{Order induced by a join operation}
 
-A join operation over a set $P$ induces a partial order on $P$ that has some useful properties. In particular, $P$ with this ordering is a semi-lattice. We start by recalling the definitions of partial order and semi-lattice.
-
-\begin{defn}[Partial order]
-A binary relation $\le$ over a set $P$ is a \emph{partial order} if it is reflexive, antisymmetic and transitive, i.e.\ for each $x, y, z \in P$ the following properties are satisfied:
-\begin{itemize}
-\item $x \le x$
-\item if $x \le y$ and $y \le x$ then $x = y$
-\item if $x \le y$ and $y \le z$ then $x \le z$
-\end{itemize}
-\end{defn}
+A join operation over a set $P$ induces a partial order on $P$ that has some useful properties. In particular, $P$ with this ordering is a semi-lattice. We start by recalling the definition of semi-lattice.
 
 \begin{defn}[Join semilattice]
 A set $P$ with a partial order $\le$ over $P$ is a \emph{join semilattice} if every two elements of $P$ have a least upper bound with respect to $\le$. For any two elements, their least upper bound is called a \emph{join} of those elements.
@@ -202,7 +193,7 @@ We recall that for $ \max $, $ \le_{\max} $ is the usual order $ \le $.
 We can easily see that for any $R$ an empty relation instance $\emptyset$ is smaller under $\sqsubseteq_R$  than any other relation instance.
 
 
-$\sqsubseteq_R$ is not necessarily a partial order over the set of all relation instances $\inst(R)$, because it is not antisymmeric. In example \ref{ex:sqsubseteqorder}, if $I = \{(1, 2, 3), (1, 2, 8)\}$ and $J = \{(1, 2, 3), (1, 2, 7)\}$, we have that $I \sqsubseteq_R J$ and $J \sqsubseteq_R I$, but clearly $I \ne J$. The relation satisfies the two remaining requirements for partial order: reflexivity and trasitivity. Such a relation is called a \emph{pre-order}.
+$\sqsubseteq_R$ is not necessarily a partial order over the set of all relation instances $\inst(R)$, because it is not antisymmeric. In example \ref{ex:sqsubseteqorder}, if $I = \{(1, 2, 3), (1, 2, 8)\}$ and $J = \{(1, 2, 3), (1, 2, 7)\}$, we have that $I \sqsubseteq_R J$ and $J \sqsubseteq_R I$, but clearly $I \ne J$. The relation satisfies the reflexivity and trasitivity requirements, so it is a pre-order.
 
 \begin{lem}
 For any $R$, $\sqsubseteq_R$ is a pre-order over $\inst(R)$.
@@ -384,10 +375,10 @@ For any \relat{Edge}{(x, y, z)}$ \in E'_1$, it must be true that \relat{Edge}{(x
 
 For any \relat{Path}{(x, y, z)}$ \in P'_1$, there are two options: either \relat{Path}{(x, y, z)}$ \in P_1$ or there exists corresponding instantiation of one of the two rules for \textsc{Path}.
 
-Let us consider the first case. Since \relat{Path}{(x, y)}$ \in P_1$, we know that there exists \relat{Path}{(x, y')$ \in g_\textsc{Path}(P_1)$ such that \relat{Path}{(x, y')}$ \subseteq_\textsc{Path} $ \relat{Path}{(x, y)}. Since $P_1 \subseteq_\textsc{Path} P_2$, there has to exist \relat{Path}{(x, y'')}$ \in fa
+%Let us consider the first case. Since \relat{Path}{(x, y)}$ \in P_1$, we know that there exists \relat{Path}{(x, y')$ \in g_\textsc{Path}(P_1)$ such that \relat{Path}{(x, y')}$ \subseteq_\textsc{Path} $ \relat{Path}{(x, y)}. Since $P_1 \subseteq_\textsc{Path} P_2$, there has to exist \relat{Path}{(x, y'')}$ \in fa$....
 
 
-it must be true that \relat{Edge}{(x, y, z)}$ \in E_1$, since there are no rules with \textsc{Edge} in head. Hence, \relat{Edge}{(x, y, z)}$ \in E_2 \supseteq E_1$ and consequently \relat{Edge}{(x, y, z)}$ \in E'_2$, so $E'_1 \subseteq E'_2$.
+%it must be true that \relat{Edge}{(x, y, z)}$ \in E_1$, since there are no rules with \textsc{Edge} in head. Hence, \relat{Edge}{(x, y, z)}$ \in E_2 \supseteq E_1$ and consequently \relat{Edge}{(x, y, z)}$ \in E'_2$, so $E'_1 \subseteq E'_2$.
 
 
 

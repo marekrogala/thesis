@@ -38,33 +38,19 @@ As before, let us assume that the database contains a relation $\textsc{Edge}$ r
 
 This program contains two rules. The first one states that if there is an edge between $a$ and $b$, then also there is such edge in the transitive closure. The second rule says that if there is a connection in the transitive closure between $a$ and some $c$ and at the same time there is an edge between $c$ and $b$ in the original graph, then there also exists a connection in transitive closure between $a$ and $b$. This is where recursion is used: $\textsc{Tc}$ appears on both sides of the second rule.
 
-For example, let $\textsc{Edge}$ contain the following tuples:
+For example, let $\textsc{Edge}$ contain the following facts:
 
-\begin{centab}{ | c | }
+\begin{centab}{ | c | c | }
   \hline
-  $\textsc{Edge}$ \\
-  \hline
-  $(1, 2)$ \\
-  $(2, 3)$ \\
-  $(3, 4)$ \\
-  $(2, 5)$ \\
+  \textsc{Edge} & $(1, 2)$ $(2, 3)$ $(3, 4)$ $(2, 5)$ \\
   \hline
 \end{centab}
 
 The result of the program is:
 
-\begin{centab}{ | c | }
+\begin{centab}{ | c | c |}
   \hline
-  $\textsc{Tc}$ \\
-  \hline
-  $(1, 2)$ \\
-  $(1, 3)$ \\
-  $(1, 4)$ \\
-  $(1, 5)$ \\
-  $(2, 3)$ \\
-  $(2, 4)$ \\
-  $(2, 5)$ \\
-  $(3, 4)$ \\
+  $\textsc{Tc}$ & $(1, 2)$ $(1, 3)$ $(1, 4)$ $(1, 5)$ $(2, 3)$ $(2, 4)$ $(2, 5)$ $(3, 4)$ \\
   \hline
 \end{centab}
 
