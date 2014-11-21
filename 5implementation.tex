@@ -1,12 +1,111 @@
 
 
-\chapter{Datalog on Spark}\label{r:implementation}
+\chapter{\datalogra on Spark}\label{r:implementation}
 
 \todo{
   Opis narzędzia, jak się go używa (przykłady), w jaki sposób tłumaczy Dataloga na Sparka, porównania z SociaLite i Spark GraphX API
   + o tym że oryginalny SociaLite nie działa
 }
 
+\datalogra queries that can be executed in a distributed way can prove to be a very useful tool for performing computations on large datasets, especially on graphs. Our goal is to provide an implementation of \datalogra which will be as close as possible to being practically applicable.
+
+To be useful, such solution has to be reliable, provide ways to interact with various distributed storages, ensure proper fault tolerance and little to no additional work to be run on the existing infrastructure.
+
+Instead of developing an independent project, we have chosen to implement \datalogra as an extension to Apache Spark. Thanks to this approach, the implementation can read from and write to all popular Hadoop distributed data stores, including HDFS, HBase and Cassandra. In can be used on any existing cluster that supports Spark, including Hadoop YARN, Mesos and standalone Spark clusters and has the industrial-quality fault tolerance and efficiency features developed by hundreds of Apache Spark contributors \todo{ref: github spark}. 
+
+\todo{refs}
+
+Using Spark Datalog API, Datalog queries can be integrated seamlessly into Spark programs. One can choose to use Datalog for all computations or only for selected parts of the computation where it serves best. He can also run Datalog queries interactively using the Spark Shell.
+
+An example Spark code that uses 
+
+In this chapter describe how Datalog and \datalogra queries can be translated into operations allowed in the RDD model. This method was used to implement the  Datalog API for Spark, which we evaluate in section \ref{s:impl_eval}.
+
+\section{Integrating Datalog into Spark}
+
+Spark programs describe the computation as a series of calls to functions, which perform one of the following operations:
+\begin{itemize}
+  \item create an RDD, generally by reading it from a distributed data source such as HDFS
+  \item transform an RDD or several RDDs into another RDD, for example \emph{map}, \emph{filter}, \emph{join} ... \todo{more}
+  \item execute an operation on an RDD, such as storing it HDFS or counting its size.
+\end{itemize}
+
+Most of the computation logic is expressed in the transformations.  Core Spark provides only some basic transformations (map, filter, etc todo). Additionally, there are several extensions: GraphX, Spark SQL, MLib. Typically, they extend Spark by providing specialized RDDs and composite data structures and additional transformations for them.
+
+The same approach was chosen for adding the ability of executing Datalog queries. The extension is contained in a module called \emph{Spark Datalog API}. The main component it provides is the \emph{Database} class which contains a set of relations and can be created from regular RDDs. Database objects are equipped with a method \emph{datalog}, which performs a Datalog query on this database. The result of a query is a new Database, from which individual relations can be extracted as RDDs. 
+
+
+
+\begin{Verbatim}
+val database = Database(Relation.ternary("Edge", edgesRdd))
+
+val resultDatabase = database.datalog("""
+    declare Path(int v, int dist aggregate Min).
+    Path(x, d) :- s == 1, Edge(s, x, d).
+    Path(x, d) :- Path(y, da), Edge(y, x, db), d = da + db.
+""")
+  
+val resultPathsRdd = resultDatabase("Path")
+\end{Verbatim}
+\todo{kolorowanie skladni}
+
+\section{Executing Datalog queries in the RDD model}
+
+When a Datalog query is performed on the Database object, it needs to be translated into a sequence of Spark operations which eventually produce a new Database object, containing the result of the query. In this section, we show how this translation can be made.
+
+\subsection{Database object}
+
+\todo{fill}
+
+\subsection{Datalog program execution}
+
+On the top level, the algorithm for executing a Datalog program on Spark consists of a few straightforward steps.
+
+Initially, the program is parsed, analyzed syntatically and semantically. All correctness requirements are checked at this time.
+
+Analyzed program is then stratified, i.e. divided into a sequence of strata using a standard strongly connected components algorithm.
+
+The execution start by evaluation of the first stratum of the program on the input database. Each subsequent stratum is then evaluated using the output of the previous stratum as an input. The output of the last stratum is returned as the output of the whole program.
+
+To evaluate each stratum, the semi-naive evaluation algorithm is used. It maintains current state of the database and runs iteratively until no changes are made to the database. In each iteration, for each rule in this stratum, all inferrable facts are computed. The way this can be achieved on RDDs is described in section \ref{ss:impl_evalrule}. The set of obtained facts is then merged into the current database and a \emph{delta}, i.e. difference between current and previous database state is computed. During the merge, all necessary aggregations are applied. This step is described in section \ref{ss:impl_merge}.
+
+\subsection{Single rule evaluation}\label{ss:impl_evalrule}
+Evaluation of a single rule plays crucial role in executing a Datalog query on RDDs. Given a single rule, consisting of the head and a sequence of subgoals, and two databases: the full input database and the delta database, the task is to compute an RDD of all facts that can be inferred.
+
+\todo{topological order, valuation, static initial valuation, apply each type of subgoal, emit}
+
+\subsection{Adding new facts to database}\label{ss:impl_merge}
+
+\subsection{Handling RDD caching, materialization and lineage}
+persisting, materializing, lineage cropping (checkpointing)
+
+\subsection{Optimizations}
+implemented
+	one rule, non-recursive strata: only one iteration
+	static results precomputed
+
+possible optimizations:
+	calculate delta on-the-fly
+	aggegation as combiners
+
+
+\section{Similarities with Pregel}
+
+shortest paths etc.
+
+
+
+\section{Evaluation}\label{s:impl_eval}
+typowe problemy na grafach
+porównamy się z SociaLite i Spark Pregel API/GraphX
+
+
+\section{Further work}
+
+further work: narzędzie pozwalające sprawdzić lub teoretyczny wynik jak sprawdzać, czy jest monotoniczność pozwalająca robić rekurencyjną agregację
+DSL
+
+\section{Summary}
 
 Zalety implementacji na Sparku:
 \begin{itemize}
@@ -16,11 +115,5 @@ Zalety implementacji na Sparku:
 \item korzystamy z wbudowanych, dopracowanych i ciągle dopracowywanych optymalizacji Sparka
 \item mamy fault-tolerance zapewnione przez Sparka. Czyli dopracowane i plus jest taki, że nie ma konieczności zapisu na dysk: pamiętane są ścieżki wywołań które doprowadziły do określonego wyniku (sprawdzić jak to dokładnie działa)
 \end{itemize}
-
-
-\pomysl{typowe problemy na grafach
-porównamy się z SociaLite i Spark Pregel API/GraphX
-further work: narzędzie pozwalające sprawdzić lub teoretyczny wynik jak sprawdzać, czy jest monotoniczność pozwalająca robić rekurencyjną agregację
-}
 
 
