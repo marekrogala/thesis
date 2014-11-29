@@ -1,0 +1,161 @@
+%
+% Niniejszy plik stanowi przyklad formatowania pracy magisterskiej na
+% Wydziale MIM UW.  Szkielet uzytych polecen mozna wykorzystywac do
+% woli, np. formatujac wlasna prace.
+%
+% Zawartosc merytoryczna stanowi oryginalnosiagniecie
+% naukowosciowe Marcina Wolinskiego.  Wszelkie prawa zastrzezone.
+
+% Copyright (c) 2001 by Marcin Wolinski <M.Wolinski@gust.org.pl>
+% Poprawki spowodowane zmianami przepisów - Marcin Szczuka, 1.10.2004
+% Poprawki spowodowane zmianami przepisow i ujednolicenie 
+% - Seweryn Karlowicz, 05.05.2006
+% Zmiany dla wersji angielskiej - Michal Derezinski, 10.05.2012
+% dodaj opcje [licencjacka] dla pracy licencjackiej
+\documentclass{pracamgren}
+%\documentclass[licencjacka]{pracamgren}
+
+%Jesli uzywasz kodowania polskich znakow ISO-8859-2 nastepna linia powinna byc 
+%odkomentowana
+%\usepackage[latin2]{inputenc}
+\usepackage[T1]{fontenc}
+%Jesli uzywasz kodowania polskich znakow CP-1250 to ta linia powinna byc 
+%odkomentowana
+%\usepackage[cp1250]{inputenc}
+
+% Dane magistranta:
+
+\author{Jan Kowalski}
+
+\nralbumu{123456}
+
+\title{Title in English}
+
+\tytul{Tytu{\l} po Polsku}
+
+
+% kierunek: Mathematics, Informatics, ...
+\kierunek{Informatics}
+
+% informatyka - nie okreslamy zakresu (opcja zakomentowana)
+% matematyka - zakres moze pozostac nieokreslony,
+% a jesli ma byc okreslony dla pracy mgr,
+% to przyjmuje jedna z wartosci:
+% {metod matematycznych w finansach}
+% {metod matematycznych w ubezpieczeniach}
+% {matematyki stosowanej}
+% {nauczania matematyki}
+% Dla pracy licencjackiej mamy natomiast
+% mozliwosc wpisania takiej wartosci zakresu:
+% {Jednoczesnych Studiow Ekonomiczno--Matematycznych}
+
+% W wersji angielskiej, zakres ma byc po angielsku.
+% \zakres{Tu wpisac, jesli trzeba, jedna z opcji podanych wyzej}
+
+% Praca wykonana pod kierunkiem:
+% (podac tytul/stopien imie i nazwisko opiekuna
+% Instytut
+% ew. Wydzial ew. Uczelnia (jezeli nie MIM UW))
+% W wersji angielskiej, ma byc po angielsku.
+\opiekun{dr Ksawery Iksinski\\
+Institute of Informatics\\
+}
+
+% miesiac i rok (po angielsku):
+\date{May 2012}
+
+%Podac dziedzine wg klasyfikacji Socrates-Erasmus:
+\dziedzina{ 
+%11.0 Matematyka, Informatyka:\\ 
+%11.1 Matematyka\\ 
+%11.2 Statystyka\\ 
+%11.3 Informatyka\\ 
+11.4 Sztuczna inteligencja\\ 
+%11.5 Nauki aktuarialne\\
+%11.9 Inne nauki matematyczne i informatyczne
+}
+
+\dziedzinaang{
+%11.0 Mathematics, Informatics:\\ 
+%11.1 Mathematics\\ 
+%11.2 Statistics\\ 
+%11.3 Informatics, Computer Science\\ 
+11.4 Artificial Intelligence\\ 
+%11.5 Actuarial Science\\
+%11.9 Others Mathematics, Informatics
+}
+
+%Klasyfikacja tematyczna wedlug AMS (matematyka) lub ACM (informatyka)
+\klasyfikacja{I. Metodologie Obliczeniowe\\
+  I.2. Sztuczna Inteligencja\\
+  I.2.6. Uczenie}
+
+\klasyfikacjaang{I. Computing Methodologies\\
+  I.2. Artificial Intelligence\\
+  I.2.6. Learning}
+
+
+% Slowa kluczowe:
+\keywords{Szablon, Praca Magisterska, LaTeX}
+
+\keywordsang{Template, Master's Thesis, LaTeX}
+
+% Tu jest dobre miejsce na Twoje wlasne makra i~srodowiska:
+\newtheorem{defi}{Definition}[section]
+
+% koniec definicji
+
+\begin{document}
+\maketitle
+
+
+\streszczenie{
+To jest streszczenie po polsku, czyli przet{\l}umaczony abstrakt.
+To jest streszczenie po polsku, czyli przet{\l}umaczony abstrakt.
+To jest streszczenie po polsku, czyli przet{\l}umaczony abstrakt.
+To jest streszczenie po polsku, czyli przet{\l}umaczony abstrakt.
+To jest streszczenie po polsku, czyli przet{\l}umaczony abstrakt.
+To jest streszczenie po polsku, czyli przet{\l}umaczony abstrakt.
+To jest streszczenie po polsku, czyli przet{\l}umaczony abstrakt.
+To jest streszczenie po polsku, czyli przet{\l}umaczony abstrakt.
+To jest streszczenie po polsku, czyli przet{\l}umaczony abstrakt.
+To jest streszczenie po polsku, czyli przet{\l}umaczony abstrakt.
+To jest streszczenie po polsku, czyli przet{\l}umaczony abstrakt.
+}
+
+%tu idzie abstrakt po angielsku na strone poczatkowa
+\begin{abstract}
+This is the English version of the abstract of the thesis.
+This is the English version of the abstract of the thesis.
+This is the English version of the abstract of the thesis.
+This is the English version of the abstract of the thesis.
+This is the English version of the abstract of the thesis.
+This is the English version of the abstract of the thesis.
+This is the English version of the abstract of the thesis.
+This is the English version of the abstract of the thesis.
+This is the English version of the abstract of the thesis.
+This is the English version of the abstract of the thesis.
+This is the English version of the abstract of the thesis.
+
+\end{abstract}
+
+\tableofcontents
+%\listoffigures
+%\listoftables
+
+\chapter*{Introduction}
+\addcontentsline{toc}{chapter}{Introduction}
+
+This is the introduction.
+
+\chapter{First Chapter}
+
+This is the first chapter.
+
+\begin{thebibliography}{99}
+\addcontentsline{toc}{chapter}{Bibliography}
+\bibitem{one}
+Ksawery Iksinski, Some Article, Some Journal, 2000.
+\end{thebibliography}
+
+\end{document}

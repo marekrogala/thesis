@@ -3,3 +3,11 @@
 \chapter{Summary}\label{r:summary}
 
 
+
+In this work, we have given a precise definition of the Datalog language extended with recursive aggregate functions, abbreviated \datalogra, in Chapter \label{r:socialite}. This supplements the original idea from the SociaLite language, which was not fully defined in \cite{socialite, distsoc}. We have also presented an implementation of the \datalogra language as a SparkDatalog extension to the Apache Spark distributed computations platform.
+
+Performance of the implementation has been evaluated on clusters with up to 16 worker nodes. The current version of SparkDatalog turned out to be slower by some factor than the dedicated Spark programs by a factor of 2 to 8, depending on the problem and cluster size, but scales up in a similar way, giving slightly better speedups. The solution can be further optimized, by eliminating the several issues that negatively impact the performance as well as implementing additional optimizations to benefit from the high-level, declarative characteristic of the language. This can lead to the same or even better performance, than typical Spark programs.
+
+However not as effective as dedicated programs, the presented implementation allows for quick adoption by users, including analysts who can use \datalogra to perform queries on large datasets without being required to implement complicated vertex-centric algorithms. It gives users all benefits of Spark, including fault-tolerance, highly-optimized and thoroughly tested core platform with possibility to be deployed to the popular Hadoop and Mesos clusters as well as support for most of the distributed data storage standards. This means that in most cases, there are no infrastructure changes required in order to use SparkDatalog on an existing cluster. For more advanced users, SparkDatalog offers a possibility use \datalogra queries only for selected parts of their Spark programs in which it fits best.
+
+
