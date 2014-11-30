@@ -466,16 +466,75 @@ A rule with arithmetic comparisons is \emph{safe} iff each free variable appeari
 
 This version of the requirement assures that comparisons do not introduce any new values into the database.
 
+\subsection{Datalog with negation}\label{ss:datalogneg}
+Pure version of Datalog permits recursion, but provides no negation. Negation allows to answer queries such as "which pairs of the nodes in graph are not connected?". There are several ways of adding negation to Datalog. One of the most prominent of them is the \emph{stratified semantics}, which we will present in this section. 
+
+In Datalog with negation, or \datalogneg, each relational subgoal may be negated, i.e. preceded with the negation symbol ,,$!$''. The negated subgoals are called \emph{negative} subgoals, and the rest of the subgoals is called \emph{positive} subgoals. Other types of subgoals are not allowed to be negated.
+
+\begin{exmp}
+Let us consider the program for computing trasitive closure \relat{Tc}{} of a relation \relat{R}{} from example \ref{ex:naiveeval}. A following rule computes the pairs of nodes which are indirectly connected, i.e. are in \relat{Tc}{}, but not in \relat{R}{}:
+
+$$\textsc{Indirect}(x, y) \assign \textsc{R}(x, y),~!\textsc{Tc}(x, y).$$
+\end{exmp}
+
+When negative subgoals are permitted, we need to include them in the definition of rules safety. 
+
+\begin{defn}[Rule safety]\label{d:datalognegsaferule}
+A rule in \datalogneg with arithmetic comparisons is \emph{safe} iff each free variable appearing in:
+\begin{itemize}
+\item its head,
+\item any of the comparisons,
+\item or in any of its negated subgoals.
+\end{itemize}
+also appears in at least one of the non-negated relational subgoals.
+\end{defn}
+
+We will first consider a certain class of \datalogneg programs, called semi-positive programs, for which semantics of negation is straightforward. We will then move on to a more general version.
+
+\begin{defn}[Semi-positive program]
+A \datalogneg program $P$ is \emph{semi-positive}, iff for each rule in $P$, all its negated subgoals are over $\edb(P)$.
+\end{defn}
+
+For a semi-positive program, any relation used in a negative sense is an \edb relation, so it is constant during the evaluation of $P$. Negation could be eliminated from $P$ by introducing artificial negated \edb relations, i.e. $!R(x_1, \dots, x_k)$ holds iff $x_1, \dots, x_n$ are in the active domain and $(x_1, \dots, x_k) \notin R$. Thus, semi-positive programs can be evaluated using the fix-point semantics just like positive Datalog programs.
+
+The situation is different when \idb relations are used in negative subgoals. Let us assume that we use the naive evaluation. In classical Datalog, all tuples added to the database during the evaluation remain there until its end. However, when negation is allowed, it is not true in general. Let us consider a program which has a rule with a negated subgoal $!R(u)$. Such rule might produce a tuple $t$ in iteration $i$ because some $t'$ is not in $R$ and thus $!R(t')$ is true. When $t'$ is added to relation $R$ in a subsequent iteration though, the rule can no longer produce $t$. Some versions of negation semantics in Datalog allow for removing tuples from relations during the evaluation \cite{fod}.
+
+In stratified semantics, we do not allow tuples to be removed from relations. Consequently, the inflationary semantics of Datalog is preserved. To achieve that, we require that if there is a rule for computing relation $R_1$ that uses $R_2$ in a negated subgoal, then relation $R_2$ has to be fully computed before evaluation of relation $R_1$. Intuitively, such order of computation is possible if there is no direct or indirect dependency on $R_1$ in any of the rules for $R_2$, i.e. $R_1$ and $R_2$ are not recursively dependent from each other. This is formalized this by the notion of strata.
+
+\begin{defn}[Stratification]
+Let $P$ be a program in \datalogneg and $n = \|\idb(P)\|$ be the number of \idb relations in $P$. A function $\rho : \sch(P) \to \{1, . . . , n\}$ is called \emph{stratification} of $P$ iff for each rule $\phi$ in $P$ with head predicate $T$, the following are true: 
+
+\begin{enumerate}
+\item $\rho(R) \le \rho(T)$ for each positive relational subgoal $R(u)$ of $\phi$,
+\item $\rho(R) < \rho(T)$ for each negative relational subgoal $!R(u)$ of $\phi$.
+\end{enumerate}
+\end{defn}
+
+A program for which a stratification exists is called \emph{stratifiable}. 
+
+$\rho$ corresponds to a partitioning of $P$ into several subprograms $P_1, P_2, \dots, P_n$. Each of those programs is called a \emph{stratum} of $P$. $\rho(R)$ is called \emph{stratum number} of the relation $R \in \idb(P )$. The $i$-th stratum consists of the rules from $P$ which have a relation with stratum number $i$ in their head. We say that those relations are \emph{defined} in $P_i$.
+
+Stratification assures that if a relation $R$ is used in rules of stratum $P_i$ in a positive subgoal, then $R$ must be defined in this stratum or one of the previous strata. Additionally, if a relation is used in stratum $P_i$ in a negated subgoal, then it must be defined in an earlier stratum. It is worth noting that this allows for recursive rules, unless the recursive subgoal is not negated.
+
+For each $P_i$, $\idb(P_i)$ consists of the relations defined in this stratum, while $\edb(P_i)$ contains only relations defined in any of the earlier strata and relations from $\edb(P)$. By definition of stratification, the negative subgoals in rules of $P_i$ use only relations in $\edb(P_i)$. Hence, each $P_i$ is a semi-positive program and as such, it may be evaluated using the fix-point semantics.
+
+We require the programs in \datalogneg to be stratifiable. If $P$ can be stratified into $P_1, P_2, \dots P_n$, then the output of program $P$ on input $\textbf{I}$ is defined by applying programs $P_1, P_2, \dots P_n$ in a sequence:
+$$P(\textbf{I}) = P_n(\dots, P_2(P_1(\textbf{I}))\dots)$$
+
+A program can have multiple stratifications, but it can be shown that $P(\textbf{I})$ does not depend on which of them is chosen \cite{fod}.
+
+\todo{dać ilustrację grafu zależności. odwołanie z tekstu}
+
 \subsection{Arithmetic functions}
 
-Addition of arithmetic functions is the next step after arithmetic comparisons. In this extension, there is a new kind of subgoal, an \emph{assignment subgoal}, in the form of:
+One of the extensions very useful in practice are arithmetic functions. In this extension, there is a new kind of subgoal, an \emph{assignment subgoal}, in the form of:
 $$x = y \diamond z$$
 where $x, y, z$ are free variables or constants and $\diamond$ is a binary arithmetic operation like addition, subtraction, multiplication, division etc.
 
-To give an adjusted version of definition of rule safety \ref{d:datalogcomparisonsaferule}, let us first define \emph{input variables} and \emph{output variables} of subgoals. Intuitively, values of all input variables need to be known for a subgoal to be evaluated. After a subgoal is evaluated, values of all its output variables are known. All variables appearing in a relational subgoal are output variables. All variables appeating in a comparison subgoal are output variables. For an assignment subgoal, the variables on the right side of the assignment are input variables, and the variable on the left side is an output variable.
+To give an adjusted version of definition of rule safety \ref{d:datalogcomparisonsaferule}, let us first define \emph{input variables} and \emph{output variables} of subgoals. Intuitively, values of all input variables need to be known for a subgoal to be evaluated. After a subgoal is evaluated, values of all its output variables are known. All variables appearing in a positive relational subgoal are output variables. All variables appearing in a negative relational subgoal are input variables. All variables appearing in a comparison subgoal are output variables. For an assignment subgoal, the variables on the right side of the assignment are input variables, and the variable on the left side is an output variable.
 
 \begin{defn}[Rule safety]\label{d:datalogeqsaferule}
-A rule in Datalog with arithmetic comparisons and assignments is \emph{safe} iff it satisfies the following conditions:
+A rule in \datalogneg with arithmetic comparisons and assignments is \emph{safe} iff it satisfies the following conditions:
 \begin{itemize}
 \item each free variable appearing in its head also appears in an output variable in at least one of the subgoals
 \item the subgoals can be ordered topologically, i.e. there exists an ordering $s_1, \dots, s_n$ of the subgoals, such that for each $i$, any \emph{input variable} in subgoal $s_i$ is an \emph{output variable} of at least one subgoal $s_j$ for $j < i$. 
@@ -516,55 +575,6 @@ For the purpose of this paper, we can simply define the semantics only for Datal
 For any $P$ and an instance $\textbf{K}$ over $\edb(P)$, if there exists $n \ge 0$ such that $T_P^n(\textbf{K})$ is a fix-point of $T_P$, then it is the minimal fix-point of $T_P$ containing $\textbf{K}$.
 \end{thm}
 \emph{Proof.} See the second part of the proof for Theorem \ref{t:datalogfixpointsem}.
-
-\subsection{Datalog with negation}\label{ss:datalogneg}
-Pure version of Datalog permits recursion, but provides no negation. Negation allows to answer queries such as "which pairs of the nodes in graph are not connected?". There are several ways of adding negation to Datalog. One of the most prominent of them is the \emph{stratified semantics}, which we will present in this section. 
-
-In Datalog with negation, or \datalogneg, each relational subgoal may be negated, i.e. preceded with the negation symbol ,,$!$''. The negated subgoals are called \emph{negative} subgoals, and the rest of the subgoals is called \emph{positive} subgoals. Arithmetic comparisons and assignments are not allowed to be negated.
-
-\begin{exmp}
-Let us consider the program for computing trasitive closure \relat{Tc}{} of a relation \relat{R}{} from example \ref{ex:naiveeval}. A following rule computes the pairs of nodes which are indirectly connected, i.e. are in \relat{Tc}{}, but not in \relat{R}{}:
-
-$$\textsc{Indirect}(x, y) \assign \textsc{R}(x, y),~!\textsc{Tc}(x, y).$$
-\end{exmp}
-
-The definition \ref{d:datalogeqsaferule} of rule safety can be applied also to rules with negated subgoals. For a negative relational subgoal, all its variables are input variables.
-
-We will first consider a certain class of \datalogneg programs, called semi-positive programs, for which semantics of negation is straightforward. We will then move on to a more general version.
-
-\begin{defn}[Semi-positive program]
-A \datalogneg program $P$ is \emph{semi-positive}, iff for each rule in $P$, all its negated subgoals are over $\edb(P)$.
-\end{defn}
-
-For a semi-positive program, any relation used in a negative sense is an \edb relation, so it is constant during the evaluation of $P$. Negation could be eliminated from $P$ by introducing artificial negated \edb relations \todo{ALE TO JEST NIESKOŃCZONE! CZYLI NIE RELACJA. JAK TO POPRAWIĆ?}. Thus, semi-positive programs can be evaluated using the fix-point semantics just like positive Datalog programs.
-
-The situation is different when \idb relations are used in negative subgoals. Let us assume that we use the naive evaluation. In classical Datalog, all tuples added to the database during the evaluation remain there until its end. However, when negation is allowed, it is not true in general. Let us consider a program which has a rule with a negated subgoal $!R(u)$. Such rule might produce a tuple $t$ in iteration $i$ because some $t'$ is not in $R$ and thus $!R(t')$ is true. When $t'$ is added to relation $R$ in a subsequent iteration though, the rule can no longer produce $t$. Some versions of negation semantics in Datalog allow for removing tuples from relations during the evaluation \cite{fod}.
-
-In stratified semantics, we do not allow tuples to be removed from relations. Consequently, the inflationary semantics of Datalog is preserved. To achieve that, we require that if there is a rule for computing relation $R_1$ that uses $R_2$ in a negated subgoal, then relation $R_2$ has to be fully computed before evaluation of relation $R_1$. Intuitively, such order of computation is possible if there is no direct or indirect dependency on $R_1$ in any of the rules for $R_2$, i.e. $R_1$ and $R_2$ are not recursively dependent from each other. This is formalized this by the notion of strata.
-
-\begin{defn}[Stratification]
-Let $P$ be a program in \datalogneg and $n = \|\idb(P)\|$ be the number of \idb relations in $P$. A function $\rho : \sch(P) \to \{1, . . . , n\}$ is called \emph{stratification} of $P$ iff for each rule $\phi$ in $P$ with head predicate $T$, the following are true: 
-
-\begin{enumerate}
-\item $\rho(R) \le \rho(T)$ for each positive relational subgoal $R(u)$ of $\phi$,
-\item $\rho(R) < \rho(T)$ for each negative relational subgoal $!R(u)$ of $\phi$.
-\end{enumerate}
-\end{defn}
-
-A program for which a stratification exists is called \emph{stratifiable}. 
-
-$\rho$ corresponds to a partitioning of $P$ into several subprograms $P_1, P_2, \dots, P_n$. Each of those programs is called a \emph{stratum} of $P$. $\rho(R)$ is called \emph{stratum number} of the relation $R \in \idb(P )$. The $i$-th stratum consists of the rules from $P$ which have a relation with stratum number $i$ in their head. We say that those relations are \emph{defined} in $P_i$.
-
-Stratification assures that if a relation $R$ is used in rules of stratum $P_i$ in a positive subgoal, then $R$ must be defined in this stratum or one of the previous strata. Additionally, if a relation is used in stratum $P_i$ in a negated subgoal, then it must be defined in an earlier stratum. It is worth noting that this allows for recursive rules, unless the recursive subgoal is not negated.
-
-For each $P_i$, $\idb(P_i)$ consists of the relations defined in this stratum, while $\edb(P_i)$ contains only relations defined in any of the earlier strata and relations from $\edb(P)$. By definition of stratification, the negative subgoals in rules of $P_i$ use only relations in $\edb(P_i)$. Hence, each $P_i$ is a semi-positive program and as such, it may be evaluated using the fix-point semantics.
-
-We require the programs in \datalogneg to be stratifiable. If $P$ can be stratified into $P_1, P_2, \dots P_n$, then the output of program $P$ on input $\textbf{I}$ is defined by applying programs $P_1, P_2, \dots P_n$ in a sequence:
-$$P(\textbf{I}) = P_n(\dots, P_2(P_1(\textbf{I}))\dots)$$
-
-A program can have multiple stratifications, but it can be shown that $P(\textbf{I})$ does not depend on which of them is chosen \cite{fod}.
-
-\todo{dać ilustrację grafu zależności. odwołanie z tekstu}
 
 \subsection{Datalog with non-recursive aggregation}\label{ss:datalognra}
 
