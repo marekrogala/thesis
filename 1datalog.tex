@@ -29,7 +29,7 @@ Recently there is also an increasing interest in applications of Datalog in indu
 
 Before we formally define Datalog syntax and semantics in the following sections, let us take a look at an example program in this language.
 
-As before, let us assume that the database contains a relation $\textsc{Edge}$ representing a graph and $\textsc{Edge}(a, b)$ means that there is an edge between vertices $a$ and $b$. The following program computes relation $\textsc{Tc}$ containing a transitive closure of relation $\textsc{Edge}$.
+As before, let us assume that the database contains a relation $\textsc{Edge}$ representing a graph and $\textsc{Edge}(a, b)$ means that there is an edge between vertices $a$ and $b$. Figure \ref{ex:tcdatalog} presents a program that computes relation $\textsc{Tc}$ containing a transitive closure of the relation $\textsc{Edge}$.
 
 \dprog{}{
   & \textsc{Tc} (a, b) &&  & \assign & && \textsc{Edge} (a, b). & \\
@@ -40,19 +40,48 @@ This program contains two rules. The first one states that if there is an edge b
 
 For example, let $\textsc{Edge}$ contain the following facts:
 
-\begin{centab}{ | c | c | }
-  \hline
-  \textsc{Edge} & $(1, 2)$ $(2, 3)$ $(3, 4)$ $(2, 5)$ \\
-  \hline
-\end{centab}
+\begin{center}
+\begin{tabular}{l}
+\relat{Edge}{(1, 2)}\\
+\end{tabular}
+\quad
+\begin{tabular}{l}
+\relat{Edge}{(2, 3)}\\
+\end{tabular}
+\quad
+\begin{tabular}{l}
+\relat{Edge}{(3, 4)}\\
+\end{tabular}
+\quad
+\begin{tabular}{l}
+\relat{Edge}{(2, 5)}\\
+\end{tabular}
+\end{center}
 
 The result computed by the program is:
 
-\begin{centab}{ | c | c |}
-  \hline
-  $\textsc{Tc}$ & $(1, 2)$ $(1, 3)$ $(1, 4)$ $(1, 5)$ $(2, 3)$ $(2, 4)$ $(2, 5)$ $(3, 4)$ \\
-  \hline
-\end{centab}
+\begin{center}
+\begin{tabular}{l}
+\relat{Tc}{(1, 2)}\\
+\relat{Tc}{(1, 3)}\\
+\end{tabular}
+\quad
+\begin{tabular}{l}
+\relat{Tc}{(1, 4)}\\
+\relat{Tc}{(1, 5)}\\
+\end{tabular}
+\quad
+\begin{tabular}{l}
+\relat{Tc}{(2, 3)}\\
+\relat{Tc}{(2, 4)}\\
+\end{tabular}
+\quad
+\begin{tabular}{l}
+\relat{Tc}{(2, 5)}\\
+\relat{Tc}{(3, 4)}\\
+\end{tabular}
+\end{center}
+
 
 Both rules can add new facts to the relation $\textsc{Tc}$, since each of them has $\textsc{Tc}$ on its left side. We can view $\textsc{Tc}$ as an output of this program. On the other hand, $\textsc{Edge}$ appears only on the right side of the rules. The program can not produce any new $\textsc{Edge}$ facts, so $\textsc{Edge}$ must be given to the program as an input. As we can see, the program defines a function from an instance of relation $\textsc{Edge}$ into an instance of relation $\textsc{Tc}$. We will define this more formally in this chapter.
 
@@ -68,7 +97,10 @@ Despite the close relation between Datalog and logic programming languages, ther
 \item In Prolog, one can use complex terms as arguments to predicates, for example $p(s(x), y)$, which is not permitted in Datalog, where the only allowed arguments are constants and variables.
 \item One of the important language constructs in Prolog is the cut operator ``!'', which allows to express negation. There is no such operator in Datalog. While some versions of Datalog have the notion of negation, it is still different than the cut operator known from Prolog.
 \item Datalog requires the rules to be \emph{safe}, which means that every variable mentioned in a rule must be also mentioned at least once in a non-negated, non-arithmetic sense.
+\item Unlike Prolog, the order of rules and subgoals in Datalog does not change the program's semantics.
 \end{itemize}
+
+Datalog is less expressive than Prolog. In constrast to Prolog, it is not Turing-complete. This obviously restricts the set of problems which can be solved with Datalog, but at the same time it allows more to be reasoned about Datalog programs, giving more possibilities to optimize their evaluation.
 
 \section{Datalog syntax}
 Let us define Datalog programs and rules.
@@ -303,11 +335,14 @@ $\}$
 }
 
 \begin{exmp}
-As an example, let us consider the following program, which computes a transitive closure of a binary relation \relat{R}{}:
-\begin{align}
-\textsc{Tc}(x, y) &\assign \textsc{R}(x, y).\\
-\textsc{Tc}(x, y) &\assign \textsc{Tc}(x, z), \textsc{Tc}(z, y).
-\end{align}
+As an example, let us consider the program from Figure \ref{ex:tcofr}, which computes a transitive closure of a binary relation \relat{R}{}:
+\begin{figure}[h!]
+\begin{align*}
+\textsc{Tc}(x, y) &\assign~ \textsc{R}(x, y).\\
+\textsc{Tc}(x, y) &\assign~ \textsc{Tc}(x, z), \textsc{Tc}(z, y).
+\end{align*}
+\caption{Program computing transitive closure of relation \relat{R}{}\label{ex:tcofr}}
+\end{figure}
 
 Given $K = \{\textsc{R}(1, 2), \textsc{R}(2, 3), \textsc{R}(3, 4), \textsc{R}(4, 5)\}$, the values produced in subsequent iterations are:
 
@@ -437,17 +472,14 @@ Addition of arithmetic functions is the next step after arithmetic comparisons. 
 $$x = y \diamond z$$
 where $x, y, z$ are free variables or constants and $\diamond$ is a binary arithmetic operation like addition, subtraction, multiplication, division etc.
 
-
-An adjusted version of definition of rule safety \ref{d:datalogcomparisonsaferule} is:
+To give an adjusted version of definition of rule safety \ref{d:datalogcomparisonsaferule}, let us first define \emph{input variables} and \emph{output variables} of subgoals. Intuitively, values of all input variables need to be known for a subgoal to be evaluated. After a subgoal is evaluated, values of all its output variables are known. All variables appearing in a relational subgoal are output variables. All variables appeating in a comparison subgoal are output variables. For an assignment subgoal, the variables on the right side of the assignment are input variables, and the variable on the left side is an output variable.
 
 \begin{defn}[Rule safety]\label{d:datalogeqsaferule}
-A rule in Datalog with arithmetic comparisons and assignments is \emph{safe} iff each free variable appearing in:
+A rule in Datalog with arithmetic comparisons and assignments is \emph{safe} iff it satisfies the following conditions:
 \begin{itemize}
-\item its head,
-\item any of the comparisons,
-\item or on the right side of any of the assignment subgoals.
+\item each free variable appearing in its head also appears in an output variable in at least one of the subgoals
+\item the subgoals can be ordered topologically, i.e. there exists an ordering $s_1, \dots, s_n$ of the subgoals, such that for each $i$, any \emph{input variable} in subgoal $s_i$ is an \emph{output variable} of at least one subgoal $s_j$ for $j < i$. 
 \end{itemize}
-also appears in at least one of the relational subgoals or on the left side of an assignment subgoal. \todo{TO JEST ZLE -- musi byc uporzadkowanie, to nie wystarcza}
 \end{defn}
 
 \begin{exmp}
@@ -496,18 +528,7 @@ Let us consider the program for computing trasitive closure \relat{Tc}{} of a re
 $$\textsc{Indirect}(x, y) \assign \textsc{R}(x, y),~!\textsc{Tc}(x, y).$$
 \end{exmp}
 
-When negative subgoals are permitted, we need to include them in the definition of rules safety. 
-
-\begin{defn}[Rule safety]\label{d:datalogeqsaferule}
-A rule in \datalogneg with arithmetic comparisons and arithmetic assignments is \emph{safe} iff each free variable appearing in:
-\begin{itemize}
-\item its head,
-\item any of the comparisons,
-\item on the right side of any of the assignment subgoals,
-\item or in any of its negated subgoals.
-\end{itemize}
-also appears in at least one of the non-negated relational subgoals or on the left side \todo{znowu -- niepoprawne, musi być sortowanie topologiczne} of an assignment subgoal.
-\end{defn}
+The definition \ref{d:datalogeqsaferule} of rule safety can be applied also to rules with negated subgoals. For a negative relational subgoal, all its variables are input variables.
 
 We will first consider a certain class of \datalogneg programs, called semi-positive programs, for which semantics of negation is straightforward. We will then move on to a more general version.
 
