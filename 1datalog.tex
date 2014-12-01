@@ -89,10 +89,6 @@ Both rules can add new facts to the relation $\textsc{Tc}$, since each of them h
 Datalog was largely inspired by logic programming languages such as Prolog. Datalog's and Prolog's syntax are very similar.
 Despite the close relation between Datalog and logic programming languages, there are some significant differences:
 
-\todo{czytelnikowi będę nasuwały sie pytania:
-1) czy wszystkie różnice sprowadzają się do tego, że datalog jest ograniczeniem prologu
-2) czy z tego wynika, że datalog ma mniejszą moc obliczeniową}
-
 \begin{itemize}
 \item In Prolog, one can use complex terms as arguments to predicates, for example $p(s(x), y)$, which is not permitted in Datalog, where the only allowed arguments are constants and variables.
 \item One of the important language constructs in Prolog is the cut operator ``!'', which allows to express negation. There is no such operator in Datalog. While some versions of Datalog have the notion of negation, it is still different than the cut operator known from Prolog.
@@ -140,14 +136,17 @@ The rules of a Datalog program $P$ divide the relations into two disjoint classe
 The set of extensional relations is called the \emph{extensional database} or the \edb, whereas the set of intensional relations is called the \emph{intensional database} or the \idb. For a program $P$, the \emph{extensional database schema}, denoted by $\edb(P)$, is the set of all extensional relation names. Similarly, the \emph{intensional database schema}, denoted by $\idb(P)$, is the set of all intensional relation names. 
 
 \begin{exmp}
-As an example, let us consider the following program $P$:
+As an example, let us consider the program $P$ presented on Figure~\ref{d:ancestors}.
 
-\rdprog{}{
+\begin{figure}[!ht]
+\begin{flalign*}
   & \textsc{Mother} (parent, child) &&  & \assign & && \textsc{Parent}(parent, child), \textsc{Woman}(parent) & \\
   & \textsc{Father} (parent, child) &&  & \assign & && \textsc{Parent}(parent, child), \textsc{Man}(parent) & \\
   & \textsc{Ancestor} (ancestor, child) &&  & \assign & && \textsc{Parent} (ancestor, child) &\\
   & \textsc{Ancestor} (ancestor, child) &&  & \assign & && \textsc{Ancestor} (ancestor, parent), \textsc{Parent} (parent, child) &\\
-}{}{}
+\end{flalign*}
+\caption{Datalog program for computing ancestors based on a database with relations \relat{Parent}{}, \relat{Woman}{} and \relat{Man}{}.}\label{d:ancestors}
+\end{figure}
 
 Let \relat{Parent}{(p, c)} mean that $p$ is $c$'s parent and \relat{Woman}{(x)} and \relat{Man}{(x)} tell whether person $x$ is a woman or a man, respectively. As will be clear after defining program semantics in \ref{ss:datalogsemantics}, this program computes child's father, mother and all its ancestors that can be derived.
 
@@ -164,9 +163,7 @@ Let \relat{Parent}{(p, c)} mean that $p$ is $c$'s parent and \relat{Woman}{(x)} 
 \section{Datalog semantics}\label{ss:datalogsemantics}
 A Datalog program is essentially a function from database instances over $\edb(P)$ into database instances over $\sch(P)$. We assume that all \emph{edb} relations are provided in the input. \emph{idb} relations are always empty at the start of a computation and can only be populated by the corresponding rules.
 
-\todo{(ps. dalej piszesz o bazie danych i programi oddzielnie, może już tu wprowadź tą intuicję)}
-
- The exact semantics of a Datalog program can be defined using one of three  equivalent approaches.
+The exact semantics of a Datalog program can be defined using one of three  equivalent approaches.
 
 In the \emph{model theoretic} definition, we consider the rules of program $P$ to be logical properties of the desired solution. From all possible instances of the intensional database we choose those, which are a \emph{model} for the program, i.e. satisfy all the rules. The smallest such model is defined to be the semantics of $P$.
 
@@ -194,9 +191,7 @@ Given some database $\textbf{K}$ and a program $P$, we can infer facts using the
 
 \begin{defn}[Immediate consequence operator]
 
-For a Datalog program $P$ and a database instance $\textbf{K}$ over $\sch(P)$, we say that a fact $R(v)$ is an \emph{immediate consequence} for $\textbf{K}$ and $P$, if $R(v) \in \textbf{K}$ or there exists an instantiation $R(v) \assign R_1(v_1), \dots, R_n(v_n)$ of a rule in $P$ such that $R_i(v_i) \in \textbf{K}$ for each $i = 1\dots n$.
-
-The \emph{immediate consequence operator} for a Datalog program $P$ is a function $T_P: \inst(\sch(P)) \to \inst(\sch(P))$, such that:
+For a program $P$ and a database instance $\textbf{K}$ over $\sch(P)$, we say that a fact $R(v)$ is an \emph{immediate consequence} for $\textbf{K}$ and $P$, if $R(v) \in \textbf{K}$ or there exists an instantiation $R(v) \assign R_1(v_1), \dots, R_n(v_n)$ of a rule in $P$ such that $R_i(v_i) \in \textbf{K}$ for each $i = 1\dots n$. The \emph{immediate consequence operator} for a Datalog program $P$ is a function $T_P: \inst(\sch(P)) \to \inst(\sch(P))$, such that:
 $$T_P(\textbf{K}) = \{ R(v): R(v) \text{ is an immediate consequence for } \textbf{K} \text{ and } P \}.$$
 
 \end{defn}
@@ -230,14 +225,7 @@ We will now prove that $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ con
 
 
 \begin{exmp}
-Let us recall the example program $P$ from the previous section:
-
-\rdprog{}{
-  & \textsc{Mother} (parent, child) &&  & \assign & && \textsc{Parent}(parent, child), \textsc{Woman}(parent) & \\
-  & \textsc{Father} (parent, child) &&  & \assign & && \textsc{Parent}(parent, child), \textsc{Man}(parent) & \\
-  & \textsc{Ancestor} (ancestor, child) &&  & \assign & && \textsc{Parent} (ancestor, child) &\\
-  & \textsc{Ancestor} (ancestor, child) &&  & \assign & && \textsc{Ancestor} (ancestor, parent), \textsc{Parent} (parent, child) &\\
-}{}{}
+Let us recall the program $P$ from Figure~\ref{d:ancestors}, which computes ancestors  based on a database with relations \relat{Parent}{}, \relat{Woman}{} and \relat{Man}{}.
 
 Given the following \edb database instance \textbf{K}:
 
@@ -303,40 +291,25 @@ This section briefly describes the ways to evaluate Datalog programs.
 \subsection{Naive evaluation}\label{ss:datalognaiveeval}
 In naive evaluation, the computation starts with the initial database containing the \edb relations and repeatedly applies all the rules, until a fixpoint is reached.
 
-In pseudocode, the algorithm for naive evaluation of a program $P$ on an input $\textbf{K}$ can be written as:
+In pseudocode, the algorithm for naive evaluation of a program $P$ on an input $\textbf{K}$ can be written as presented on Figure \ref{psc:naiveevaldatalog}.
 
-\vspace{0.5cm}
-\parbox{0.5\textwidth}{
-$P(\textbf{K}) = \{$
-
-{\addtolength{\leftskip}{5mm}
-
-$I_0 \leftarrow K$
-
-$i \leftarrow 0$
-
-\textbf{repeat}
-
-{\addtolength{\leftskip}{5mm}
-
-$i \leftarrow i + 1$
-
-$I_i \leftarrow T_P(I_{i-1})$
-
-}
-
-\textbf{until} $I_i = I_{i-1}$
-
-\textbf{return} $I_i$
-
-}
-
-$\}$
-}
+\begin{figure}[!htbp]
+\begin{codebox}
+  \Procname{$\proc{Naive-Evaluate-Datalog}(P,~\textbf{K})$}
+  \li $I_0 \leftarrow K$
+  \li $i \leftarrow 0$
+  \li \Repeat
+  \li $i \leftarrow i + 1$
+  \li $I_i \leftarrow T_P(I_{i-1})$
+  \li \Until $I_i = I_{i-1}$
+  \li \Return $I_i$
+\end{codebox}
+\caption{Naive evaluation algorithm for Datalog}\label{psc:naiveevaldatalog}
+\end{figure}
 
 \begin{exmp}
-As an example, let us consider the program from Figure \ref{ex:tcofr}, which computes a transitive closure of a binary relation \relat{R}{}:
-\begin{figure}[h!]
+As an example, let us consider the program from Figure \ref{ex:tcofr}, which computes a transitive closure of a binary relation \relat{R}{}.
+\begin{figure}[!htbp]
 \begin{align*}
 \textsc{Tc}(x, y) &\assign~ \textsc{R}(x, y).\\
 \textsc{Tc}(x, y) &\assign~ \textsc{Tc}(x, z), \textsc{Tc}(z, y).
@@ -359,46 +332,27 @@ I_3 \leftarrow \{&\textsc{R}(1, 2), \textsc{R}(2, 3), \textsc{R}(3, 4), \textsc{
 \subsection{Semi-Naive evaluation}\label{ss:seminaiveevaldatalog}
 A straightforward implementation of $T_P$ definition is to perform a natural join on subgoal relations and a projection to head variables. Example \ref{ex:naiveeval} shows that such implementation may be inefficient, because most of the facts are computed more than once.
 
-A simple observation is that the immediate consequence operator $T_P$ for any program $P$ is \emph{inflationary}, i.e. it possibly adds facts to the database, but can never remove any fact. In other words, $T_P(\bf{I}) \supseteq \bf{I}$ for any $I$. As a consequence, in an iterative evaluation which uses $T_P$, the database instance $\bf{I}_i$ inferred in step $i$ is a superset any of the database instance $\bf{I}_j$ that was derived in a previous step $j < i$. To name this property, we say that such semantics is \emph{inflationary}.
+A simple observation is that the immediate consequence operator $T_P$ for any program $P$ is \emph{inflationary}, i.e. it possibly adds facts to the database, but can never remove any fact. In other words, $T_P(\textbf{I}) \supseteq \textbf{I}$ for any $I$. As a consequence, in an iterative evaluation which uses $T_P$, the database instance $\textbf{I}_i$ inferred in step $i$ is a superset any of the database instance $\textbf{I}_j$ that was derived in a previous step $j < i$. To name this property, we say that such semantics is \emph{inflationary}.
 
 \emph{Semi-naive evaluation} is the most basic optimization used in Datalog evaluation, in which $T_P$ is computed in an optimized way. It comes from the following observation: in a Datalog program, if some rule $Q$ produced a fact $R(t)$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule will produce this fact in each subsequent iteration, because of the inflationary semantics of the language. The goal of this optimization is to avoid those computations after producing the fact for the first time. This is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration. 
 
-Let $T^\Delta_P$ denote a function that evaluates rules of program $P$ so that at least one new fact is used in application of a rule. This function needs to know which facts are the new ones, so it takes two arguments: $I$ --- the full database instance and $\Delta$ --- a database instance containing the facts that were added in the last iteration. Note that this function does not necessarily return facts from $I$, so we will need to add them to the facts newly computed to get the same result as $T_P$, i.e. for each $i$, $T_P(I_i) = I_i \cup T_P^\Delta(I_i, \Delta_i)$. The following pseudocode presents the algorithm for semi-naive evaluation: 
+Let $T^\Delta_P$ denote a function that evaluates rules of program $P$ so that at least one new fact is used in application of a rule. This function needs to know which facts are the new ones, so it takes two arguments: $I$ --- the full database instance and $\Delta$ --- a database instance containing the facts that were added in the last iteration. Note that this function does not necessarily return facts from $I$, so we will need to add them to the facts newly computed to get the same result as $T_P$, i.e. for each $i$, $T_P(I_i) = I_i \cup T_P^\Delta(I_i, \Delta_i)$. The following pseudocode on Figure \ref{psc:seminaiveevaldatalog} presents the algorithm for semi-naive evaluation of Datalog program $P$ on input database \textbf{K}.
 
-\vspace{0.5cm}
-\parbox{0.5\textwidth}{
-$P(\textbf{K}) = \{$
-
-{\addtolength{\leftskip}{5mm}
-
-$I_0 \leftarrow K$, $\Delta_0 \leftarrow K$
-
-$i \leftarrow 0$
-
-\textbf{repeat}
-
-{\addtolength{\leftskip}{5mm}
-
-$i \leftarrow i + 1$
-
-$C_i \leftarrow T_P^\Delta(I_{i-1}, \Delta_{i-1})$
-
-$I_i \leftarrow C_i \cup I_{i-1}$
-
-$\Delta_i \leftarrow I_i - I_{i-1}$
-
-}
-
-\textbf{until} $\Delta_i = \emptyset$
-
-\textbf{return} $I_i$
-
-}
-
-$\}$
-}
-
-
+\begin{figure}[!htbp]
+\begin{codebox}
+  \Procname{$\proc{Semi-naive-Evaluate-Datalog}(P,~\textbf{K})$}
+  \li $I_0 \leftarrow K$, $\Delta_0 \leftarrow K$
+  \li $i \leftarrow 0$
+  \li \Repeat
+	\li $i \leftarrow i + 1$
+	\li $C_i \leftarrow T_P^\Delta(I_{i-1}, \Delta_{i-1})$
+	\li $I_i \leftarrow C_i \cup I_{i-1}$
+	\li $\Delta_i \leftarrow I_i - I_{i-1}$
+  \li \Until $\Delta_i = \emptyset$
+  \li \Return $I_i$
+\end{codebox}
+\caption{Semi-naive evaluation algorithm for Datalog}\label{psc:seminaiveevaldatalog}
+\end{figure}
 
 \begin{exmp}
 Let us consider the program and input from Example \ref{ex:naiveeval}. The facts computed by the Semi-naive evaluation in subsequent iterations would be:
@@ -472,7 +426,7 @@ Pure version of Datalog permits recursion, but provides no negation. Negation al
 In Datalog with negation, or \datalogneg, each relational subgoal may be negated, i.e. preceded with the negation symbol ,,$!$''. The negated subgoals are called \emph{negative} subgoals, and the rest of the subgoals is called \emph{positive} subgoals. Other types of subgoals are not allowed to be negated.
 
 \begin{exmp}
-Let us consider the program for computing trasitive closure \relat{Tc}{} of a relation \relat{R}{} from example \ref{ex:naiveeval}. A following rule computes the pairs of nodes which are indirectly connected, i.e. are in \relat{Tc}{}, but not in \relat{R}{}:
+Let us consider the program for computing trasitive closure \relat{Tc}{} of a relation \relat{R}{} from example \ref{ex:naiveeval}. The following rule computes the pairs of nodes which are indirectly connected, i.e. are in \relat{Tc}{}, but not in \relat{R}{}:
 
 $$\textsc{Indirect}(x, y) \assign \textsc{R}(x, y),~!\textsc{Tc}(x, y).$$
 \end{exmp}
@@ -512,7 +466,40 @@ Let $P$ be a program in \datalogneg and $n = \|\idb(P)\|$ be the number of \idb 
 
 A program for which a stratification exists is called \emph{stratifiable}. 
 
-$\rho$ corresponds to a partitioning of $P$ into several subprograms $P_1, P_2, \dots, P_n$. Each of those programs is called a \emph{stratum} of $P$. $\rho(R)$ is called \emph{stratum number} of the relation $R \in \idb(P )$. The $i$-th stratum consists of the rules from $P$ which have a relation with stratum number $i$ in their head. We say that those relations are \emph{defined} in $P_i$.
+
+$\rho$ corresponds to a partitioning of $P$ into several subprograms $P_1, P_2, \dots, P_n$. Each of those programs is called a \emph{stratum} of $P$. $\rho(R)$ is called \emph{stratum number} of the relation $R \in \idb(P )$. The $i$-th stratum consists of the rules from $P$ which have a relation with stratum number $i$ in their head. We say that those relations are \emph{defined} in $P_i$. An example program with a stratification represented as a graph is presented on Figure \ref{fig:precedgraph}.
+
+\begin{figure}[!htbp]
+\begin{minipage}{0.5\linewidth}
+\begin{align*}
+\textsc{P}(x) &\assign~ \textsc{A}(x).\\
+\textsc{Q}(x) &\assign~ \textsc{B}(x).\\
+\textsc{R}(x, y) &\assign~ \textsc{S}(y, x).\\
+\textsc{R}(x, y) &\assign~ \textsc{P}(x).\\
+\textsc{S}(x, y) &\assign~ \textsc{R}(x, y), Q(y).\\
+\textsc{T}(x, y) &\assign~ \textsc{R}(y, y), Q(x).\\
+\end{align*}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=2.5cm,
+  thick,main node/.style={circle,fill=blue!20,draw,font=\sffamily\Large\bfseries}]
+
+  \node[main node] (1) {R, S};
+  \node[main node] (2) [above right of=1] {Q};
+  \node[main node] (3) [above left of=1] {P};
+  \node[main node] (4) [below of=1] {T};
+
+  \path[every node/.style={font=\sffamily\small}]
+    (1) edge node [left] {} (4)
+    (2) edge node [right] {} (1)
+        edge [bend left] node {} (4)
+    (3) edge node [right] {} (1)
+    ;
+\end{tikzpicture}
+
+\end{minipage}%
+\caption{A Datalog program and one of its possible stratifications.}\label{fig:precedgraph}
+\end{figure}
 
 Stratification assures that if a relation $R$ is used in rules of stratum $P_i$ in a positive subgoal, then $R$ must be defined in this stratum or one of the previous strata. Additionally, if a relation is used in stratum $P_i$ in a negated subgoal, then it must be defined in an earlier stratum. It is worth noting that this allows for recursive rules, unless the recursive subgoal is not negated.
 
@@ -522,8 +509,6 @@ We require the programs in \datalogneg to be stratifiable. If $P$ can be stratif
 $$P(\textbf{I}) = P_n(\dots, P_2(P_1(\textbf{I}))\dots)$$
 
 A program can have multiple stratifications, but it can be shown that $P(\textbf{I})$ does not depend on which of them is chosen \cite{fod}.
-
-\todo{dać ilustrację grafu zależności. odwołanie z tekstu}
 
 \subsection{Arithmetic functions}
 
@@ -557,7 +542,6 @@ The following program answers this question using a straightforward rule of edge
   & \textsc{Path} (v, d) &&  & \assign & && \textsc{Edge}(s, v, d) & \\
   & \textsc{Path} (v, d) &&  & \assign & && \textsc{Path} (t, d'), \textsc{Edge}(t, v, l), d = d' + l. &\\
 }{Datalog query for computing all path lengths from a given source}{ex:pathsdatalog}
-\todo{spójność jeśli chodzi o wstawianie listingów}
 
 It is easy to see that arithmetic addition is crucial in this program -- it would not be possible to find the path lengths without being able to generate new distance values. We can see that both rules satisfy the updated safety definition.
 \end{exmp}
@@ -569,7 +553,7 @@ Given a program $P$ and a database instance $\textbf{K}$ over $\sch(P)$, rules w
 
 There are different approaches to address this problem, including \emph{finiteness dependencies} and syntactic requirements that imply safety of Datalog programs with arithmetic conditions \cite{RBS87, KRS88a, KRS88b, SV89}.
 
-For the purpose of this paper, we can simply define the semantics only for Datalog programs that have a finite fixed point. The updated version of Theorem \ref{t:datalogfixpointsem} is as follows.
+For the purpose of this paper, we can simply define the semantics only for Datalog programs that have a finite fixed point. The updated version of Theorem \ref{t:datalogfixpointsem} is as follows. \todo{To koliduje z użyciem active domain do definicji negacji -- jak to poprawić?}
 
 \begin{thm}
 For any $P$ and an instance $\textbf{K}$ over $\edb(P)$, if there exists $n \ge 0$ such that $T_P^n(\textbf{K})$ is a fix-point of $T_P$, then it is the minimal fix-point of $T_P$ containing $\textbf{K}$.

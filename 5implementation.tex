@@ -29,7 +29,7 @@ The same approach was chosen for adding the ability of executing Datalog queries
 
 Datalog queries can be applied to any set of input RDDs. The input data can be directly loaded from a distributed storage supported by Spark or computed as a transformation of other RDDs. User first creates relations, declaring their arity, and groups them into a database. Next, he can perform any query on this database, using its \emph{datalog} method. If there are no errors in the query, the result is a new database, containing all computed relations. Each relation can be extracted from the database by giving its name. Figure \ref{sdinspark} shows an example of a \datalogra query used in a Spark program using Datalog API for Spark.
 
-\begin{figure}[h!]
+\begin{figure}[!htbp]
   \centering
 \begin{Verbatim}
 \textcolor{RedViolet}{val} \textcolor{RoyalPurple}{edgesRdd} = \textcolor{gray}{... // RDD of edge tuples read from disk or computed using Spark}
@@ -130,7 +130,7 @@ A practial implementation of the evaluation procedure described above requires s
 The main implemented optimization was the semi-naive evaluation. Additionally, several smaller optimizations have been implemented:
 \begin{itemize}
 \item Non-recursive strata which define only one relation are a common case. In this case, it is clear upfront that one iteration is enough for all facts to be inferred, so the evaluation of the stratum is finished after one iteration instead of performing one more iteration only to notice that there were no changes in the database.
-\item Some rule bodies start with subgoals which define constants, e.g. $\textsc{Path}(v,t) :- s~=~1, \textsc{Edge}(s, v, t)$. When subgoals are topologically sorted, such subgoals are placed at the beginning of subgoals sequence. In order for the evaluation of the constant subgoals not to be repeated, the initial sequence of constant subgoals is evaluated during the analysis phase. The result is then used as an initial valuation when evaluating the rest of subgoals in each iteration when this rule body is considered.
+\item Rule bodies can start with constant subgoals, e.g. $\textsc{Path}(v,t) :-~s=1, \textsc{Edge}(s, v, t)$. When subgoals are topologically sorted, such subgoals are placed at the beginning of subgoals sequence. In order for the evaluation of the constant subgoals not to be repeated, the initial sequence of constant subgoals is evaluated during the analysis phase. The result is then used as an initial valuation when evaluating the rest of subgoals in each iteration when this rule body is considered.
 \item Within each stratum, necessary \emph{edb} relations are identified and converted to an internal form prepared for futher operations. This allows to avoid repeated work in each of iterations within a stratum, since \emph{edb} relations cannot change.
 \end{itemize}
 
@@ -149,21 +149,21 @@ For each problem, both solutions have been evaluated on Amazon EC2 clusters cons
 
 Figure \ref{img_plots_exp} presents the execution times and speedups of SparkDatalog and plain Spark programs for each test case. The SparkDatalog versions are consistently slower than dedicated Spark programs, by a factor approximately 2 in Triangles Counting, 8.5 to 3.5 in Shortest Paths and 4 - 1.7 in Connected Components. The reasons for that are analyzed in section \ref{s:whyslow}. The speedups achieved were similar for both versions of each program. This shows that although the implemented solution is slower by some factor, it does parallelize. In case of Connected Components and Shortest paths, Spark Datalog's speedups were slightly better. This is probably because of the fact that the additional overhead in Spark Datalog execution time over dedicated Spark could also get parallelized. In general, the difference in execution times is the least with the greatest number of worker nodes.
 
-\begin{figure}[h!]
+\begin{figure}[!htbp]
   \centering
     \includegraphics[width=\textwidth]{images/plots_all.png}
    \caption{Results of experiments. \label{img_plots_exp}}
 \end{figure}
 
 
-\begin{table}[h!]
+\begin{table}[!htbp]
   \centering
-\begin{tabular}{l|r|r}
-\hline   & plain Spark & SparkDatalog \\ 
+\begin{tabular}{|l|r|r|}
+\hline   & \textbf{plain Spark} & \textbf{SparkDatalog} \\ 
 \hline
- Connected Components & 13 & 6 \\ 
- Shortest Paths & 14 & 4 \\ 
- Triangles & 7 & 5 \\ 
+ \textit{Connected Components} & 13 & 6 \\ 
+ \textit{Shortest Paths} & 14 & 4 \\ 
+ \textit{Triangles} & 7 & 5 \\ 
 \hline 
 \end{tabular} 
 \caption{Number of lines of code in programs, excluding data loading and comments.}
@@ -172,7 +172,7 @@ Figure \ref{img_plots_exp} presents the execution times and speedups of SparkDat
 
 An important goal for SparkDatalog is to provide programmers and non-programming analysts with a possibility to perform computations by writing declarative queries instead of implementing complicated, lengthy algorithms using the Pregel model or standard RDD transformations. Table \ref{tab_proglen} shows a comparison of lengths of Spark Datalog and plain Spark programs for each of the problems. Datalog versions are 1.4 to 3.5 shorter than dedicated Spark. Most importantly, they are conceptually simpler, since they only require a few declarative rules, instead of expressing the problem in the vertex-centric Pregel model.
 
-\section{Performance differences}
+\section{Performance differences}\label{s:whyslow}
 The SparkDatalog programs are several times slower than their dedicated Spark counterparts. There are several reasons for that, which can be eliminated or minimized in future versions of Spark Datalog:
 \begin{enumerate}
 \item SparkDatalog uses a general way of conversion of a Datalog program to a sequence of Spark transformations, which results in suboptimal execution of the query, whereas dedicated Spark program executes precisely the necessary operations. This can be resolved or minimized by more work on optimizing the generated execution plan.

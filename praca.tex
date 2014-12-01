@@ -16,6 +16,14 @@
 \usepackage{fancyvrb}
 \usepackage[usenames,dvipsnames]{xcolor}
 \usepackage{clrscode3e}
+\usepackage[percent]{overpic}
+\usepackage{tikz}
+\usepackage{varwidth}
+\usetikzlibrary{arrows}
+
+\overfullrule=2cm
+
+
 
 \fvset{frame=single,framesep=1mm,fontsize=\scriptsize,numbers=left,framerule=.3mm,numbersep=1mm,commandchars=\\\{\}}
 \definecolor{vdarkgray}{gray}{0.25}
@@ -107,7 +115,7 @@
     }
 }
 \newcommand{\dprog}[4]{
-  \begin{figure}[h!]
+  \begin{figure}[!htbp]
     \narrow{
       #1
       \begin{flalign*}
@@ -127,7 +135,7 @@
 
 \begin{abstract}
 Distributed computations on graphs are becoming increasingly important with the emergence of large graphs such as social networks and the Web that contain huge amount of useful information.
-Currently existing solutions, such as iterated MapReduce, Pregel and GraphLab are relatively difficuly and require a significant level of fluency in programming.
+Currently existing solutions, such as iterated MapReduce, Pregel and GraphLab are relatively difficult and require a significant level of fluency in programming.
 This thesis presents an implementation of a tool which extends a distributed computations platform, Apache Spark, with the capability of executing queries written in a variant of a declarative query language, Datalog, especially extended to better support graph algorithms.
 This approach makes it is possible to express graph algorithms in a declarative query language, accessible to a broader group of users than typical programming languages, and execute them on an existing infrastructure for distributed computations.
 \end{abstract}

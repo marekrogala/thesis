@@ -23,7 +23,6 @@ Most graph algorithms are based on some kind of iteration or recursive computati
 
 A straightforward program in Datalog extended with nonrecursive aggregation for computing single source shortest paths starting from node $1$ is presented in Figure \ref{ex:ssspsocialite}. Due to limitations of Datalog, this program computes all possible path lengths from node $1$ to other nodes in the first place, and after that for each node the minimal distance is chosen. Not only this approach results in bad performance, but the program executes indefinitely if a loop in the graph is reachable from the source node.
 
-\todo{jak wprowadzales datalog to kod wstawiales w tekst}
 \dprog{}{
   & \textsc{Path} (t, d) &&  & \assign & && \textsc{Edge} (1, t, d). & \\
   & \textsc{Path} (t, d) &&  & \assign & && \textsc{Path} (s, d_1), \textsc{Edge} (s, t, d_2), d = d_1 + d_2. & \\
@@ -32,7 +31,7 @@ A straightforward program in Datalog extended with nonrecursive aggregation for 
 
 \subsection{A program in \datalogra}
 
-\datalogra allows aggregation to be combined with recursion under some conditions. This allows us to write straightforward programs for problems such as single source shortest paths, which finish execution in finite time and often are much more efficient than Datalog programs. An example \datalogra program that is presented in figure \ref{ex:ssspsocialite}.
+\datalogra allows aggregation to be combined with recursion under some conditions. This allows us to write straightforward programs for problems such as single source shortest paths, which finish execution in finite time and often are much more efficient than Datalog programs. An example \datalogra program that is presented in Figure \ref{ex:ssspsocialite}.
 
 
 \dprog{
@@ -56,7 +55,7 @@ In declaration of a relation, aggregated column can be specified by adding keywo
 
 An example of a program in \datalogra in shown on Figure \ref{fig:datalograexampleprogram}.
 
-\begin{figure}[h!]
+\begin{figure}[!htbp]
 \narrow{
   $\textsc{P}(\text{int } \textit{a}, \text{int } \textit{b} \text{ aggregate } \textsc{F}) $\\
   $\textsc{R}(\text{int } \textit{src}, \text{int } \textit{sink}, \text{int } \textit{len}) $ 
@@ -177,10 +176,10 @@ If $R$ does not have an aggregated column, $\sqsubseteq_R$ is the same as inclus
 If $R$ does have an aggregated column, then:
 
 \begin{itemize}
-\item $\sqsubseteq_R$ is reflexive: for each $R$ and $A \in \inst(R)$, we have that $\forall_{(q_1, ..., q_{k-1}, v) \in g_R(A)} \Big( (q_1, ..., q_{k-1}, v) \in g_R(A)~\text{and}~v~\le_{\aggfun_R}~v \Big)$ because $\le_{\aggfun_R}$ is reflexive. Hence, $A \sqsubseteq_R B$.
+\item $\sqsubseteq_R$ is reflexive: for each $R$ and $A \in \inst(R)$, since $\le_{\aggfun_R}$ is reflexive, we have that $\forall_{(q_1, ..., q_{k-1}, v) \in g_R(A)} \Big( (q_1, ..., q_{k-1}, v) \in g_R(A)~\text{and}~v~\le_{\aggfun_R}~v \Big)$. Hence, $A \sqsubseteq_R B$.
 \item $\sqsubseteq_R$ is transitive: if $A \sqsubseteq_R B$ and $B \sqsubseteq_R  C$, then by definition of $\sqsubseteq_R$ we have that: $$\forall_{(q_1, ..., q_{n-1}, a) \in g_R(A)} \exists_{(q_1, ..., q_{n-1}, b) \in g_R(B)}~a~\le_{\aggfun_R}~b $$ $$\forall_{(q_1, ..., q_{n-1}, b) \in g_R(B)} \exists_{(q_1, ..., q_{n-1}, c) \in g_R(C)}~b~\le_{\aggfun_R}~c$$
 
-Since $\le_{\aggfun_R}$ is a partial order and thus transitive, this gives $\forall_{(q_1, ..., q_{n-1}, a) \in g(A)} \exists_{(q_1, ..., q_{n-1}, c) \in g(C)} \\a~\le_{\aggfun_R}~c $, which means that $A \sqsubseteq_R C$.
+We have that $\forall_{(q_1, ..., q_{n-1}, a) \in g(A)} \exists_{(q_1, ..., q_{n-1}, c) \in g(C)} a~\le_{\aggfun_R}~c $, since $\le_{\aggfun_R}$ is a partial order and thus transitive. This means that $A \sqsubseteq_R C$.
 \end{itemize}
 
 \end{prof}
@@ -199,7 +198,7 @@ For the operation $ \max $ in $\mathbb{N}$, $ \le_{\max} $ is the usual order $ 
 \item $\{(1, 2, 3)\} \sqsubseteq_R \{(1, 2, 5)\}$, because $3 \le 5$,
 \item $\{(1, 2, 3)\} \sqsubseteq_R \{(1, 2, 5), (1, 7, 2)\}$ , because $3 \le 5$,
 \item $\{(1, 2, 3), (1, 2, 8)\} \sqsubseteq_R \{(1, 2, 5)\}$ , because $g_R(\{(1, 2, 3), (1, 2, 8)\}) = \{(1,2,3)\}$ and $3~\le~5$,
-\item $A = \{(1, 2, 3), (2, 8, 1)\}$ and  $B = \{(1, 2, 5), (1, 7, 2)\}$ are not comparable, because $\forall_x~(2, 8, x)~\notin~A$ and $\forall_x (1, 7, x) \notin B$,
+\item $A = \{(1, 2, 3), (2, 8, 1)\}$ and  $B = \{(1, 2, 5), (1, 7, 2)\}$ can not be compared, because $\forall_x (2, 8, x) \notin A$ and $\forall_x (1, 7, x) \notin B$,
 \item for any $R$ an empty relation instance $\emptyset$ is smaller under $\sqsubseteq_R$  than any other relation instance.
 \end{itemize}
 \label{ex:sqsubseteqorder}
@@ -227,7 +226,7 @@ For any $R$ such that $k=ar(R)$, $\sqsubseteq_R$ is a partial order over $Z_R$.
 \begin{prof}
 If $R$ does not have an aggregated column, $\sqsubseteq_R$ is the same as inclusion order $\subseteq$, which is a partial order.
 
-If $R$ does have an aggregated column, then by Lemma \ref{lem:preorder} it is a pre-order over $\inst(R)~\supseteq~Z_R$, so it only remains to be shown that $\sqsubseteq_R$ is antisimmetric.
+If $R$ has an aggregated column, then by Lemma \ref{lem:preorder} it is a pre-order over $\inst(R)~\supseteq~Z_R$, so it only remains to be shown that $\sqsubseteq_R$ is antisimmetric.
 
 Let $A, B$ be any relation instances from $Z_R$. Let us suppose that $A \sqsubseteq_R B$ and $B \sqsubseteq_R A$. To prove antisimmetry, we need to show that $A = B$. By definition of $\sqsubseteq_R$, we have that:
 \begin{align*}
@@ -240,7 +239,7 @@ Since $A, B \in Z_R$ we know that there exist $A', B'$ such that $A = g_R(A'), B
 \forall_{(q_1, ..., q_{n-1}, b) \in B} \exists_{(q_1, ..., q_{n-1}, a) \in A}~b~\le_{\aggfun_R}~a
 \end{align*}
 
-Let $t = R(x_1, \dots, x_{n-1}, a)$ be any fact in $A$. We know that there exists $b$ such that $(x_1, ..., x_{n-1}, b) \in B$ and $a~\le_{\aggfun_R}~b$. Futher, we know that there exists $(x_1, ..., x_{n-1}, a') \in A$ such that $b~\le_{\aggfun_R}~a'$. By Lemma \ref{lem:fixgr}, it must hold that $a = a'$. Since $a~\le_{\aggfun_R}~b~\le_{\aggfun_R}~a'$, we have that $a = b$, so $t \in B$. Therefore, $A \subseteq B$, because $t$ was chosen as any element of $A$. Because of symmetry of the proof, it also holds that $B \subseteq A$, so $A = B$. This means that $\sqsubseteq_R$ is indeed antisimmetric.
+Let $t = R(x_1, \dots, x_{n-1}, a)$ be any fact in $A$. We know that there exists $b$ such that $(x_1, ..., x_{n-1}, b) \in B$ and $a~\le_{\aggfun_R}~b$. Futher, we know that there exists $(x_1, ..., x_{n-1}, a') \in A$ such that $b~\le_{\aggfun_R}~a'$. By Lemma \ref{lem:fixgr}, it must hold that $a = a'$, so $a \le_{\aggfun_R} b \le_{\aggfun_R} a'$, and thus we have that $a = b$, so $t \in B$. Therefore, $A \subseteq B$, because $t$ was chosen as any element of $A$. Because of symmetry of the proof, it also holds that $B \subseteq A$, so $A = B$. This means that $\sqsubseteq_R$ is indeed antisimmetric.
 
 As $\sqsubseteq_R$ is an antisimmetric pre-order over $Z_R$, it is a partial order over this set.
 \end{prof}
@@ -439,7 +438,7 @@ The evaluation is performed on the workers, which are coordinated by a \emph{mas
 
 In Chapter \ref{r:implementation} we present an alternative way of paralellizing Datalog evaluation --- by translating the program into a set of Apache Spark's native operations on RDDs.
 
-\section{Differences from the original SociaLite}
+\section{Differences from original SociaLite formulation}
 
 The version of Datalog presented here differs from original description found in the original papers introducting SociaLite \cite{socialite, distsoc}.
 
