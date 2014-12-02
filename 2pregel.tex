@@ -14,9 +14,9 @@ In Section \ref{s:pregel}, the Pregel model is described. The RDD model used in 
 
 \section{Pregel model and its original implementation}\label{s:pregel}
 
-The name of the Pregel model comes from its initial proprietary implementation by Google and honors Leonard Euler, a famous Swiss mathematician and physicist and also a pioneer of the graph theory. In 1735, he formulated the first theorem in graph theory: a solution to an old question whether a Königsberg citizen could take a walk around the city so that he crossed each of the seven city's bridges exactly once. Euler concluded that it is impossible, because the graph bridges form is not what we today call an Euler graph --- a graph in which every vertex has an even degree. The name of river that flows through Königsberg and which the famous bridges spanned is Pregel.
+The name of the Pregel model comes from its initial proprietary implementation by Google and honors Leonard Euler, a famous Swiss mathematician and physicist and also a pioneer of the graph theory. In 1735, he formulated the first theorem in graph theory: a solution to an old question whether a Koenigsberg citizen could take a walk around the city so that he crossed each of the seven city's bridges exactly once. Euler concluded that it is impossible, because the graph bridges form is not what we today call an Euler graph --- a graph in which every vertex has an even degree. The name of river that flows through Koenigsberg and which the famous bridges spanned is Pregel.
 
-The model of computation in Pregel is based on the L. Valiant's Bulk Synchronous Parallel model \cite{bsp}. The computation is performed in a sequence of \emph{supersteps}. In each superstep, the framework executes on each vertex a \emph{vertex program} provided by the user. Vertices communicate by messages: a message sent by a vertex in superstep $S$ is delivered to its recipient in superstep $S+1$. Figure \ref{bspiterimg} presents the phases in a sigle iteration of program execution in Pregel.
+The model of computation in Pregel is based on the L. Valiant's Bulk Synchronous Parallel model \cite{bsp}. The computation is performed in a sequence of \emph{supersteps}. In each superstep, the framework executes on each vertex a \emph{vertex program} provided by the user. Vertices communicate by messages: a message sent by a vertex in superstep $S$ is delivered to its recipient in superstep $S+1$. Figure \ref{bspiterimg} presents the phases in a single iteration of program execution in Pregel.
 
 \begin{figure}[!htbp]
 \centering
@@ -24,7 +24,7 @@ The model of computation in Pregel is based on the L. Valiant's Bulk Synchronous
  \put (60,57) {Vertices}
  \put (2,40) {Local computations}
  \put (2,18) {Communication}
- \put (2,6) {Synchronisation}
+ \put (2,6) {Synchronization}
 \end{overpic}
 \caption{One superstep in Pregel as a BSP iteration.\label{bspiterimg}}
 \end{figure}
@@ -101,7 +101,7 @@ The original implementation by Google engineers is proprietary and was never rel
 
 \subsection{Giraph}
 
-Giraph \cite{giraph} is an open-source implementation of the Pregel model. It adds several extensions to the version originally described by Google. Those extensions include introducing the possibility to perform computations on the master node, capabilities to work with a support of external memory and removing the single-point-of-failure (SPoF) by adding spare master nodes, which can become active when the primary master node fails.
+Giraph \cite{giraph} is an open-source implementation of the Pregel model. It adds several extensions to the version originally described by Google. Those extensions include introducing the possibility to perform computations on the master node, capabilities to work with a support of external memory and removing the single point of failure by adding spare master nodes, which can become active when the primary master node fails.
 
 Giraph is built on top of Hadoop \cite{hadoop}, the widely-adopted framework for large datasets processing. Hadoop is a platform for big datasets computing at scale, consisting of HDFS --- distributed file system, YARN --- framework for managing the cluster and scheduling tasks, Hadoop MapReduce --- an open implementation of the MapReduce model and libraries for using these elements in other projects.
  
@@ -132,9 +132,9 @@ Spark fits into the Hadoop ecosystem by being able to run on Hadoop clusters wit
 \subsection{Resilient Distributed Datasets}
 The key concept in Spark is the \emph{Resilient Distributed Dataset} (RDD). RDDs are an abstraction of distributed memory, which let the programmer perform distributed computations. They are stored in a way that is transparent to the user and assures fault tolerance.
 
-RDDs provide only a \emph{coarse-grained} interface: operations that are applied to the whole dataset, such as map, filter and join. This allows for achieving fault-tolerance by storing only the history of operations that were used to build a dataset, called its \emph{lineage}, instead of replicating the data to be able to recover it. An additional advantage is that the RDDs do not need to be materialised, unless it is actually necessary. Since parallel computations generally apply some transformation to multiple elements of a dataset, in most cases they can be expressed easily with coarse-grained operation on datasets.
+RDDs provide only a \emph{coarse-grained} interface: operations that are applied to the whole dataset, such as map, filter and join. This allows for achieving fault-tolerance by storing only the history of operations that were used to build a dataset, called its \emph{lineage}, instead of replicating the data to be able to recover it. An additional advantage is that the RDDs do not need to be materialized, unless it is actually necessary. Since parallel computations generally apply some transformation to multiple elements of a dataset, in most cases they can be expressed easily with coarse-grained operation on datasets.
 
-RDDs can be created only in two ways: loading a dataset from a distributed storage or from another dataset by applying coarse-grained functional operations called \emph{transformations}, such as \emph{map}, \emph{filter} and \emph{join}. For greater efficiency, the user can also control the \emph{persistence} by indicating which RDDs are intended to be used in the future and as such should be materialised in the memory and the \emph{partitioning} of each RDD by indicating the key by which the records of RDD should be partitioned across the machines. Finally, the user can perform \emph{actions} on an RDD. Actions return a value or export the dataset to some persistent storage. Avaiable actions include \emph{count}, which returns the number of elements in the RDD, \emph{collect}, which returns the records from the dataset and \emph{save}, which exports the records to an external storage.
+RDDs can be created only in two ways: loading a dataset from a distributed storage or from another dataset by applying coarse-grained functional operations called \emph{transformations}, such as \emph{map}, \emph{filter} and \emph{join}. For greater efficiency, the user can also control the \emph{persistence} by indicating which RDDs are intended to be used in the future and as such should be materialized in the memory and the \emph{partitioning} of each RDD by indicating the key by which the records of RDD should be partitioned across the machines. Finally, the user can perform \emph{actions} on an RDD. Actions return a value or export the dataset to some persistent storage. Available actions include \emph{count}, which returns the number of elements in the RDD, \emph{collect}, which returns the records from the dataset and \emph{save}, which exports the records to an external storage.
 
 \begin{exmp}
 Let us suppose we have an RDD \emph{friends}, which consists of pairs of identifiers $(a, b)$ meaning that person $b$ is a friend of person $a$. We will say that $y$ is a \emph{friend of friend} of $x$ iff there exists $z$, called a \emph{proxy}, such that $z$ is a friend of $x$ and $y$ is a friend of $z$. We will call a person with more than 10000 friends of friends an \emph{influencer}. A Spark program which computes the number of all influencers is presented on Figure \ref{ex:sparkfof}.
@@ -153,7 +153,7 @@ Let us suppose we have an RDD \emph{friends}, which consists of pairs of identif
 
 The \proc{Count-Influencers} function first performs a join of \emph{friends} with itself. Since the join transformation joins by the first value in the pair, the elements of \emph{friends} are swapped beforehand. The result is then mapped to remove the information about proxies, which is irrelevant, and duplicates are eliminated with \emph{distinct}. This gives an RDD of pairs $(x, y)$, such that $y$ is a friend of friend of $x$. For each $x$, the number of friends of friends is then computed using \emph{map} and \emph{reduceByKey}. The obtained RDD of pairs $(x, c)$, where $x$ is the person and $c$ is its number of friends of friends is then filtered so that only influencers remain. The size of the filtered RDD is returned as the number of influencers. It is worth noting that the used transformations \emph{map, filter, distinct} and \emph{reduceByKey} are not actually executed until the action \emph{count} is performed.
 
-Iterative computation can be achieved in Spark by simply placing the transformations within a loop. For performance reasons, the user will often need to manage which RDDs should be cached in memory and explicitly materialise some of them in each iteration.
+Iterative computation can be achieved in Spark by simply placing the transformations within a loop. For performance reasons, the user will often need to manage which RDDs should be cached in memory and explicitly materialize some of them in each iteration.
 \end{exmp}
 
 \subsection{Higher level tools}

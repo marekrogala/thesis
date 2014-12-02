@@ -3,7 +3,7 @@
 
 In this chapter we describe the basic Datalog language and its typical extended versions.
 
-Languages based on relational algebra and relational calculus, like SQL, are widely used and researched as query languages for relational databases. This dates back to Edgar F. Codd's relational model \cite{coddrelmodel} introduced in 1970. Unfortunately, such languages leave some simple operations that they cannot handle. Examples of such problems are transitive closure of a graph or distances from a vertex to all other vertices. Although new implementations of SQL permit recursion, it is usually not suitable for expressing complex graph algorithms in an easy and succint way.
+Languages based on relational algebra and relational calculus, like SQL, are widely used and researched as query languages for relational databases. This dates back to Edgar F. Codd's relational model \cite{coddrelmodel} introduced in 1970. Unfortunately, such languages leave some simple operations that they cannot handle. Examples of such problems are transitive closure of a graph or distances from a vertex to all other vertices. Although new implementations of SQL permit recursion, it is usually not suitable for expressing complex graph algorithms in an easy and succinct way.
 
 Datalog \cite{fod} is a query language which allows for solving those problems, thanks to the availability of recursion. Without the recursion, Datalog (with negation) has the same expressive power as both relational algebra and relational calculus. The language appeared around 1978 and is inspired by the logical programming paradigm. Recently, there is an increasing interest in Datalog research as well as its implementations in industry. Datalog is typically extended with negation and simple, non-recursive aggregation.
 
@@ -96,7 +96,7 @@ Despite the close relation between Datalog and logic programming languages, ther
 \item Unlike Prolog, the order of rules and subgoals in Datalog does not change the program's semantics.
 \end{itemize}
 
-Datalog is less expressive than Prolog. In constrast to Prolog, it is not Turing-complete. This obviously restricts the set of problems which can be solved with Datalog, but at the same time it allows more to be reasoned about Datalog programs, giving more possibilities to optimize their evaluation.
+Datalog is less expressive than Prolog. In contrast to Prolog, it is not Turing-complete. This obviously restricts the set of problems which can be solved with Datalog, but at the same time it allows more to be reasoned about Datalog programs, giving more possibilities to optimize their evaluation.
 
 \section{Datalog syntax}
 Let us define Datalog programs and rules.
@@ -109,7 +109,7 @@ where $n \ge 1$, $R, R_1, \dots, R_n$ are names of relations and $x, x_1, \dots 
 
 The sign $\assign$ splits the rule into two parts: the leftmost part, i.e. $R(x)$, is called the \emph{head} of the rule, while the rightmost part, i.e. $R_1(x_1), \dots, R_n(x_n)$, is called the \emph{body} of the rule. The elements of the body separated by commas are called \emph{subgoals}. The head and subgoals are called \emph{atoms}. Each atom consists of a \emph{predicate}, i.e. the relation name and \emph{arguments}.
 
-Intuitively, if there is a free variable in the head, it should also appear in at least one of the subgoals, so that the value for that variable can be determined by matching the corresponsing subgoal. Rules satisfying this property are called \emph{safe}.
+Intuitively, if there is a free variable in the head, it should also appear in at least one of the subgoals, so that the value for that variable can be determined by matching the corresponding subgoal. Rules satisfying this property are called \emph{safe}.
 
 \begin{defn}[Rule safety]\label{d:datalogsaferule}
 A rule is \emph{safe} iff each free variable appearing in its head also appears in at least one of the subgoals.
@@ -282,14 +282,14 @@ The minimal fix-point of $T_P$ containing \textbf{K} is:
 
 
 \section{Evaluation of Datalog programs}
-The most straightforward evaluation algorithm for Datalog programs is the iterative evaluation derived from the fix-point definition of semantics. While having very simple formulation, this method is not efficient in a typical case due to redundant computation. The most basic optimization adressing this problem is \emph{semi-naive} evaluation, which tries to avoid computations that cannot bring any new facts. Naive and semi-naive evaluations are examples of the bottom-up strategy, where new facts are inferred based on the facts currently known.
+The most straightforward evaluation algorithm for Datalog programs is the iterative evaluation derived from the fix-point definition of semantics. While having very simple formulation, this method is not efficient in a typical case due to redundant computation. The most basic optimization addressing this problem is \emph{semi-naive} evaluation, which tries to avoid computations that cannot bring any new facts. Naive and semi-naive evaluations are examples of the bottom-up strategy, where new facts are inferred based on the facts currently known.
 
 There are also other, more optimized evaluation methods, such as magic sets \cite{magicsets} and subsumptive queries \cite{subsumptivequeries} as well. A top-down strategy \cite{fod, subsumptivequeries} is also possible, where queries are answered by making an attempt to prove a fact using available rules.
 
 This section briefly describes the ways to evaluate Datalog programs.
 
 \subsection{Naive evaluation}\label{ss:datalognaiveeval}
-In naive evaluation, the computation starts with the initial database containing the \edb relations and repeatedly applies all the rules, until a fixpoint is reached.
+In naive evaluation, the computation starts with the initial database containing the \edb relations and repeatedly applies all the rules, until a fix-point is reached.
 
 In pseudocode, the algorithm for naive evaluation of a program $P$ on an input $\textbf{K}$ can be written as presented on Figure \ref{psc:naiveevaldatalog}.
 
@@ -426,7 +426,7 @@ Pure version of Datalog permits recursion, but provides no negation. Negation al
 In Datalog with negation, or \datalogneg, each relational subgoal may be negated, i.e. preceded with the negation symbol ,,$!$''. The negated subgoals are called \emph{negative} subgoals, and the rest of the subgoals is called \emph{positive} subgoals. Other types of subgoals are not allowed to be negated.
 
 \begin{exmp}
-Let us consider the program for computing trasitive closure \relat{Tc}{} of a relation \relat{R}{} from example \ref{ex:naiveeval}. The following rule computes the pairs of nodes which are indirectly connected, i.e. are in \relat{Tc}{}, but not in \relat{R}{}:
+Let us consider the program for computing transitive closure \relat{Tc}{} of a relation \relat{R}{} from example \ref{ex:naiveeval}. The following rule computes the pairs of nodes which are indirectly connected, i.e. are in \relat{Tc}{}, but not in \relat{R}{}:
 
 $$\textsc{Indirect}(x, y) \assign \textsc{R}(x, y),~!\textsc{Tc}(x, y).$$
 \end{exmp}

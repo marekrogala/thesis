@@ -23,7 +23,7 @@ Spark programs describe the computation as a series of calls to functions, which
   \item execute an operation on an RDD, such as storing it HDFS or counting its size.
 \end{itemize}
 
-Most of the computation logic is expressed in the transformations.  Core Spark provides only some basic transformations (map, filter, etc todo). Additionally, there are several extensions: GraphX, Spark SQL, MLib. Typically, they extend Spark by providing specialized RDDs and composite data structures and additional transformations for them.
+Most of the computation logic is expressed in the transformations.  Core Spark provides only some basic transformations (such as \emph{map, filter, reduceByKey, union, join, sample, sort}) and actions (e.g. \emph{count, collect, reduce, save}). Additionally, there are several extensions: GraphX, Spark SQL, MLlib. Typically, they extend Spark by providing specialized RDDs and composite data structures and additional transformations for them.
 
 The same approach was chosen for adding the ability of executing Datalog queries. The extension is contained in a module called \emph{Spark Datalog API}. The main component it provides is the \emph{Database} class which contains a set of relations and can be created from regular RDDs. Database objects are equipped with a method \emph{datalog}, which performs a Datalog query on this database. The result of a query is a new Database, from which individual relations can be extracted as RDDs. 
 
@@ -44,7 +44,7 @@ Datalog queries can be applied to any set of input RDDs. The input data can be d
 
 \textcolor{gray}{... // Save or use resultPathsRdd as any RDD.}
 \end{Verbatim}
-  \caption{Example of Datalog query for computing single source shortests paths embedded in a Spark program.\label{sdinspark}}
+  \caption{Example of Datalog query for computing single source shortest paths embedded in a Spark program.\label{sdinspark}}
 \end{figure}
 \section{Executing Datalog queries in the RDD model}
 
@@ -63,7 +63,7 @@ Each Relation object has a name and an RDD of Facts, which in turn are represent
 On the top level, the algorithm for executing a Datalog program on Spark consists of the following steps:
 
 \begin{enumerate}
-\item Analysis phase: Initially, the program is parsed, analyzed syntatically and semantically. All correctness requirements are checked at this time.
+\item Analysis phase: Initially, the program is parsed, analyzed syntactically and semantically. All correctness requirements are checked at this time.
 
 \item Stratification: Analyzed program is then stratified, i.e. divided into a sequence of strata using a standard strongly connected components algorithm.
 
@@ -71,7 +71,7 @@ On the top level, the algorithm for executing a Datalog program on Spark consist
 
 \end{enumerate}
 
-To evaluate each stratum, the semi-naive evaluation algorithm is used. It maintains current state of the database and runs iteratively until no changes are made to the database. In each iteration, for each rule in this stratum, all inferrable facts are computed. The way this can be achieved on RDDs is described in section \ref{ss:impl_evalrule}. The set of obtained facts is then merged into the current database and a \emph{delta}, i.e. difference between current and previous database state is computed. During the merge, all necessary aggregations are applied. This step is described in section \ref{ss:impl_merge}.
+To evaluate each stratum, the semi-naive evaluation algorithm is used. It maintains current state of the database and runs iteratively until no changes are made to the database. In each iteration, for each rule in this stratum, all inferable facts are computed. The way this can be achieved on RDDs is described in section \ref{ss:impl_evalrule}. The set of obtained facts is then merged into the current database and a \emph{delta}, i.e. difference between current and previous database state is computed. During the merge, all necessary aggregations are applied. This step is described in section \ref{ss:impl_merge}.
 
 \subsection{Single rule evaluation}\label{ss:impl_evalrule}
 Evaluation of a single rule plays crucial role in evaluating a Datalog query on RDDs. Given a single rule, consisting of a head and a sequence of subgoals, and two databases: the full input database and the delta database, the task is to compute an RDD of all facts that can be inferred. This is done in two steps: first, all valuations satisfying the rule body are computed, and then each such valuation is converted to a fact based on the head of the rule.
@@ -83,7 +83,7 @@ Let us start from the most basic scenario: evaluating a single relational subgoa
 
 For example, given a subgoal \relat{Edge}{(v, u, d)} and a valuation $\{v: 5, t: 3\}$, if \textsc{Edge}  contains \relat{Edge}{(5, 1, 2)}, \relat{Edge}{(5, 3, 4)} and \relat{Edge}{(1, 2, 3)}, the result will be $\{\{v: 5, t: 3, u: 1, d: 2\}, \{v: 5, t: 3, u: 3, d: 4\}\}$.
 
-This algorithm could be realised using \emph{map} and \emph{filter} transformations on the relation in the subgoal.
+This algorithm could be realized using \emph{map} and \emph{filter} transformations on the relation in the subgoal.
 
 The other types of subgoals are more straightforward. Arithmetic comparison subgoals, e.g. $x < y + z$ are simply evaluated to a boolean value and yield $\{v\}$ if the result was true, and an empty set if the result was not true. In case of assignment subgoals, e.g. $x = y + z$, the expression is evaluated and the corresponding value for the variable is inserted into valuation. If this causes a conflict with a different value for that variable, an empty set is returned. Otherwise, the result is a singleton containing the new variable.
 
@@ -95,7 +95,7 @@ Arithmetic comparison subgoals are translated into a \emph{filter} transformatio
 Assignment subgoals are translated into a \emph{map} transformation on the valuations RDD, combined with flattening of the results. For each valuation, the assignment can either be mapped to a singleton or an empty set, so the result of applying this mapping is a RDD of sets, therefore it needs to be flattened so that the result is a plain RDD of valuations.
 
 \subsubsection{Evaluating a sequence of subgoals}
-Using the method for evaluating a single subgoal on an RDD of valuations described above, evaluating a sequence of subgoals is straigthforward. 
+Using the method for evaluating a single subgoal on an RDD of valuations described above, evaluating a sequence of subgoals is straightforward. 
 
 We start with an RDD of valuations containing an empty valuation, i.e. a valuation which does not contain any variable assignments. Next, we apply subgoals sequentially. Each subgoal is evaluated on the current RDD of valuations. This returns a new RDD of valuations, which all satisfy this subgoal. This new RDD is then used in for the next subgoal, until all subgoals are processed.
 
@@ -117,7 +117,7 @@ In case of relations without aggregation, this is achieved by performing the \em
 In case of relations that need to be aggregated, this is slightly different. After performing a union of the new facts and current relation contents, the facts are grouped by the qualifying parameters and the aggregated value is computed by applying the aggregation function. This is done by a sequence of \emph{map} and \emph{reduceByKey} transformations on RDDs.
 
 \subsection{Handling RDD caching, materialization and lineage}
-A practial implementation of the evaluation procedure described above requires several RDD-specific issues to be handled:
+A practical implementation of the evaluation procedure described above requires several RDD-specific issues to be handled:
 \begin{itemize}
 \item reused RDDs need to be marked to be \emph{cached} in order for them to be stored in memory and not recomputed each time they are used. The databases are marked for caching after each iteration step,
 \item results obtained from an iteration and marked to be cached are materialized, i.e. actually computed. This allows for the results of the previous iteration to be \emph{unpersisted}, i.e. removed from cache, as they will no longer be necessary. Unpersisting RDDs helps reduce memory usage and increases performance,
@@ -131,15 +131,15 @@ The main implemented optimization was the semi-naive evaluation. Additionally, s
 \begin{itemize}
 \item Non-recursive strata which define only one relation are a common case. In this case, it is clear upfront that one iteration is enough for all facts to be inferred, so the evaluation of the stratum is finished after one iteration instead of performing one more iteration only to notice that there were no changes in the database.
 \item Rule bodies can start with constant subgoals, e.g. $\textsc{Path}(v,t) :-~s=1, \textsc{Edge}(s, v, t)$. When subgoals are topologically sorted, such subgoals are placed at the beginning of subgoals sequence. In order for the evaluation of the constant subgoals not to be repeated, the initial sequence of constant subgoals is evaluated during the analysis phase. The result is then used as an initial valuation when evaluating the rest of subgoals in each iteration when this rule body is considered.
-\item Within each stratum, necessary \emph{edb} relations are identified and converted to an internal form prepared for futher operations. This allows to avoid repeated work in each of iterations within a stratum, since \emph{edb} relations cannot change.
+\item Within each stratum, necessary \emph{edb} relations are identified and converted to an internal form prepared for further operations. This allows to avoid repeated work in each of iterations within a stratum, since \emph{edb} relations cannot change.
 \end{itemize}
 
 \section{Experiments}\label{s:impl_eval}
-Spark Datalog API has been implemented as a fully working prototype. It has been evaluated on clusters of up to 16 Amazon EC2 wroker instances. In this section we provide three sets of experimental results. \datalogra is not limited to a specific domain and can be used to express various types of distributed computations, but it is primarily intended for computations on large graphs such as social networks. Therefore, for performance tests of the prototype implementation, we have selected three common graph problems: 
+Spark Datalog API has been implemented as a fully working prototype. It has been evaluated on clusters of up to 16 Amazon EC2 worker instances. In this section we provide three sets of experimental results. \datalogra is not limited to a specific domain and can be used to express various types of distributed computations, but it is primarily intended for computations on large graphs such as social networks. Therefore, for performance tests of the prototype implementation, we have selected three common graph problems: 
 \begin{itemize}
 \item finding and counting triangles: find all triangles in a graph, i.e. triplets of vertices which form a complete graph; additionally, the total count of triangles should be computed,
 \item dividing the graph into connected components, i.e. maximal subgraphs in which each pair of vertices is connected by a path,
-\item computing shortests paths from a single source to all other vertices.
+\item computing shortest paths from a single source to all other vertices.
 \end{itemize}
 
 The performance of the tested implementation was compared with plain Spark programs solving the same problem. The plain Spark implementations were written using Spark core methods and the \emph{pregel} operation provided by the GraphX extension. In addition to performance, an interesting property is the complexity of each solution, which can be roughly measured by the number of lines in each program.
@@ -191,6 +191,6 @@ Currently, it is user's responsibility to assure that the program is correct and
 
 Clearly, the performance of the solution is noticeably worse than this of dedicated Spark programs, although the speedups achieved are similar. More work is needed on optimizing the way the queries are executed, including the data representation and partitioning. More sophisticated optimizations of the generated execution, such as elimination of intermediate relations or the \emph{delta-stepping} technique, plan could also be implemented in order to further improve performance.
 
-User experience in embedding the Datalog code in Spark programs could also be improved. Specifically, instead of writing the program as a string, which is then parsed, there could be a domain specific language that would allow for writing similar rules directly in the code. This would allow for type-aware syntax highlighting in IDEs, greater type safety checked at the compile time and additional performace optimizations.
+User experience in embedding the Datalog code in Spark programs could also be improved. Specifically, instead of writing the program as a string, which is then parsed, there could be a domain specific language that would allow for writing similar rules directly in the code. This would allow for type-aware syntax highlighting in IDEs, greater type safety checked at the compile time and additional performance optimizations.
 
 

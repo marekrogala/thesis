@@ -24,9 +24,9 @@ Unfortunately, there is no solid implementation of SociaLite available. The inte
 
 The goal of this thesis is to bridge the gap between the theoretical idea for SociaLite and a practical implementation and to draw a path towards its usage in the industry. We show how to translate SociaLite declarative programs into Pregel "think-like-a-vertex" programs and introduce a compiler that enables SociaLite programs to be executed on existing infrastructure. This allows its users to write and execute SociaLite programs without any additional effort to build a dedicated server infrastructure for that.
 
-We present an experimental implementation of the SociaLite language on the Apache Spark platform. Spark \cite{spark2} is an open-source project which provides a general platform for processing large datasets which has gained a huge momentum since the initial white paper in 2010 \cite{spark} and inclusion into Apache Incubator in June 2013. Computations in Spark are expressed using an abstraction of distributed memory, called \emph{RDD}. Distinctive features of Spark are the to ability keep cached data in node's memory, which gives impressive speedups over other environments like Hadoop MapReduce, and a powerful API allowing for various usages including MapReduce, machine learning, computations on graphs and stream data processing. In February 2014 Spark became a top-level project of the Apache Foundation, and in since July 2014 it is included in the Cloudera CDH, a popular enterprise platform for Hadoop deployment. Spark is already a stable, well-tested platform which is being intensively developed and can be expected to become a new industry standard in large datasets processing. For these reasons, it has been chosen as the most promising implementation platform for the S2P compiler.
+We present an experimental implementation of the SociaLite language on the Apache Spark platform. Spark \cite{spark2} is an open-source project which provides a general platform for processing large datasets which has gained a huge momentum since the initial white paper in 2010 \cite{spark} and inclusion into Apache Incubator in June 2013. Computations in Spark are expressed using an abstraction of distributed memory, called \emph{RDD}. Distinctive features of Spark are the to ability keep cached data in node's memory, which gives impressive speedups over other environments like Hadoop MapReduce, and a powerful API allowing for various usages including MapReduce, machine learning, computations on graphs and stream data processing. In February 2014 Spark became a top-level project of the Apache Foundation, and in since July 2014 it is included in the Cloudera CDH, a popular enterprise platform for Hadoop deployment. Spark is already a stable, well-tested platform which is being intensively developed and can be expected to become a new industry standard in large datasets processing. For these reasons, it has been chosen as the most promising platform for the implementation.
 
-The thesis consists of six chapters. In Chapter~\ref{r:datalog} we recall definitions of Datalog and its evaluation methods while Chapter~\ref{r:pregel} contains an introduction to the Pregel computation model. In Chapter~\ref{r:socialite} we describe the recursive aggregation extension to Datalog introduced by SociaLite and provide formal definitions and general-case proofs which the original papers lack. Chapter \ref{r:implementation} describes the translation procedure from SociaLite to the RDD model and its implementation as a SparkDatalog extension for Apache Spark. In Chapter~\ref{r:summary} we sketch the possible future work and the path to industrial implementation of the language using the S2P compiler.
+The thesis consists of six chapters. In Chapter~\ref{r:datalog} we recall definitions of Datalog and its evaluation methods while Chapter~\ref{r:pregel} contains an introduction to the Pregel computation model. In Chapter~\ref{r:socialite} we describe the recursive aggregation extension to Datalog introduced by SociaLite and provide formal definitions and general-case proofs which the original papers lack. Chapter \ref{r:implementation} describes the translation procedure from SociaLite to the RDD model and its implementation as a SparkDatalog extension for Apache Spark. In Chapter~\ref{r:summary} we summarize the results of this work.
 
 \section{Basic definitions}\label{r:basicdefs}
 \addcontentsline{toc}{section}{Basic definitions}
@@ -88,7 +88,7 @@ A binary relation $\le$ over a set $P$ is a \emph{pre-order} if it is reflexive 
 \end{defn}
 
 \begin{defn}[Partial order]
-A binary relation $\le$ over a set $P$ is a \emph{partial order} if it is reflexive, antisymmetic and transitive, i.e.\ for each $x, y, z \in P$ the following properties are satisfied:
+A binary relation $\le$ over a set $P$ is a \emph{partial order} if it is reflexive, antisymmetric and transitive, i.e.\ for each $x, y, z \in P$ the following properties are satisfied:
 \begin{itemize}
 \item $x \le x$
 \item if $x \le y$ and $y \le x$ then $x = y$
@@ -99,7 +99,7 @@ A binary relation $\le$ over a set $P$ is a \emph{partial order} if it is reflex
 \begin{exmp}
 Reachability relation in a directed graph $G$, such that $x \le y$ iff there is a path from $x$ to $y$ in $G$, is a pre-order. This relation is clearly reflexive and transitive, but it does not have to be antisymmetric --- if $x$ and $y$ are different vertices contained in one cycle, then $x \le y$ and $y \le x$, but $x \ne y$.
 
-If $G$ is additionally required to be acyclic, then the reachablity relation is guaranteed to be antisimmetric, so it is a partial order.
+If $G$ is additionally required to be acyclic, then the reachably relation is guaranteed to be antisymmetric, so it is a partial order.
 \end{exmp}
 
 
