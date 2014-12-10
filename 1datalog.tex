@@ -140,10 +140,10 @@ As an example, let us consider the program $P$ presented in Figure~\ref{d:ancest
 
 \begin{figure}[!ht]
 \begin{flalign*}
-  & \textsc{Mother} (parent, child) &&  & \assign & && \textsc{Parent}(parent, child), \textsc{Woman}(parent) & \\
-  & \textsc{Father} (parent, child) &&  & \assign & && \textsc{Parent}(parent, child), \textsc{Man}(parent) & \\
-  & \textsc{Ancestor} (ancestor, child) &&  & \assign & && \textsc{Parent} (ancestor, child) &\\
-  & \textsc{Ancestor} (ancestor, child) &&  & \assign & && \textsc{Ancestor} (ancestor, parent), \textsc{Parent} (parent, child) &\\
+  & \textsc{Mother} (parent, child) &&  & \assign & && \textsc{Parent}(parent, child), \textsc{Woman}(parent). & \\
+  & \textsc{Father} (parent, child) &&  & \assign & && \textsc{Parent}(parent, child), \textsc{Man}(parent). & \\
+  & \textsc{Ancestor} (ancestor, child) &&  & \assign & && \textsc{Parent} (ancestor, child). &\\
+  & \textsc{Ancestor} (ancestor, child) &&  & \assign & && \textsc{Ancestor} (ancestor, parent), \textsc{Parent} (parent, child). &\\
 \end{flalign*}
 \caption{Datalog program for computing ancestors based on a database with relations \relat{Parent}{}, \relat{Woman}{} and \relat{Man}{}.}\label{d:ancestors}
 \end{figure}
@@ -169,7 +169,7 @@ In the \emph{model theoretic} definition, we consider the rules of program $P$ t
 
 The second approach is \emph{proof theoretic}, in which a fact is included in the result if and only if it can be derived, i.e. proven using the rules. There are two strategies for obtaining proofs for facts: \emph{bottom up}, in which we start from all known facts and incrementally derive all provable facts, and \emph{top down}, which starts from a fact to be proven and seeks for rules and facts that can be used to prove it.
 
-The third approach, on which we focus in this thesis is the \emph{least fix-point semantics}, defininf the program result as the least fix-point of some function. In this definition, a program is evaluated by iteratively applying the function until a fix-point is reached. This is very similar to the bottom-up evaluation strategy of the proof-theoretic approach.
+The third approach, on which we focus in this thesis is the \emph{least fix-point semantics}, defining the program result as the least fix-point of some function. In this definition, a program is evaluated by iteratively applying the function until a fix-point is reached. This is very similar to the bottom-up evaluation strategy of the proof-theoretic approach.
 
 \subsection{Fix-point semantics}
 In this section we give the fix-point semantics for Datalog programs. A central notion in this definition is the \emph{immediate consequence} operator. Intuitively, this operator adds to the database new facts that could be immediately derived using one of the rules. In order to define the immediate consequence operator, let us first introduce the notion of an instantiation of a rule.
@@ -199,13 +199,16 @@ $$T_P(\textbf{K}) = \{ R(v): R(v) \text{ is an immediate consequence for } \text
 \begin{lem}
 Operator $T_P$ for any Datalog program $P$ is a monotone function with respect to inclusion order.
 \end{lem}
-\emph{Proof.} Given any $\textbf{I}, \textbf{J} \in inst(\sch(P))$ such that $\textbf{I} \subseteq \textbf{J}$, let $R(v)$ be a fact in $T_P(\textbf{I})$.
+\begin{prof}
+Given any $\textbf{I}, \textbf{J} \in inst(\sch(P))$ such that $\textbf{I} \subseteq \textbf{J}$, let $R(v)$ be a fact in $T_P(\textbf{I})$.
 By definition, $R(v)$ is an immediate consequence for $\textbf{I}$ and $P$, so either $R(v)$ is in $\textbf{I}$ or there exists an instantiation
  $R(v) \assign R_1(v_1), \dots, R_n(v_n)$ of a rule in $P$ such that $R_i(v_i) \in \textbf{I}$ for each $i = 1\dots n$. 
 In the first case, $R(v) \in \textbf{I} \subseteq \textbf{J}$, so $R(v) \in \textbf{J}$. 
 In the second case, each $R_i(v_i) \in \textbf{I} \subseteq \textbf{J}$, so the instantiation also exists in $\textbf{J}$. 
 Hence, $R(v)$ is also an immediate consequence of $\textbf{J}$, and thus $R(v) \in T_P(\textbf{J})$. 
 Since $R(v)$ was arbitrarily chosen, we have  $T_P(\textbf{I}) \subseteq T_P(\textbf{J})$ and so $T_P$ is a monotone function with respect to $\subseteq$.
+\QEDA
+\end{prof}
 
 \subsubsection{Semantics of a Datalog program}
 The output of a Datalog program $P$ on some finite input database $\textbf{K}$, denoted by $P(\textbf{K})$, is defined as the minimum fix-point of $T_P$ that contains $\textbf{K}$.
@@ -213,7 +216,7 @@ The output of a Datalog program $P$ on some finite input database $\textbf{K}$, 
 \begin{thm}\label{t:datalogfixpointsem}
 For a Datalog program $P$ and a finite database instance $\textbf{K}$ over $\edb(P)$, there exists a finite minimum fix-point of $T_P$ containing $\textbf{K}$.
 \end{thm}
-\emph{Proof.}
+\begin{prof}
 As it holds that $\adom(P) \cup \adom(\textbf{K})$ and the database schema $\sch(P)$ are all finite and rules of $P$ are safe, they do not introduce any other values, and so there is a finite number $n$ of database instances over $\sch(P)$ that can be reached by iteratively applying $T_P$ to $\textbf{K}$. Hence, because of the monotonicity of $T_P$, the sequence $\{T_P^i(\textbf{K})\}_i$ reaches a fix-point: $T_P^n(\textbf{K}) = T_P^{n+1}(\textbf{K})$. Let us denote this fix-point by $T_P^*(\textbf{K})$.
 
 The definition of $T_P$ implies that $\textbf{K} \subseteq T_P(\textbf{K})$.
@@ -222,6 +225,8 @@ Hence, we have:
 $$\textbf{K} \subseteq T_P(\textbf{K}) \subseteq T_P^2(\textbf{K}) \subseteq T_P^3(\textbf{K}) \subseteq \dots \subseteq T_P^*(\textbf{K})$$
 
 We will now prove that $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$. Let us suppose that $\textbf{J}$ is a fix-point of $T_P$ containing  $\textbf{K}$ as a subset, i.e.  $\textbf{K} \subseteq \textbf{J}$. By applying $T_P$ $n$ times to both sides of the inequality and observing that $T_P^n(\textbf{J}) = \textbf{J}$ as $\textbf{J}$ is a fix-point, we have $T_P^*(\textbf{K}) = T_P^n(\textbf{K}) \subseteq \textbf T_P^n(\textbf{J}) = \textbf{J}$. Hence, $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$.
+\QEDA
+\end{prof}
 
 
 \begin{exmp}
@@ -539,7 +544,7 @@ For now, let us answer a simpler question: supposing that $G$ is a directed acyc
 The following program answers this question using a straightforward rule of edge relaxation:
 
 \dprog{}{
-  & \textsc{Path} (v, d) &&  & \assign & && \textsc{Edge}(s, v, d) & \\
+  & \textsc{Path} (v, d) &&  & \assign & && \textsc{Edge}(s, v, d). & \\
   & \textsc{Path} (v, d) &&  & \assign & && \textsc{Path} (t, d'), \textsc{Edge}(t, v, l), d = d' + l. &\\
 }{Datalog query for computing all path lengths from a given source.}{ex:pathsdatalog}
 
@@ -558,7 +563,9 @@ For the purpose of this paper, we can simply define the semantics only for Datal
 \begin{thm}
 For a program $P$ and a finite database instance $\textbf{K}$ over $\edb(P)$, if there exists $n \ge 0$ such that $T_P^n(\textbf{K})$ is a fix-point of $T_P$, then it is the minimal fix-point of $T_P$ containing $\textbf{K}$.
 \end{thm}
-\emph{Proof.} See the second part of the proof for Theorem \ref{t:datalogfixpointsem}.
+\begin{prof}
+See the second part of the proof for Theorem \ref{t:datalogfixpointsem}. \QEDA
+\end{prof}
 
 
 \subsection{Datalog with non-recursive aggregation}\label{ss:datalognra}
@@ -608,7 +615,7 @@ This definition can be extended using the stratification method described in the
 As an example, let us recall the program in Example \ref{ex:pathsdatalog}, which for a given graph computes the lengths of all existing paths from the source to other vertices. A typical question is to find the length of the shortest  path to each vertex from the source. This question can be answered using aggregation, by computing the minimum of distances for each vertex: 
 
 \dprog{}{
-  & \textsc{Path} (v, d) &&  & \assign & && \textsc{Edge}(s, v, d) & \\
+  & \textsc{Path} (v, d) &&  & \assign & && \textsc{Edge}(s, v, d). & \\
   & \textsc{Path} (v, d) &&  & \assign & && \textsc{Path} (t, d'), \textsc{Edge}(t, v, l), d = d' + l. &\\
   & \textsc{MinPath} (t, \textsc{Min}(d)) &&  & \assign & && \textsc{Path} (t, d). &
 }{Datalog query for computing all path lengths from a given source.}{ex:pathsdatalogaggregate}

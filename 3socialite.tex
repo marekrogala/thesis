@@ -46,7 +46,7 @@ The relation $\textsc{Path}$ is declared so that for each \textit{target} the va
 
 A \datalogra program $P$ is a Datalog program, with additional aggregation function defined for selected columns of some relations. 
 
-For each relation name $R \in idb(P)$, one column $\aggcol_R(P) \in {1, \dots ar_R}$ can chosen for and assigned an aggregation function $\aggfun_R(P)$ . This column is called the \emph{aggregated column}. The remaining columns are called the \emph{qualifying columns}. Intuitively, after each step of computation, we group the facts in the relation by the qualifying columns and within each group we aggregate the values in the aggregated column using $\aggfun_R(P)$. Value $\aggcol_R(P) = \bf{none}$ means that $R$ is a regular relation with no aggregation. Program $P$ can usually be clearly determined from the context. We will then simply write $\aggcol_R, \aggfun_R$ instead of $\aggcol_R(P), \aggfun_R(P)$.
+For each relation name $R \in idb(P)$, one column $\aggcol_R(P) \in {1, \dots ar_R}$ can be chosen and assigned an aggregation function $\aggfun_R(P)$ . This column is called the \emph{aggregated column}. The remaining columns are called the \emph{qualifying columns}. Intuitively, after each step of computation, we group the facts in the relation by the qualifying columns and within each group we aggregate the values in the aggregated column using $\aggfun_R(P)$. Value $\aggcol_R(P) = \bf{none}$ means that $R$ is a regular relation with no aggregation. Program $P$ can usually be clearly determined from the context. We will then simply write $\aggcol_R, \aggfun_R$ instead of $\aggcol_R(P), \aggfun_R(P)$.
 
 To simplify the notation, we assume that if a relation has an aggregated column, then it is always the last one: $\aggcol_R = ar_R$.
 
@@ -62,8 +62,8 @@ An example of a program in \datalogra is shown in Figure \ref{fig:datalograexamp
   $\textsc{P}(\text{int } \textit{a}, \text{int } \textit{b} \text{ aggregate } \textsc{F}) $\\
   $\textsc{R}(\text{int } \textit{src}, \text{int } \textit{sink}, \text{int } \textit{len}) $ 
   \begin{flalign*}
-  & \textsc{P} (x, y) &&  & \assign & && P(x, z), ~ R(x, y, z) & \\
-  & \textsc{R} (x, y, z) &&  & \assign & && R(x, y, y),~R(x, z, z) & \\
+  & \textsc{P} (x, y) &&  & \assign & && P(x, z), ~ R(x, y, z). & \\
+  & \textsc{R} (x, y, z) &&  & \assign & && R(x, y, y),~R(x, z, z). & \\
   \end{flalign*}
   \caption{Example program in \datalogra. 
   \label{fig:datalograexampleprogram}}
@@ -138,9 +138,16 @@ A set $P$ with a partial order $\le$ over $P$ is a \emph{join semi-lattice} iff 
 
 For any two elements, their least upper bound is called a \emph{join} of those elements.
 
-A join operation $\sqcup$ defines a semi-lattice: it induces a partial order $\le_\sqcap$ over its domain \todo{tu trzeba wiecej komentarza, np. czemu taki porzadek istniej i jak jest zdefiniowany (a najlepiej konstruktywnie go zdefiniowac i pokazac ze to porzadek)}, such that the result of the operation for any two elements is the least upper bound of those elements with respect to $\le_\sqcap$.
+A join operation $\sqcap$ induces a partial order $\le_\sqcap$ over its domain, such that $a \le_\sqcap b \iff b = a \sqcap b$. This relation is indeed a partial order, as it is:
+\begin{itemize}
+\item reflexive --- since $\sqcap$ is idempotent, it holds that $a = a \sqcap a$, so  $a \le_\sqcap a$,
+\item transitive --- if $a \le_\sqcap b$ and $b \le_\sqcap c$, then $b = a \sqcap b$ and $c = b \sqcap c$ and by combining we have that $c = a \sqcap b \sqcap c = a \sqcap c$, so $a \le_\sqcap c$,
+\item antisymmetric -- if $a \le_\sqcap b$ and $b \le_\sqcap a$, then $b = a \sqcap b$ and $a = b \sqcap a$, so $a = b$, because $\sqcap$ is commutative.
+\end{itemize}
 
-For example, the join operation $\max$ over natural number induces the partial order $\le$, because for any two $a, b \in \mathbb{N}$, $\max(a, b)$ is their least upper bound with respect to $\le$.
+A join operation $\sqcap$ defines a semi-lattice with its induced order $\le_\sqcap$, because the result of the operation for any two elements is the least upper bound of those elements with respect to $\le_\sqcap$.
+
+For example, the join operation $\max$ over natural number induces the partial order $\le$. For any two $a, b \in \mathbb{N}$, $\max(a, b)$ is their least upper bound with respect to $\le$.
 
 \subsubsection{Aggregation operator $g_R$}
 An important step in the evaluation of a \datalogra program is grouping the facts in an instance of each relation and performing the aggregation within each group. We can put that into a formal definition as function $g_R$. $g_R$ takes as an input a relation instance that may contain multiple facts with the same values in  qualifying columns and performs the aggregation on the aggregated column within each such group.
@@ -184,9 +191,8 @@ If $R$ does have an aggregated column, then:
 \forall_{(q_1, ..., q_{n-1}, b) \in g_R(B)} \exists_{(q_1, ..., q_{n-1}, c) \in g_R(C)}~b~\le_{\aggfun_R}~c&
 \end{align*}
 
-By combining it follows that $\forall_{(q_1, ..., q_{n-1}, a) \in g(A)} \exists_{(q_1, ..., q_{n-1}, c) \in g(C)} a~\le_{\aggfun_R}~c $, since $\le_{\aggfun_R}$ is a partial order and thus transitive. This means that $A \sqsubseteq_R C$.
+By combining it follows that $\forall_{(q_1, ..., q_{n-1}, a) \in g(A)} \exists_{(q_1, ..., q_{n-1}, c) \in g(C)} a~\le_{\aggfun_R}~c $, since $\le_{\aggfun_R}$ is a partial order and thus transitive. Therefore, $A \sqsubseteq_R C$. \QEDA
 \end{itemize}
-
 \end{prof}
 
 \begin{exmp}
@@ -195,7 +201,7 @@ For the operation $ \max $ in $\mathbb{N}$, $ \le_{\max} $ is the usual order $ 
 \begin{itemize}
 \item $\{(1, 2, 3)\} \sqsubseteq_R \{(1, 2, 5)\}$, because $3 \le 5$,
 \item $\{(1, 2, 3)\} \sqsubseteq_R \{(1, 2, 5), (1, 7, 2)\}$, because $3 \le 5$,
-\item $\{(1, 2, 5)\} \sqsubseteq_R \{(1, 2, 3), (1, 2, 8)\}$, because $g_R(\{(1, 2, 3), (1, 2, 8)\}) = \{(1,2,8)\}$ and $5~\le~8$,
+\item $\{(1, 2, 5)\} \sqsubseteq_R \{(1, 2, 3), (1, 2, 8)\}$, since $g_R(\{(1, 2, 3), (1, 2, 8)\}) = \{(1,2,8)\}$ and $5~\le~8$,
 \item $A = \{(1, 2, 3), (2, 8, 1)\}$ and  $B = \{(1, 2, 5), (1, 7, 2)\}$ cannot be compared, because $\forall_x (1, 7, x) \notin A$ and $\forall_x (2, 8, x) \notin B$,
 \item for any $R$ an empty relation instance $\emptyset$ is smaller under $\sqsubseteq_R$  than any other relation instance,
 \item if $I = \{(1, 2, 3), (1, 2, 8)\}$ and $J = \{(1, 2, 3), (1, 2, 7)\}$, we have that $I \sqsubseteq_R J$ and $J \sqsubseteq_R I$, but clearly $I \ne J$.
@@ -221,6 +227,7 @@ For any $R$ such that $k=ar(R)$ and $\aggcol_R \ne {\bf none}$, if $I \in Z_R$, 
 \end{lem}
 \begin{prof}
 Since we know that $I = g_R(I')$ for some $I'$, there is at most one fact $R(x_1, \dots, x_n)$ in $I$ for each $(x_1, \dots, x_{n-1})$, because $g_R$ by definition groups facts by qualifying columns $x_1, \dots, x_{n-1}$ and computes a single aggregated value $x_n$ for each such group. Hence, after the next application of $g_R$ to $I$ the aggregated value for each $x_1, \dots, x_{n-1}$ is simply $x_n$, so $g_R(I) = I$.
+\QEDA
 \end{prof}
 
 \begin{thm}
@@ -245,6 +252,7 @@ Since $A, B \in Z_R$ we know that there exist $A', B'$ such that $A = g_R(A'), B
 Let $t = R(x_1, \dots, x_{n-1}, a)$ be any fact in $A$. We know that there exists $b$ such that $(x_1, ..., x_{n-1}, b) \in B$ and $a~\le_{\aggfun_R}~b$. Further, we know that there exists $(x_1, ..., x_{n-1}, a') \in A$ such that $b~\le_{\aggfun_R}~a'$. By Lemma \ref{lem:fixgr}, it must hold that $a = a'$, so $a \le_{\aggfun_R} b \le_{\aggfun_R} a$, and because $\le_{\aggfun_R}$ is a partial order we have that $a = b$, so $t \in B$. Therefore, $A \subseteq B$, because $t$ was chosen as an arbitrary element of $A$. By symmetry of the proof, it also holds that $B \subseteq A$, so $A = B$. This means that $\sqsubseteq_R$ is indeed antisymmetric.
 
 As $\sqsubseteq_R$ is an antisymmetric pre-order over $Z_R$, it is a partial order over this set.
+\QEDA
 \end{prof}
 
 \subsubsection{Order over database instances}
@@ -267,13 +275,13 @@ Let $P$ be a \datalogra program, with $w$ \idb relations $R_1, R_2, \dots, R_w$ 
   \dots \\
   $R_w(x_1, \dots, x_{{k_w}-1}, x_{k_w}~[\text{ aggregate } F_w]) $\\
   \begin{flalign*}
-  & R_1 (x_1, \dots, x_{k_1}) &&  & \assign & && Q_{1,1}(x_1, \dots, x_{k_1}) & \\
+  & R_1 (x_1, \dots, x_{k_1}) &&  & \assign & && Q_{1,1}(x_1, \dots, x_{k_1}). & \\
   &  &&  & \dots & && & \\
-  & R_1 (x_1, \dots, x_{k_1}) &&  & \assign & && Q_{1,{m_1}}(x_1, \dots, x_{k_1}) & \\
+  & R_1 (x_1, \dots, x_{k_1}) &&  & \assign & && Q_{1,{m_1}}(x_1, \dots, x_{k_1}). & \\
   &  &&  & \dots & && & \\
-  & R_w (x_1, \dots, x_{k_w}) &&  & \assign & && Q_{w, 1}(x_1, \dots, x_{k_w}) & \\
+  & R_w (x_1, \dots, x_{k_w}) &&  & \assign & && Q_{w, 1}(x_1, \dots, x_{k_w}), & \\
   &  &&  & \dots & && & \\
-  & R_w (x_1, \dots, x_{k_w}) &&  & \assign & && Q_{w, {m_w}}(x_1, \dots, x_{k_w}) & \\
+  & R_w (x_1, \dots, x_{k_w}) &&  & \assign & && Q_{w, {m_w}}(x_1, \dots, x_{k_w}). & \\
   \end{flalign*}
 }
 
@@ -290,9 +298,18 @@ Let $P$ be a program in \datalogra and $\textbf{K}$ be a database instance over 
 Let the \emph{aggregation operator} $G_P$ for $\textbf{K}$ be defined as:
 
 $$G_P(\textbf{K}) = \bigcup_{i = 1}^n g_{R_i}(I_i)$$
-
 \end{defn}
+
 Similarly to relations after aggregation, we will call a database $\textbf{K}$, such that for some $\textbf{L}$ $\textbf{K} = G_P(\textbf{L})$, a \emph{database after aggregation}.
+
+\begin{lem}\label{gpmonotonedatabase}
+$G_P$ is monotone with respect to $\sqsubseteq_{\sch(P)}$ on all databases over $\sch(P)$.
+\end{lem}
+\begin{prof}
+Since $G_P$ applies $g_R$ to each relation $R$ in the database and $\sqsubseteq_{\sch(P)}$ compares databases relation-by-relation using $\sqsubseteq_R$, it is sufficient to show that $g_R$ is monotone with respect to $\sqsubseteq_R$ for each $R \in \sch(P)$.
+
+Let $R$ be any relation name in $\sch(P)$ and $A, B$ be relation instances over $R$ such that $A \sqsubseteq_R B$. If $R$ is not aggregated, then $g_R$ is an identity function, so it is monotone. If $R$ is aggregated, $A \sqsubseteq_R B$ is equivalent to $\forall_{(q_1, ..., q_{k-1}, v) \in g_R(A)} \exists_{(q_1, ..., q_{k-1}, v') \in g_R(B)} v \le_{\aggfun_R} v'$. As it holds by definition of $g_R$ that $g_R(g_R(A)) = g_R(A)$ and $g_R(g_R(B)) = g_R(B)$, we have that $\forall_{(q_1, ..., q_{k-1}, v) \in g_R(g_R(A))} \exists_{(q_1, ..., q_{k-1}, v') \in g_R(g_R(B))} v \le_{\aggfun_R} v'$, which is equivalent to $g_R(A) \sqsubseteq_R g_R(B)$. Therefore, $g_R$ is monotone with respect to $\sqsubseteq_R$ and $G_P$ is monotone with respect to $\sqsubseteq_{\sch(P)}$. \QEDA
+\end{prof}
 
 We can now define the immediate consequence operator for \datalogra programs.
 
@@ -309,7 +326,7 @@ Let $P$ be a program in \datalogra and $P = (P', \aggfun)$ where $P'$ is a progr
 If $T_{P'}$ is monotone with respect to $\sqsubseteq_\sigma$ on databases over $\sigma$ after aggregation, then there exists a finite minimal fix-point of $T_P$ containing $\textbf{K}$. We denote this fix-point by $P(\textbf{K})$.
 \end{thm}
 \begin{prof}
-$G_P$ is monotone with respect to $\sqsubseteq_\sigma$ on all databases over $\sigma$. \todo {czemu?} Since it is assumed that $T_{P'}$ is monotone with respect to $\sqsubseteq_\sigma$ on databases after aggregation, $T_P = G_P \circ T_{P'}$ is also monotone with respect to $\sqsubseteq_\sigma$, as a composition of two monotone functions. 
+$G_P$ is by Lemma \ref{gpmonotonedatabase} monotone with respect to $\sqsubseteq_\sigma$ on all databases over $\sigma$. Since it is assumed that $T_{P'}$ is monotone with respect to $\sqsubseteq_\sigma$ on databases after aggregation, $T_P = G_P \circ T_{P'}$ is also monotone with respect to $\sqsubseteq_\sigma$, as a composition of two monotone functions. 
 
 $\textbf{K}$ is a database instance over $\edb(P)$, so it is a database after aggregation, because $\textbf{K} = G_P(\textbf{K})$.  $T_P^i(\textbf{K}) = G_P(T_{P'}(T_P^{i-1}(\textbf{K})))$ is also a database after aggregation for each $i > 0$.
 
@@ -319,7 +336,7 @@ $$\textbf{K} \sqsubseteq_\sigma T_P(\textbf{K}) \sqsubseteq_\sigma T_P^2(\textbf
 
 
 We will now prove that this is the minimum fix-point of $T_P$ containing $\textbf{K}$. Let us suppose that $\textbf{J}$ is a fix-point of $T_P$ containing  $\textbf{K}$:  $\textbf{K} \sqsubseteq_\sigma \textbf{J}$. By applying $T_P$ $n$ times to both sides of the inequality, we have that $T_P^*(\textbf{K}) = T_P^n(\textbf{K}) \sqsubseteq_\sigma \textbf T_P^n(\textbf{J}) = \textbf{J}$. Hence, $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$.
-
+\QEDA
 \end{prof}
 
 \begin{exmp}
@@ -361,18 +378,23 @@ For any $\textsc{Edge}{(x, y, z)} \in E'_1$, it must be true that $\textsc{Edge}
 
 $P'_1 \sqsubseteq_\textsc{Path} P'_2$ is by definition equivalent to $\forall_{(v, d) \in g_\textsc{Path}(P'_1)} \exists_{(v, d') \in g_\textsc{Path}(P'_2)} d \ge d' $.  To prove this, let us suppose by contradiction that this does not hold, that is that for some $(v, d) \in g_\textsc{Path}(P'_1)$, for all $d'$ such that $(v, d') \in g_\textsc{Path}(P'_2)$, it holds that $d < d'$.
 
-Since $g_\textsc{Path}$ groups by first column and aggregates second column with $\min$, we know that $(v, d) \in P'_1$. By definition of immediate consequence, this means that either $(v, d) \in P_1$ or there is a corresponding instantiation of one of the rules.
+$P_1, P_2$ are relations after aggregation, so $P_1 = g_\textsc{Path}(P_1)$ and $P_2 = g_\textsc{Path}(P_2)$. Since $g_\textsc{Path}$ groups by the first column and aggregates the second column with $\min$, we know that $(v, d) \in P'_1$. By definition of immediate consequence, this means that at least one of the following is true:
+\begin{enumerate}
+\item $(v, d) \in P_1$,
+\item there is a corresponding instantiation of the first rule in $\textbf{K}_1$,
+\item there is a corresponding instantiation of the second rule in $\textbf{K}_1$.
+\end{enumerate}
 
-$P_1, P_2$ are relations after aggregation, so $P_1 = g_\textsc{Path}(P_1)$ and $P_2 = g_\textsc{Path}(P_2)$
+Let us consider each one of these possibilities.
 
-\todo{tu jest coś nie tak, brakuje kropki i następne zdanie nie jest zdaniem dale się pogubiłem - widzę, że zaczynasz rozpatrywać przypadki, ale nigdzie nie napisałeś że zaczynasz - zazwyczaj pisze się, że możliwe są (1), ..., (2), ... (3) ... żeby było jasne że to wszystkie możliwści i potem się kolejne rozważa sprawdź to solidnie!}
-If $(v, d) \in P_1 = g_\textsc{Path}(P_1)$. Since $P_1 \sqsubseteq_\textsc{Path} P_2$, there exists $d^* \le d$ such that $(v, d^*) \in g_\textsc{Path}(P_2)$. By definition of $g_\textsc{Path}$, $(v, d^*) \in P_2$. By definition of immediate consequence, $(v, d^*) \in P'_2$, so it cannot hold that $d < d'$ for all $d'$ such that $(v, d') \in g_\textsc{Path}(P'_2)$.
+If $(v, d) \in P_1$, as it holds that $P_1 \sqsubseteq_\textsc{Path} P_2$ and $P_1 = g_\textsc{Path}(P_1)$, there exists $d^* \le d$ such that $(v, d^*) \in g_\textsc{Path}(P_2)$. By definition of $g_\textsc{Path}$ we have that $(v, d^*) \in P_2$. As it follows from the definition of immediate consequence, $(v, d^*) \in P'_2$, so it cannot hold that $d < d'$ for all $d'$ such that $(v, d') \in g_\textsc{Path}(P'_2)$.
 
-If there exists a corresponding instatiantion of the first rule in $\textbf{K}_1$, i.e. $(v, d) = (1, 0)$, we also have the same instatiation in $\textbf{K}_2$, so $(1, 0) \in P'_2$ and it also cannot hold that $d < d'$ for all $d'$ such that $(v, d') \in g_\textsc{Path}(P'_2)$.
+If there exists a corresponding instantiation of the first rule in $\textbf{K}_1$, i.e. $(v, d) = (1, 0)$, we also have the same instantiation in $\textbf{K}_2$, so $(1, 0) \in P'_2$ and it also cannot hold that $d < d'$ for all $d'$ such that $(v, d') \in g_\textsc{Path}(P'_2)$.
 
-The last possibility is that there is a corresponding instatiantion of the second rule in $\textbf{K}_1$, i.e. there exist $s, d_1, d_2$ such that $d = d_1 + d_2$, $(s, d_1) \in P_1$ and $(s, v, d_2) \in E_1$. Since $\textsc{Path}(s, d_1) \in P_1 = g_\textsc{Path}(P_1)$ and $P_1 \sqsubseteq_\textsc{Path} P_2$, there exists $d^*_1 \le d_1$ such that $(s, d^*_1) \in g_\textsc{Path}(P_2)$.  By definition of $g_\textsc{Path}$, $(s, d^*_1) \in P_2$. Additionally, $(s, v, d_2) \in E_1 \subseteq E_2$. Therefore, $\textsc{Path} (v, d^*) \assign \textsc{Path} (s, d^*_1), \textsc{Edge} (s, v, d_2), d^* = d^*_1 + d_2$, where $d^* = d^*_1 + d_2 \le d_1 + d_2 = d$ is an instatiation of the second rule in $\textbf{K}_2$. This means that $(v, d^*) \in P_2$, so again it cannot hold that $d < d'$ for all $d'$ such that $(v, d') \in g_\textsc{Path}(P'_2)$. 
+The last possibility is that there is a corresponding instantiation of the second rule in $\textbf{K}_1$, i.e. there exist $s, d_1, d_2$ such that $d = d_1 + d_2$, $(s, d_1) \in P_1$ and $(s, v, d_2) \in E_1$. Since $\textsc{Path}(s, d_1) \in P_1 = g_\textsc{Path}(P_1)$ and $P_1 \sqsubseteq_\textsc{Path} P_2$, there exists $d^*_1 \le d_1$ such that $(s, d^*_1) \in g_\textsc{Path}(P_2)$.  By definition of $g_\textsc{Path}$, $(s, d^*_1) \in P_2$. Additionally, $(s, v, d_2) \in E_1 \subseteq E_2$. Therefore, $\textsc{Path} (v, d^*) \assign \textsc{Path} (s, d^*_1), \textsc{Edge} (s, v, d_2), d^* = d^*_1 + d_2$, where $d^* = d^*_1 + d_2 \le d_1 + d_2 = d$ is an instantiation of the second rule in $\textbf{K}_2$. This means that $(v, d^*) \in P_2$, so again it cannot hold that $d < d'$ for all $d'$ such that $(v, d') \in g_\textsc{Path}(P'_2)$. 
 
 Since each of the three possibilities results in a contradiction, it follows that $P'_1 \sqsubseteq_\textsc{Path} P'_2$. Therefore $T_{P'}(\textbf{K}_1) \sqsubseteq T_{P'}(\textbf{K}_2)$, which proves that $T_{P'}$ is monotone with respect to $\sqsubseteq$.
+\QEDA
 \end{prof}
 \end{exmp}
 

@@ -21,7 +21,7 @@
 \usepackage{varwidth}
 \usetikzlibrary{arrows}
 
-\overfullrule=2cm
+%\overfullrule=2cm
 
 
 
@@ -34,7 +34,6 @@
  
 
 \usepackage{program}
-
 %\usepackage{tikz}
 %\usetikzlibrary{arrows}
 
@@ -82,6 +81,8 @@
 \newtheorem*{note}{Note}
 \newtheorem*{prof}{Proof}
 
+\renewcommand\qedsymbol{$\blacksquare$}
+
 \newcommand{\todo}[1]{\textcolor{red}{\fbox{TODO} #1}}
 \newcommand{\pomysl}[1]{\textcolor{cyan}{\fbox{DO ROZWAŻENIA} #1}}
 
@@ -97,6 +98,8 @@
 \let\endchangemargin=\endlist 
 
 \newenvironment{centab}[1]{\begin{center}\begin{tabular}{#1}}{\end{tabular}\end{center}}
+
+\newcommand*{\QEDA}{\hfill\ensuremath{\blacksquare}}
 
 \newcommand{\edb}{\textit{edb}}
 \newcommand{\idb}{\textit{idb}}
