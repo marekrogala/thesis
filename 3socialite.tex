@@ -6,32 +6,32 @@ in an elegant and succinct way, many practical problems cannot be efficiently so
 
 SociaLite \cite{socialite, distsoc} is a graph query language based on Datalog.  It allows a programmer to write intuitive queries using declarative semantics, which can often be executed as efficiently as highly optimized dedicated programs. The queries can also be executed in a distributed environment.
 
-Most significant extension over Datalog in SociaLite is the ability to combine recursive rules with aggregation. Under some conditions, such rules can be evaluated incrementally and thus as efficiently as regular recursion in Datalog.
+The most significant extension over Datalog in SociaLite is the ability to combine recursive rules with aggregation. Under some conditions, such rules can be evaluated incrementally and thus as efficiently as regular recursion in Datalog.
 
-\cite{socialite} introduces \emph{Sequential SociaLite}, intended to be executed on one machine. We cover its most important feature, recursive aggregation, in Section \ref{s:recaggr}. It describes the language proposition and possible optimizations, but the language is not precisely defined. The paper only outlines conditions for the programs to be correct, but only in a simplified way and lacks definitions of some notions used, which makes the exact meaning of theorems and proofs unclear.
+\cite{socialite} introduces \emph{Sequential SociaLite}, intended to be executed on one machine. We cover its most important feature, namely recursive aggregation, in Section \ref{s:recaggr}. Two other extensions over Datalog are tail-nested tables which improve the data layout in the memory and an option to provide hints regarding the execution order. \cite{socialite} describes the language proposition and possible optimizations, but does not define the language precisely. The paper outlines conditions for the programs to be correct, but only in a simplified way and lacks definitions of some of the notions used, which makes the exact meaning of theorems and proofs unclear.
 
-\cite{distsoc} extends Sequential Socialite to \emph{Distributed SociaLite}, executable on a distributed architecture. Distributed SociaLite, described in section \ref{s:distributed}, introduces a \emph{location operator}, which controls how data is distributed between workers and describes an independent implementation of the language. 
+\cite{distsoc} extends Sequential Socialite to \emph{Distributed SociaLite}, executable on a distributed architecture. The presented version of the interpreter for Distributed SociaLite was built as an independent implementation based directly on Hadoop. Distributed SociaLite, described in section \ref{s:distributed}, introduces a \emph{location operator}, which controls how data is distributed among workers and describes an independent implementation of the language. 
 
-In this chapter, we give precise definitions for a Datalog language extended with recursive aggregate functions, which is the main extension over Datalog in SociaLite. We also analyze the conditions for such programs have to satisfy in order to have unambiguous solution.
+In this chapter, we give precise definitions for a Datalog language extended with recursive aggregate functions, which is the main extension over Datalog in SociaLite. We also analyze the conditions that such programs have to satisfy in order to have unambiguous solution.
 
 \section{Datalog with recursive aggregation}\label{s:recaggr}
 
-In this section we introduce the recursive aggregation extension over Datalog. Since SociaLite consists of several extensions to Datalog, not only of recursive aggregation, we will call the language defined here \emph{Datalog with recursive aggregation}, abbreviated \datalogra.
+In this section we introduce the recursive aggregation extension to Datalog. Since SociaLite consists of several extensions to Datalog, not only of recursive aggregation, we will call the language defined here \emph{Datalog with recursive aggregation}, abbreviated \datalogra.
 
 \subsection{Motivation}
-Most graph algorithms are based on some kind of iteration or recursive computation. Examples of such algorithms are the Dijkstra algorithm for single source shortest paths or PageRank. Although simple recursion can be expressed easily in Datalog, it is usually difficult or impossible to express such algorithms in Datalog efficiently, as it would require computing much more intermediate results than actually needed to obtain the solution. We will explain this on an example: a simple program that computes shortest paths from a source node.
+Most graph algorithms are based on some kind of iteration or recursive computation. Examples of such algorithms are the Dijkstra algorithm for single source shortest paths and PageRank. Although simple recursion can be expressed easily in Datalog, it is usually difficult or impossible to express such algorithms in Datalog efficiently, as it would require computing much more intermediate results than actually needed to obtain the solution. We will explain this on an example: a simple program that computes the shortest paths from a source node.
 
-A straightforward program in Datalog extended with non-recursive aggregation for computing single source shortest paths starting from node $1$ is presented in Figure \ref{ex:ssspsocialite}. Due to limitations of Datalog, this program computes all possible path lengths from node $1$ to other nodes in the first place, and after that for each node the minimal distance is chosen. Not only this approach results in bad performance, but the program executes indefinitely if a loop in the graph is reachable from the source node.
+A straightforward program in Datalog extended with non-recursive aggregation for computing single source shortest paths starting from node $1$ is presented in Figure \ref{ex:ssspsocialite}. Due to the limitations of Datalog, this program computes all possible path lengths from node $1$ to other nodes in the first place, and after that for each node the minimal distance is chosen. Not only does this approach result in a bad performance, but the program executes indefinitely if a loop in the graph is reachable from the source node.
 
 \dprog{}{
   & \textsc{Path} (t, d) &&  & \assign & && \textsc{Edge} (1, t, d). & \\
   & \textsc{Path} (t, d) &&  & \assign & && \textsc{Path} (s, d_1), \textsc{Edge} (s, t, d_2), d = d_1 + d_2. & \\
   & \textsc{MinPath} (t, \textsc{Min}(d)) &&  & \assign & && \textsc{Path} (t, d). &
-}{Datalog query for computing shortest paths from node 1 to other nodes}{ex:ssspdatalog}
+}{Datalog query for computing the shortest paths from node 1 to other nodes.}{ex:ssspdatalog}
 
 \subsection{A program in \datalogra}
 
-\datalogra allows aggregation to be combined with recursion under some conditions. This allows us to write straightforward programs for problems such as single source shortest paths, which finish execution in finite time and often are much more efficient than Datalog programs. An example \datalogra program that is presented in Figure \ref{ex:ssspsocialite}.
+\datalogra allows aggregation to be combined with recursion under some conditions. This allows for writing straightforward programs for problems such as single source shortest paths, which finish execution in finite time and are often much more efficient than Datalog programs. An example \datalogra program that computes shortest paths from vertex 1 to all vertices is presented in Figure \ref{ex:ssspsocialite}.
 
 
 \dprog{
@@ -40,20 +40,22 @@ A straightforward program in Datalog extended with non-recursive aggregation for
 }{
   & \textsc{Path} (t, d) &&  & \assign & && \textsc{Edge} (1, t, d). & \\
   & \textsc{Path} (t, d) &&  & \assign & && \textsc{Path} (s, d_1), \textsc{Edge} (s, t, d_2), d = d_1 + d_2. &
-}{\datalogra query for computing shortest paths from node 1 to other nodes}{ex:ssspsocialite}
+}{\datalogra query for computing the shortest paths from node 1 to other nodes}{ex:ssspsocialite}
 
-The relation $\textsc{Path}$ is declared so that for each \textit{target} the values in \textit{dist} column are aggregated using minimum operator \textsc{Min}, i.e. for each \textit{target}, we choose the minimum of the corresponding \textit{dist} values by applying \textsc{Min} to the set of those values.
+The relation $\textsc{Path}$ is declared so that for each \textit{target} the values in \textit{dist} column are aggregated using minimum operator \textsc{Min}, i.e. for each \textit{target} the minimum of the corresponding \textit{dist} values is chosen by applying \textsc{Min} to the set of those values.
 
-A \datalogra program $P$ is a Datalog program, with additional aggregation function defined for selected columns of some relations. This function needs to fulfill requirements that will be stated in the next section.
+A \datalogra program $P$ is a Datalog program, with additional aggregation function defined for selected columns of some relations. 
 
-For each relation name $R \in idb(P)$, there can be one column $\aggcol_R(P) \in {1, \dots ar_R}$ chosen for which an aggregation function $\aggfun_R(P)$ is provided. This column is called the \emph{aggregated column}. The rest of the columns are called the \emph{qualifying columns}. Intuitively, after each step of computation, we group the facts in the relation by the qualifying columns and within each group we aggregate the values in the aggregated column using $\aggfun_R(P)$. Value $\aggcol_R(P) = \bf{none}$ means that $R$ is a regular relation with no aggregation. Usually program $P$ can be clearly determined from the context. We will then simply write $\aggcol_R, \aggfun_R$ instead of $\aggcol_R(P), \aggfun_R(P)$.
+For each relation name $R \in idb(P)$, one column $\aggcol_R(P) \in {1, \dots ar_R}$ can chosen for and assigned an aggregation function $\aggfun_R(P)$ . This column is called the \emph{aggregated column}. The remaining columns are called the \emph{qualifying columns}. Intuitively, after each step of computation, we group the facts in the relation by the qualifying columns and within each group we aggregate the values in the aggregated column using $\aggfun_R(P)$. Value $\aggcol_R(P) = \bf{none}$ means that $R$ is a regular relation with no aggregation. Program $P$ can usually be clearly determined from the context. We will then simply write $\aggcol_R, \aggfun_R$ instead of $\aggcol_R(P), \aggfun_R(P)$.
 
 To simplify the notation, we assume that if a relation has an aggregated column, then it is always the last one: $\aggcol_R = ar_R$.
 
-Syntactically, we require that each \idb relation is declared at the top of the program.
-In declaration of a relation, aggregated column can be specified by adding keyword \textit{aggregate} and name of the aggregate function next to the column declaration. This syntax allows for providing multiple rules for each aggregated relation in the program.
+The aggregation function needs to fulfill certain requirements that will be stated in the next section.
 
-An example of a program in \datalogra in shown on Figure \ref{fig:datalograexampleprogram}.
+Syntactically, we require that each \idb relation is declared at the top of the program.
+In the declaration of a relation, an aggregated column can be specified by adding keyword \textit{aggregate} and the name of the aggregate function next to the column declaration. This syntax allows for providing multiple rules for each aggregated relation in the program.
+
+An example of a program in \datalogra is shown in Figure \ref{fig:datalograexampleprogram}.
 
 \begin{figure}[!htbp]
 \narrow{
@@ -72,13 +74,13 @@ An example of a program in \datalogra in shown on Figure \ref{fig:datalograexamp
 \subsection{Aggregation-aware order over databases for inflationary \datalogra}
 While being very useful, recursive aggregation rules not always have an unambiguous solution. This is the case only under some conditions on the rules and the aggregation function itself.
 
-Typically, Datalog programs semantics is defined using the fixed point of the immediate consequence operator $T_P$. This definition assumes that $T_P$ is inflationary with respect to inclusion order on database instances. This requirement means that $T_P$ only adds facts to the database instance, but never removes facts from it. This is also the reason for which program \ref{ex:ssspdatalog} is inefficient: the inflationary semantics forces all suboptimal distances to nodes to be kept in the database and as such, used in subsequent iterations.
+Typically, Datalog programs semantics is defined using the fixed point of the immediate consequence operator $T_P$. This definition assumes that $T_P$ is inflationary with respect to the inclusion order on database instances. This requirement means that $T_P$ only adds facts to the database instance, but never removes them. This is also the reason for which program \ref{ex:ssspdatalog} is inefficient: the inflationary semantics forces all suboptimal distances to vertices to be kept in the database and as such, used in subsequent iterations.
 
-When recursive aggregate functions are allowed, the semantics is not inflationary with respect to the inclusion order. A fact in the database can be replaced with a different one because a better aggregated value appeared. However, an inflationary $T_P$ operator is necessary for the proof that the fixed point semantics always gives a unique solution. In order to define semantics for \datalogra in terms of a fixed point, we need to use a different order on database instances than the regular set inclusion order.
+When recursive aggregate functions are allowed, the semantics is not inflationary with respect to the inclusion order. A fact in the database can be replaced with a different one because a better aggregated value has appeared. However, an inflationary $T_P$ operator is necessary to prove that the fixed point semantics always gives a unique solution. In order to define semantics for \datalogra in terms of a fixed point, we need to use a different order on database instances than the regular set inclusion order.
 
-In this section, we will describe the idea introduced in \cite{socialite}. However, the original description lacks precision and details. Here we give the definitions in a precise way.
+In this section, we describe the idea introduced in \cite{socialite}. However, the original description lacks precision and details. Here we give the definitions in a precise way.
 
-First, we define what a \emph{join operation} is and show the order that it induces. Then, we show that if the aggregation function is a join operation and corresponding rules are monotone with respect to this induced order, then the result of the program is unambiguously defined with a least fixed-point. We also show that it can be computed efficiently using the semi-naive evaluation.
+First, we define what a \emph{join operation} is and show the order that it induces. Then, we show that if the aggregation function is a join operation and corresponding rules are monotone with respect to the order induced by this operation, then the result of the program is unambiguously defined by the least fixed-point. We also show that it can be computed efficiently using the semi-naive evaluation.
 
 \cite{socialite} uses notions of \emph{meet operation} and greatest fixed point instead. We chose the dual notions of join operation and least upper bound, as we find that they give more clear definitions and proofs.
 
@@ -87,9 +89,9 @@ We start by recalling the definitions of idempotency, commutativity and associat
 \begin{defn}
 A binary operation $\odot: X \times X \to X$ is:
 \begin{itemize}
-\item \emph{idempotent}, iff $x \odot x = x$ for each $x \in X$.
-\item \emph{commutative}, iff $x \odot y = y \odot x$ for each $x, y \in X$.
-\item \emph{associative}, iff $(x \odot y) \odot z = x \odot (y \odot z)$ for each $x, y, z \in X$.
+\item \emph{idempotent} iff $x \odot x = x$ for each $x \in X$,
+\item \emph{commutative} iff $x \odot y = y \odot x$ for each $x, y \in X$,
+\item \emph{associative} iff $(x \odot y) \odot z = x \odot (y \odot z)$ for each $x, y, z \in X$.
 \end{itemize}
 \end{defn}
 
@@ -100,7 +102,7 @@ A binary operation is a \emph{join} operation iff it is idempotent, commutative 
 \end{defn}
 
 We usually denote a join operation with the symbol $\sqcup$.
-An example of a join operation is maximum of two numbers.
+An example of a join operation is the maximum of two numbers.
 
 \begin{exmp}
 $\max(a, b)$ for $a, b \in \mathbb{N}$ is a join operation; it is:
@@ -110,7 +112,7 @@ $\max(a, b)$ for $a, b \in \mathbb{N}$ is a join operation; it is:
 \item associative --- $\max(a, \max(b, c)) = \max(\max(a, b), c)$.
 \end{itemize}
 
-Similarly, minimum of two numbers is also a join operation. On the contrary, $+$ is not a join operation, since it is not idempotent: $1+1 \ne 1$.
+Similarly, the minimum of two numbers is also a join operation. On the contrary, $+$ is not a join operation, since it is not idempotent: $1+1 \ne 1$.
 \end{exmp}
 
 Since join operation is associative, we can skip parentheses and write: $ a_1 \sqcup a_2 \sqcup \dots \sqcup a_n$ instead of: $ a_1 \sqcup (a_2 \sqcup ( \dots \sqcup a_n) \dots )$.
@@ -120,12 +122,14 @@ $$\sqcup(\{a_1, \dots, a_n \}) = a_1 \sqcup a_2 \sqcup \dots \sqcup a_n$$
 
 \subsubsection{Order induced by a join operation}
 
-A join operation over a set $P$ induces a partial order on $P$ that has some useful properties. In particular, $P$ with this ordering is a semi-lattice. We start by recalling the definitions of least upper bound and semi-lattice.
+A join operation over a set $P$ induces a partial order on $P$ that has some useful properties. In particular, $P$ with this ordering is a semi-lattice. We start by recalling the definitions of a least upper bound and a semi-lattice.
+
+\begin{defn}[Upper bound]
+Given a set $S$ with a partial order $\le$ over $S$, $c$ is an \emph{upper bound} of $S$ iff $\forall_{a \in S} a \le c$.
+\end{defn}
 
 \begin{defn}[Least upper bound]
-Given a set $S$ with a partial order $\le$ over $S$, $c$ is an \emph{upper bound} of $S$ iff $\forall_{a \in S} a \le c$.
-
-$m \in S$ is the \emph{least upper bound} of $S$ iff it is an upper bound of $S$ and for each upper bound $c$ of $S$, $m \le c$.
+Given a set $S$ with a partial order $\le$ over $S$, $m \in S$ is the \emph{least upper bound} of $S$ iff it is an upper bound of $S$ and for each upper bound $c$ of $S$, $m \le c$.
 \end{defn}
 
 \begin{defn}[Join semi-lattice]
@@ -134,25 +138,25 @@ A set $P$ with a partial order $\le$ over $P$ is a \emph{join semi-lattice} iff 
 
 For any two elements, their least upper bound is called a \emph{join} of those elements.
 
-A join operation $\sqcup$ defines a semi-lattice: it induces a partial order $\le_\sqcap$ over its domain, such that the result of the operation for any two elements is the least upper bound of those elements with respect to $\le_\sqcap$
+A join operation $\sqcup$ defines a semi-lattice: it induces a partial order $\le_\sqcap$ over its domain \todo{tu trzeba wiecej komentarza, np. czemu taki porzadek istniej i jak jest zdefiniowany (a najlepiej konstruktywnie go zdefiniowac i pokazac ze to porzadek)}, such that the result of the operation for any two elements is the least upper bound of those elements with respect to $\le_\sqcap$.
 
-For example, the join operation $\max$ over natural number induces the partial order $\le$ --- for any two $a, b \in \mathbb{N}$, $\max(a, b)$ is their least upper bound with respect to $\le$.
+For example, the join operation $\max$ over natural number induces the partial order $\le$, because for any two $a, b \in \mathbb{N}$, $\max(a, b)$ is their least upper bound with respect to $\le$.
 
 \subsubsection{Aggregation operator $g_R$}
-An important step in the evaluation of a \datalogra program is grouping the facts in an instance of each relation and performing the aggregation within each group. We can put that into a formal definition as function $g_R$. $g_R$ takes as an input a relation instance that may contain multiple facts with the same values in  qualifying columns and within each such group performs the aggregation on the aggregated column.
+An important step in the evaluation of a \datalogra program is grouping the facts in an instance of each relation and performing the aggregation within each group. We can put that into a formal definition as function $g_R$. $g_R$ takes as an input a relation instance that may contain multiple facts with the same values in  qualifying columns and performs the aggregation on the aggregated column within each such group.
 \begin{defn}[Aggregation operator over relations]\label{d:aggregationoperationgr}
-For non-aggregated relations, $g_R$ is an identity function. For a relation $R$ of arity $k = ar(R)$ with an aggregated column, let us define $g_R:~\inst(R)~\to~\inst(R))$ as:  
+For non-aggregated relations, $g_R$ is an identity function. For a relation $R$ of arity $k = ar(R)$ with an aggregated column, let us define $g_R:~\inst(R)~\to~\inst(R)$ as:  
 
 $$g_R(I) = 
-       \Big\{(x_1, \dots, x_{k-1}, t): (x_1, \dots, x_{k-1}, x_k) \in I~\wedge t = \aggfun_R(\{y: (x_1, \dots, x_{k-1}, y) \in I\})\Big\}
+       \Big\{(x_1, \dots, x_{k-1}, t): (x_1, \dots, x_{k-1}, x_k) \in I \wedge t = \aggfun_R(\{y: (x_1, \dots, x_{k-1}, y) \in I\})\Big\}
 $$
 \end{defn}
 
 \subsubsection{Pre-order over relation instances}
-We can prove that there is a unique least fixed point for any Datalog program. The fundamental fact needed for this proof is that Datalog semantics is inflationary: during iterative evaluation of any Datalog program, if the state of a relation is $I_1$ in some step and $I_2$ at a later step, we know that $I_1 \subseteq I_2$. In \datalogra this property no longer holds: a fact in $I_1$ can be replaced with different fact with a lower value in the aggregated column. To be able to define semantics of programs in \datalogra using least fixed point, we need to use a custom order on relation instances. This order is built based on the function $g_R$.
+We can prove that there exists a unique least fixed point for any Datalog program. The fundamental fact needed for this proof is that Datalog semantics is inflationary, that is during the iterative evaluation of any Datalog program, if the state of a relation is $I_1$ in some step and $I_2$ at a later step, we know that $I_1 \subseteq I_2$. In \datalogra this property no longer holds. A fact in $I_1$ can be replaced with a different fact with a lower value in the aggregated column. To be able to define the semantics of programs in \datalogra using a least fixed point, we need to use a custom order on relation instances. This order is built based on the function $g_R$.
 
 \begin{defn}
-Let $R$ be a relation name and $k=ar(R)$. Let us define partial ordering $\sqsubseteq_R$ on relation instances as follows:
+Let $R$ be a relation name and $k=ar(R)$. Let us define comparison $\sqsubseteq_R$ on relation instances as follows:
 $$
 I_1 \sqsubseteq_R I_2 \iff
 \begin{cases}
@@ -162,110 +166,106 @@ I_1 \sqsubseteq_R I_2 \iff
 $$
 \end{defn}
 
-
-$\sqsubseteq_R$ is not necessarily a partial order over the set of all relation instances $\inst(R)$, because it is not antisymmetric. In example \ref{ex:sqsubseteqorder}, if $I = \{(1, 2, 3), (1, 2, 8)\}$ and $J = \{(1, 2, 3), (1, 2, 7)\}$, we have that $I \sqsubseteq_R J$ and $J \sqsubseteq_R I$, but clearly $I \ne J$. The relation satisfies the reflexivity and transitivity requirements, so it is a pre-order.
+The relation satisfies the reflexivity and transitivity requirements, so it is a pre-order.
 
 \begin{lem}\label{lem:preorder}
-For any $R$, $\sqsubseteq_R$ is a pre-order over $\inst(R)$.
+For any $R$ and $inst(R)$, $\sqsubseteq_R$ is a pre-order over $\inst(R)$.
 \end{lem}
-
 \begin{prof}
-
-If $R$ does not have an aggregated column, $\sqsubseteq_R$ is the same as inclusion order $\subseteq$, which is a partial order.
+If $R$ does not have an aggregated column, $\sqsubseteq_R$ is the same as the inclusion order $\subseteq$, which is a partial order.
 
 If $R$ does have an aggregated column, then:
 
 \begin{itemize}
-\item $\sqsubseteq_R$ is reflexive: for each $R$ and $A \in \inst(R)$, since $\le_{\aggfun_R}$ is reflexive, we have that $\forall_{(q_1, ..., q_{k-1}, v) \in g_R(A)} \Big( (q_1, ..., q_{k-1}, v) \in g_R(A)~\text{and}~v~\le_{\aggfun_R}~v \Big)$. Hence, $A \sqsubseteq_R B$.
-\item $\sqsubseteq_R$ is transitive: if $A \sqsubseteq_R B$ and $B \sqsubseteq_R  C$, then by definition of $\sqsubseteq_R$ we have that: $$\forall_{(q_1, ..., q_{n-1}, a) \in g_R(A)} \exists_{(q_1, ..., q_{n-1}, b) \in g_R(B)}~a~\le_{\aggfun_R}~b $$ $$\forall_{(q_1, ..., q_{n-1}, b) \in g_R(B)} \exists_{(q_1, ..., q_{n-1}, c) \in g_R(C)}~b~\le_{\aggfun_R}~c$$
+\item $\sqsubseteq_R$ is reflexive: for each $R$, $inst(R)$ and $A \in \inst(R)$, since $\le_{\aggfun_R}$ is reflexive, we have that $\forall_{(q_1, ..., q_{k-1}, v) \in g_R(A)} \Big( (q_1, ..., q_{k-1}, v) \in g_R(A)~\text{and}~v~\le_{\aggfun_R}~v \Big)$. Hence, $A \sqsubseteq_R A$.
+\item $\sqsubseteq_R$ is transitive: if $A \sqsubseteq_R B$ and $B \sqsubseteq_R  C$, then by definition of $\sqsubseteq_R$ we have that:
+\begin{align*}
+\forall_{(q_1, ..., q_{n-1}, a) \in g_R(A)} \exists_{(q_1, ..., q_{n-1}, b) \in g_R(B)}~a~\le_{\aggfun_R}~b &\text{, and } \\
+\forall_{(q_1, ..., q_{n-1}, b) \in g_R(B)} \exists_{(q_1, ..., q_{n-1}, c) \in g_R(C)}~b~\le_{\aggfun_R}~c&
+\end{align*}
 
-We have that $\forall_{(q_1, ..., q_{n-1}, a) \in g(A)} \exists_{(q_1, ..., q_{n-1}, c) \in g(C)} a~\le_{\aggfun_R}~c $, since $\le_{\aggfun_R}$ is a partial order and thus transitive. This means that $A \sqsubseteq_R C$.
+By combining it follows that $\forall_{(q_1, ..., q_{n-1}, a) \in g(A)} \exists_{(q_1, ..., q_{n-1}, c) \in g(C)} a~\le_{\aggfun_R}~c $, since $\le_{\aggfun_R}$ is a partial order and thus transitive. This means that $A \sqsubseteq_R C$.
 \end{itemize}
 
 \end{prof}
 
-
-
-\begin{rem}
-If $R$ does not have an aggregated column, $\sqsubseteq_R$ is simply the inclusion order $\subseteq$. 
-\end{rem}
-
-
 \begin{exmp}
-Let $R$ be a relation with arity $3$, with the last column aggregated using join operation $\max$.
+Let $R$ be a relation with arity $3$, with the last column aggregated using the join operation $\max$.
 For the operation $ \max $ in $\mathbb{N}$, $ \le_{\max} $ is the usual order $ \le $. The following hold:
 \begin{itemize}
 \item $\{(1, 2, 3)\} \sqsubseteq_R \{(1, 2, 5)\}$, because $3 \le 5$,
-\item $\{(1, 2, 3)\} \sqsubseteq_R \{(1, 2, 5), (1, 7, 2)\}$ , because $3 \le 5$,
-\item $\{(1, 2, 3), (1, 2, 8)\} \sqsubseteq_R \{(1, 2, 5)\}$ , because $g_R(\{(1, 2, 3), (1, 2, 8)\}) = \{(1,2,3)\}$ and $3~\le~5$,
-\item $A = \{(1, 2, 3), (2, 8, 1)\}$ and  $B = \{(1, 2, 5), (1, 7, 2)\}$ can not be compared, because $\forall_x (2, 8, x) \notin A$ and $\forall_x (1, 7, x) \notin B$,
-\item for any $R$ an empty relation instance $\emptyset$ is smaller under $\sqsubseteq_R$  than any other relation instance.
+\item $\{(1, 2, 3)\} \sqsubseteq_R \{(1, 2, 5), (1, 7, 2)\}$, because $3 \le 5$,
+\item $\{(1, 2, 5)\} \sqsubseteq_R \{(1, 2, 3), (1, 2, 8)\}$, because $g_R(\{(1, 2, 3), (1, 2, 8)\}) = \{(1,2,8)\}$ and $5~\le~8$,
+\item $A = \{(1, 2, 3), (2, 8, 1)\}$ and  $B = \{(1, 2, 5), (1, 7, 2)\}$ cannot be compared, because $\forall_x (1, 7, x) \notin A$ and $\forall_x (2, 8, x) \notin B$,
+\item for any $R$ an empty relation instance $\emptyset$ is smaller under $\sqsubseteq_R$  than any other relation instance,
+\item if $I = \{(1, 2, 3), (1, 2, 8)\}$ and $J = \{(1, 2, 3), (1, 2, 7)\}$, we have that $I \sqsubseteq_R J$ and $J \sqsubseteq_R I$, but clearly $I \ne J$.
 \end{itemize}
 \label{ex:sqsubseteqorder}
 \end{exmp}
 
+The last point of example \ref{ex:sqsubseteqorder} shows that $\sqsubseteq_R$ is not necessarily a partial order over the set of all relation instances $\inst(R)$, because it is not antisymmetric. 
+
 
 \subsubsection{Partial order over relation instances after aggregation}
 
-We already know that $\sqsubseteq_R$ is a pre-order over the set of all possible relation instances $\inst(R)$, but because of lack of antisymmetry, it is not guaranteed to be a partial order. However, if we restrict to the relation instances that are possible after aggregation is applied, the relation is antisymmetric.
+We already know that $\sqsubseteq_R$ is a pre-order over the set of all possible relation instances $\inst(R)$, but because of the lack of antisymmetry, it is not guaranteed to be a partial order. However, if we restrict to the relation instances resulting from applying aggregation, the relation is antisymmetric.
 
-For any $R$ such that $k=ar(R)$, let $Z_R$ denote the set of relation instances that can be obtained by application of $g_R$ to some instance of $R$:
-$$Z_R = \{g_R(I): I \in \inst(R)\}$$
 
+For any $\textsc{R}$ let $Z_\textsc{R}$ denote the set of relation instances that can be obtained by application of $g_\textsc{R}$ to some instance of $\textsc{R}$:
+$$Z_\textsc{R} = \{g_\textsc{R}(I): I \in \inst(\textsc{R})\}$$
+
+We will refer to elements of $Z_\textsc{R}$ as \emph{relations after aggregation}.
 
 \begin{lem}\label{lem:fixgr}
-For any $R$ such that $k=ar(R)$ and $\aggcol_R \ne {\bf none}$, if $I \in Z_R$, then $g_R(I) = I$ and for each $x_1, \dots, x_{n-1}$ there is at most one $x_n$ such that $R(x_1, \dots, x_n) \in I$.
+For any $R$ such that $k=ar(R)$ and $\aggcol_R \ne {\bf none}$, if $I \in Z_R$, then $g_R(I) = I$ and for each $x_1, \dots, x_{n-1}$ there is at most one $x_n$ such that $(x_1, \dots, x_{n-1}, x_n) \in I$.
 \end{lem}
 \begin{prof}
-Since we know that $I = g_R(I')$ for some $I'$, by definition of $g_R$, there is at most one fact $R(x_1, \dots, x_n)$ in $I$ for each $(x_1, \dots, x_{n-1})$. Hence, in application of $g_R$ to $I$ the aggregated value for each $x_1, \dots, x_{n-1}$ is simply $x_n$, so $g_R(I) = I$.
+Since we know that $I = g_R(I')$ for some $I'$, there is at most one fact $R(x_1, \dots, x_n)$ in $I$ for each $(x_1, \dots, x_{n-1})$, because $g_R$ by definition groups facts by qualifying columns $x_1, \dots, x_{n-1}$ and computes a single aggregated value $x_n$ for each such group. Hence, after the next application of $g_R$ to $I$ the aggregated value for each $x_1, \dots, x_{n-1}$ is simply $x_n$, so $g_R(I) = I$.
 \end{prof}
 
-\begin{lem}
+\begin{thm}
 For any $R$ such that $k=ar(R)$, $\sqsubseteq_R$ is a partial order over $Z_R$.
-\end{lem}
+\end{thm}
 \begin{prof}
 If $R$ does not have an aggregated column, $\sqsubseteq_R$ is the same as inclusion order $\subseteq$, which is a partial order.
 
-If $R$ has an aggregated column, then by Lemma \ref{lem:preorder} it is a pre-order over $\inst(R)~\supseteq~Z_R$, so it only remains to be shown that $\sqsubseteq_R$ is antisymmetric.
+If $R$ has an aggregated column, then by Lemma \ref{lem:preorder}, $\sqsubseteq_R$ is a pre-order over $\inst(R)$. This implies that it is also a pre-order over $Z_R$, since it is a subset of $\inst(R)$, so it only remains to be shown that $\sqsubseteq_R$ is antisymmetric over $Z_R$.
 
 Let $A, B$ be any relation instances from $Z_R$. Let us suppose that $A \sqsubseteq_R B$ and $B \sqsubseteq_R A$. To prove antisymmetry, we need to show that $A = B$. By definition of $\sqsubseteq_R$, we have that:
 \begin{align*}
-\forall_{(q_1, ..., q_{n-1}, a) \in g_R(A)} \exists_{(q_1, ..., q_{n-1}, b) \in g_R(B)}~a~\le_{\aggfun_R}~b \\
-\forall_{(q_1, ..., q_{n-1}, b) \in g_R(B)} \exists_{(q_1, ..., q_{n-1}, a) \in g_R(A)}~b~\le_{\aggfun_R}~a
+\forall_{(q_1, ..., q_{n-1}, a) \in g_R(A)} \exists_{(q_1, ..., q_{n-1}, b) \in g_R(B)} a \le_{\aggfun_R} b & \text{, and } \\
+\forall_{(q_1, ..., q_{n-1}, b) \in g_R(B)} \exists_{(q_1, ..., q_{n-1}, a) \in g_R(A)} b \le_{\aggfun_R} a &
 \end{align*}
 Since $A, B \in Z_R$ we know that there exist $A', B'$ such that $A = g_R(A'), B = g_R(B')$. By Lemma \ref{lem:fixgr} $g_R(g_R(A')) = g_R(A')$ and thus $g_R(A) = g_R(g_R(A')) = g_R(A') = A$, and similarly $g_R(B) = B$, so the formulas above are equivalent to:
 \begin{align*}
-\forall_{(q_1, ..., q_{n-1}, a) \in A} \exists_{(q_1, ..., q_{n-1}, b) \in B}~a~\le_{\aggfun_R}~b \\
-\forall_{(q_1, ..., q_{n-1}, b) \in B} \exists_{(q_1, ..., q_{n-1}, a) \in A}~b~\le_{\aggfun_R}~a
+\forall_{(q_1, ..., q_{n-1}, a) \in A} \exists_{(q_1, ..., q_{n-1}, b) \in B}~a~\le_{\aggfun_R}~b &\text{, and }  \\
+\forall_{(q_1, ..., q_{n-1}, b) \in B} \exists_{(q_1, ..., q_{n-1}, a) \in A}~b~\le_{\aggfun_R}~a&
 \end{align*}
 
-Let $t = R(x_1, \dots, x_{n-1}, a)$ be any fact in $A$. We know that there exists $b$ such that $(x_1, ..., x_{n-1}, b) \in B$ and $a~\le_{\aggfun_R}~b$. Further, we know that there exists $(x_1, ..., x_{n-1}, a') \in A$ such that $b~\le_{\aggfun_R}~a'$. By Lemma \ref{lem:fixgr}, it must hold that $a = a'$, so $a \le_{\aggfun_R} b \le_{\aggfun_R} a'$, and thus we have that $a = b$, so $t \in B$. Therefore, $A \subseteq B$, because $t$ was chosen as any element of $A$. Because of symmetry of the proof, it also holds that $B \subseteq A$, so $A = B$. This means that $\sqsubseteq_R$ is indeed antisymmetric.
+Let $t = R(x_1, \dots, x_{n-1}, a)$ be any fact in $A$. We know that there exists $b$ such that $(x_1, ..., x_{n-1}, b) \in B$ and $a~\le_{\aggfun_R}~b$. Further, we know that there exists $(x_1, ..., x_{n-1}, a') \in A$ such that $b~\le_{\aggfun_R}~a'$. By Lemma \ref{lem:fixgr}, it must hold that $a = a'$, so $a \le_{\aggfun_R} b \le_{\aggfun_R} a$, and because $\le_{\aggfun_R}$ is a partial order we have that $a = b$, so $t \in B$. Therefore, $A \subseteq B$, because $t$ was chosen as an arbitrary element of $A$. By symmetry of the proof, it also holds that $B \subseteq A$, so $A = B$. This means that $\sqsubseteq_R$ is indeed antisymmetric.
 
 As $\sqsubseteq_R$ is an antisymmetric pre-order over $Z_R$, it is a partial order over this set.
 \end{prof}
 
 \subsubsection{Order over database instances}
 
-In regular Datalog, database instances can be compared using the inclusion order. We can extend the custom order defined on relation instances to an order on database instances in a straightforward way, by comparing the databases relation-by-relation:
+In regular Datalog, database instances can be compared using the inclusion order. We can extend the custom order $\sqsubseteq_R$ defined on relation instances to an order on database instances in a straightforward way, by comparing the databases relation-by-relation:
 
 \begin{defn}
-Let $\sigma$ be a database schema and $\textbf{K}, \textbf{L}$ be database instances over $\sigma$. Let $R_1, \dots, R_n$ be relation names in $\sigma$. By definition, $\textbf{K}$ is a union of relation instances $I_1, \dots I_n$ over $R_1, \dots, R_n$ respectively. Similarly, $\textbf{L}$ is a union of relation instances $J_1, \dots J_n$ over $R_1, \dots, R_n$ respectively.  Let the order $\sqsubseteq_\sigma$ on database instances over $\sigma$ be defined as:
+Let $\sigma$ be a database schema and $\textbf{K}, \textbf{L}$ be database instances over $\sigma$. Let $R_1, \dots, R_n$ be relation names in $\sigma$. By definition, $\textbf{K}$ is a union of relation instances $I_1, \dots I_n$ over $R_1, \dots, R_n$, respectively. Similarly, $\textbf{L}$ is a union of relation instances $J_1, \dots J_n$ over $R_1, \dots, R_n$, respectively.  Let the order $\sqsubseteq_\sigma$ on database instances over $\sigma$ be defined as:
 $$\textbf{K} \sqsubseteq_\sigma \textbf{L} \iff \forall_{i=1, \dots, n}~I_i \sqsubseteq_{R_i} J_i$$
 \end{defn}
 
-\begin{rem}
-Note that if there is no aggregation, all relation instances are simply compared using the regular inclusion order. Since relation instances for different relation names are always disjoint, $\sqsubseteq_\sigma$ is the same as $\subseteq$ in this case.
-\end{rem}
-
 \subsection{Semantics for \datalogra programs}\label{ss:semdra}
-In this subsection we will show that the semantics of a \datalogra program can be unambiguously defined using least fixed point of the newly introduced order, as long as it satisfies some conditions. Intuitively, the rules should be monotone with respect to the order implied by aggregations. 
+In this subsection we will that the semantics of a \datalogra program can be unambiguously defined using least fixed point in the introduced order, as long as it satisfies some conditions. Intuitively, the rules should be monotone with respect to the order implied by aggregations. 
 
 
-Let $P$ be a \datalogra program, with $w$ \idb relations $R_1, R_2, \dots, R_w$ of arities $k_1, k_2, \dots, k_w$ respectively. Program $P$ has the following form:
+Let $P$ be a \datalogra program, with $w$ \idb relations $R_1, R_2, \dots, R_w$ of arities $k_1, k_2, \dots, k_w$, respectively. Program $P$ has the following form:
 
 \narrow{
-  $R_1(x_1, \dots, x_{k-1}, x_k~[\text{ aggregate } F_1]) $\\
-  $R_w(x_1, \dots, x_{k-1}, x_k~[\text{ aggregate } F_w]) $\\
+  $R_1(x_1, \dots, x_{{k_1}-1}, x_{k_1}~[\text{ aggregate } F_1]) $\\
+  \dots \\
+  $R_w(x_1, \dots, x_{{k_w}-1}, x_{k_w}~[\text{ aggregate } F_w]) $\\
   \begin{flalign*}
   & R_1 (x_1, \dots, x_{k_1}) &&  & \assign & && Q_{1,1}(x_1, \dots, x_{k_1}) & \\
   &  &&  & \dots & && & \\
@@ -277,52 +277,53 @@ Let $P$ be a \datalogra program, with $w$ \idb relations $R_1, R_2, \dots, R_w$ 
   \end{flalign*}
 }
 
-The program has $m_i$ rules for computing $R_i$, for each $i$. $Q_{1, 1}, \dots, Q_{1, m_i}$ for $i = 1, \dots, w$ are bodies of these rules, with free variables $x_1, \dots, x_{k_i}$. Relation $R_i$ may have an aggregation function $\aggfun_{R_i}$ defined for column $\aggcol_{R_i}$. Each such $\aggfun_{R_i}$ is required to be a join operator. $\aggcol_{R_i}$ is allowed to be any column in $1, 2, \dots, k_i$, but to simplify the notation we assume it may be only the last column $k_i$.
+The program has $m_i$ rules for computing $R_i$, for each $i$. $Q_{1, 1}, \dots, Q_{1, m_i}$ for $i = 1, \dots, w$ are bodies of these rules, with free variables $x_1, \dots, x_{k_i}$. Each relation $R_i$ may have an aggregation function $\aggfun_{R_i}$ defined for column $k_i$. Each such $\aggfun_{R_i}$ is required to be a join operation.
 
-The subgoals in the rule bodies may refer to any relation of an arbitrary set of \edb relations $\edb(P)$, which are constant during the evaluation, and to any of the \idb relations, $R_1, \dots, R_w$.
+The subgoals in the rule bodies may refer to any relation of an arbitrary set of \edb relations $\edb(P)$, which are constant during the evaluation, and to any of the \idb relations, $R_1, \dots, R_w$. The \edb relations are not declared in the program.
 
-By definition, $P$ is a program $P'$ in regular Datalog, with $\aggcol$ and $\aggfun$ additionally defined. $P$ can be treated as a triple $(P', \aggcol, \aggfun)$. Hence, exists an immediate consequence operator $T_P'$ for regular Datalog part of program $P$. This operator will be the base for defining $P$'s semantics in \datalogra.
+By definition, $P$ is a program $P'$ in regular Datalog, with  $\aggfun$ additionally defined. $P$ can be treated as a pair $(P', \aggfun)$. The immediate consequence operator $T_{P'}$ for the regular Datalog program $P'$ will be the base for defining the semantics for \datalogra program $P$. Schema $\sch(P)$ for the \datalogra program $P$ is defined as the schema $\sch(P')$ of the corresponding Datalog program $P'$.
 
-
-Another important building block in \datalogra semantics is an aggregation operator over database instances. Intuitively, it applies of the corresponding aggregation operator $g_R$ to each relation instance $I$ of relation $R$ in a database instance.
+We start by we extending aggregation operator $g_R$ over relation instances to aggregation over database instances. Intuitively, it applies the corresponding aggregation operator $g_R$ to each relation instance $I$ of relation $R$ in a database instance.
 
 \begin{defn}[Aggregation operator over databases]
-Let $P$ be a program in \datalogra and $\textbf{K}$ be a database instance over $\sch(P)$. Let $R_1, \dots, R_n$ be relation names in $\sch(P)$. By definition, $\textbf{K}$ is a union of relation instances $I_1, \dots I_n$ over $R_1, \dots, R_n$ respectively. %Assuming $\aggcol_{R_i}$ and $\aggfun_{R_i}$ are defined for each $i$, 
+Let $P$ be a program in \datalogra and $\textbf{K}$ be a database instance over $\sch(P)$, and $\textbf{K}$ be a union of relation instances $I_1, \dots I_n$ over $R_1, \dots, R_n$ respectively, where $R_1, \dots, R_n$ are relation names in $\sch(P)$.
 Let the \emph{aggregation operator} $G_P$ for $\textbf{K}$ be defined as:
 
 $$G_P(\textbf{K}) = \bigcup_{i = 1}^n g_{R_i}(I_i)$$
 
-%In this definition, $\aggcol$ and $\aggfun$ are assumed to be known.
 \end{defn}
+Similarly to relations after aggregation, we will call a database $\textbf{K}$, such that for some $\textbf{L}$ $\textbf{K} = G_P(\textbf{L})$, a \emph{database after aggregation}.
 
 We can now define the immediate consequence operator for \datalogra programs.
 
 \begin{defn}[Immediate consequence operator for \datalogra]
-The \emph{immediate consequence operator} for a \datalogra program $P = (P', \aggcol, \aggfun)$, where $P'$ is a program in Datalog, is a function $T_P: \inst(\sch(P)) \to \inst(\sch(P))$:
+The \emph{immediate consequence operator} for a \datalogra program $P = (P', \aggfun)$, where $P'$ is a program in Datalog, is a function $T_P: \inst(\sch(P)) \to \inst(\sch(P))$:
 $$T_P = G_P \circ T_{P'}$$
 \end{defn}
 
 The immediate consequence operator can be used to define semantics for a \datalogra program as its fix-point, similarly to the definition of Datalog's semantics.
 
 \begin{thm}
-Let $P$ be a program in \datalogra and $P = (P', \aggcol, \aggfun)$ where $P'$ is a program in Datalog. Let $\textbf{K}$ be a database instance over $\edb(P)$. Let $\sigma = \sch(P)$.
+Let $P$ be a program in \datalogra and $P = (P', \aggfun)$ where $P'$ is a program in Datalog. Let $\textbf{K}$ be a database instance over $\edb(P)$. Let $\sigma = \sch(P)$.
 
-If $T_{P'}$ is monotone with respect to $\sqsubseteq_\sigma$, then there exists a finite minimal fix-point of $T_P$ containing $\textbf{K}$. We denote this fix-point by $P(\textbf{K})$.
+If $T_{P'}$ is monotone with respect to $\sqsubseteq_\sigma$ on databases over $\sigma$ after aggregation, then there exists a finite minimal fix-point of $T_P$ containing $\textbf{K}$. We denote this fix-point by $P(\textbf{K})$.
 \end{thm}
 \begin{prof}
-$G_P$ is monotone with respect to $\sqsubseteq_\sigma$. Since we assumed that $T_{P'}$ is monotone with respect to $\sqsubseteq_\sigma$, $T_P = G_P \circ T_{P'}$ is also monotone with respect to $\sqsubseteq_\sigma$ as a composition of two monotone functions. 
+$G_P$ is monotone with respect to $\sqsubseteq_\sigma$ on all databases over $\sigma$. \todo {czemu?} Since it is assumed that $T_{P'}$ is monotone with respect to $\sqsubseteq_\sigma$ on databases after aggregation, $T_P = G_P \circ T_{P'}$ is also monotone with respect to $\sqsubseteq_\sigma$, as a composition of two monotone functions. 
 
-Because of monotonicity of $T_P$, we have inductively that $T_P^i(\textbf{K}) \sqsubseteq_\sigma T_P^{i+1}(\textbf{K})$ for each $i \ge 0$. Therefore:
-$$\textbf{K} \sqsubseteq_\sigma T_P(\textbf{K}) \sqsubseteq_\sigma T_P^2(\textbf{K}) \sqsubseteq_\sigma T_P^3(\textbf{K}) \sqsubseteq_\sigma \dots$$
+$\textbf{K}$ is a database instance over $\edb(P)$, so it is a database after aggregation, because $\textbf{K} = G_P(\textbf{K})$.  $T_P^i(\textbf{K}) = G_P(T_{P'}(T_P^{i-1}(\textbf{K})))$ is also a database after aggregation for each $i > 0$.
 
-$\adom(P) \cup \adom(\textbf{K})$ and the database schema $\sch(P)$ of $P$ are all finite, so there is a finite number $n$ of database instances over $\sch(P)$ using those values. Hence, the sequence $\{T_P^i(\textbf{K})\}_i$ reaches a fix-point: $T_P^n(\textbf{K}) = T_P^{n+1}(\textbf{K})$. Let us denote this fix-point by $T_P^*(\textbf{K})$.
+As it holds that $\adom(P) \cup \adom(\textbf{K})$ and the database schema $\sch(P)$ are all finite, there is a finite number $n$ of database instances over $\sch(P)$ that can be reached by iteratively applying $T_P$ to $\textbf{K}$. Hence, because of the monotonicity of $T_P$ on databases after aggregation, we have inductively that $T_P^i(\textbf{K}) \sqsubseteq_\sigma T_P^{i+1}(\textbf{K})$ for each $i \ge 0$. Therefore, the sequence $\{T_P^i(\textbf{K})\}_i$ reaches a fix-point: $T_P^n(\textbf{K}) = T_P^{n+1}(\textbf{K})$. Let us denote this fix-point by $T_P^*(\textbf{K})$.
 
-We will now prove that this is the minimum fix-point of $T_P$ containing $\textbf{K}$. Let us suppose that $\textbf{J}$ is a fix-point of $T_P$ containing  $\textbf{K}$:  $\textbf{K} \sqsubseteq_\sigma \textbf{J}$. By applying $T_P$ $n$ times to both sides of the inequality, we have that $T_P^*(\textbf{K}) = T_P^n(\textbf{K}) \sqsubseteq_\sigma \textbf T_P^n(\textbf{J} = \textbf{J}$. Hence, $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$.
+$$\textbf{K} \sqsubseteq_\sigma T_P(\textbf{K}) \sqsubseteq_\sigma T_P^2(\textbf{K}) \sqsubseteq_\sigma T_P^3(\textbf{K}) \sqsubseteq_\sigma \dots \sqsubseteq_\sigma T_P^*(\textbf{K}) $$
+
+
+We will now prove that this is the minimum fix-point of $T_P$ containing $\textbf{K}$. Let us suppose that $\textbf{J}$ is a fix-point of $T_P$ containing  $\textbf{K}$:  $\textbf{K} \sqsubseteq_\sigma \textbf{J}$. By applying $T_P$ $n$ times to both sides of the inequality, we have that $T_P^*(\textbf{K}) = T_P^n(\textbf{K}) \sqsubseteq_\sigma \textbf T_P^n(\textbf{J}) = \textbf{J}$. Hence, $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$.
 
 \end{prof}
 
 \begin{exmp}
-As an example, let us recall the following program $P$ for computing shortest paths from a selected source to other vertices of a graph:
+As an example, let us recall the program for computing the shortest paths from a selected source to other vertices of a graph, which we repeat in Figure \ref{ssspexampledatalogra}.
 
 
 \dprog{
@@ -331,119 +332,101 @@ As an example, let us recall the following program $P$ for computing shortest pa
 }{
   & \textsc{Path} (t, d) &&  & \assign & && t = 1, d = 0. & \\
   & \textsc{Path} (t, d) &&  & \assign & && \textsc{Path} (s, d_1), \textsc{Edge} (s, t, d_2), d = d_1 + d_2. &
-}{\datalogra query for computing shortest paths from node 1 to other nodes}{}
+}{\datalogra query for computing the shortest paths from node 1 to other nodes.}{ssspexampledatalogra}
 
-In this program, we have the following aggregation function and column for relation $\textsc{Path}$ defined:
+In this program, we the following aggregation function for relation $\textsc{Path}$ is defined:
 
-$$ \aggcol_\textsc{Path} = 2 $$
 $$ \aggfun_\textsc{Path} = \lambda x, y. \min(x, y) $$
 
-$\aggfun_\textsc{Path}$ is naturally a join operation. It induces a partial order $\ge$: for $a, b \in \mathbb{N}$, $\min(a, b)$ is the least upper bound of $a$ and $b$ with respect to $\ge$.
+$\aggfun_\textsc{Path}$ is clearly a join operation. It induces a partial order $\ge$: for $a, b \in \mathbb{N}$, $\min(a, b)$ is the least upper bound of $a$ and $b$ with respect to $\ge$.
 
 The corresponding aggregation operator for \textsc{Path} is:
-$$g_\textsc{Path}(I) = \Big\{(x, t): (x, y) \in I \wedge t = \min(\{y: (x, y) \in I\})\Big\} $$
+$$g_\textsc{Path}(I) = \Big\{(x, t): (x, t) \in I \wedge t = \min(\{y: (x, y) \in I\})\Big\} $$
 
-The aggregation-aware ordering on instances of \textsc{Path} is then:
-$$ I_1 \sqsubseteq_\textsc{Path} I_2 \iff \forall_{(x, d) \in g_\textsc{Path}(I_1)} \exists_{(x', d') \in g_\textsc{Path}(I_2)} d \ge d' $$
-For \textsc{Edge}, the order on relation instances is simply given by inclusion: $\sqsubseteq_\textsc{Edge} = \subseteq$.
+The aggregation-aware ordering on instances of \textsc{Path} is:
+$$ I_1 \sqsubseteq_\textsc{Path} I_2 \iff \forall_{(x, d) \in g_\textsc{Path}(I_1)} \exists_{(x, d') \in g_\textsc{Path}(I_2)} d \ge d' $$
+For \textsc{Edge}, the order on relation instances is simply given by inclusion, i.e. $\sqsubseteq_\textsc{Edge}$ is by definition $\subseteq$.
 
 The order $\sqsubseteq$ on database instances over $\sch(P) = \{\textsc{Path}, \textsc{Edge}\}$ is as follows. Let \textbf{K}$_1$ and \textbf{K}$_2$ be any such database instances. By definition, $\textbf{K}_1 = P_1 \cup E_1$ and $\textbf{K}_2 = P_2 \cup E_2$, where $P_1, P_2$ are relations over \textsc{Path} and $E_1, E_2$ are relations over \textsc{Edge}.
 $$ K_1 \sqsubseteq K_2 \iff P_1 \sqsubseteq_\textsc{Path} P_2 \wedge E_1 \subseteq E_2 $$
 
-$P$ can be viewed as a Datalog program $P'$ with \aggcol and \aggfun additionally defined. As for any Datalog program, the immediate consequence operator for $T_{P'}(\textbf{K})$ is defined as the set of facts that are immediate consequences for $P'$ and \textbf{K}.
+$P$ can be viewed as a Datalog program $P'$ with \aggfun additionally defined. As for any Datalog program, the immediate consequence operator for $T_{P'}(\textbf{K})$ is defined as the set of facts that are immediate consequences for $P'$ and \textbf{K}.
 
-For $P$ to be a \datalogra program, $T_{P'}$ is required to be monotone with respect to $\sqsubseteq$. We will now show that this is the case.
+For $P$ to be a \datalogra program, $T_{P'}$ is required to be monotone with respect to $\sqsubseteq$. As ensuring this is the responsibility of the programmer, we will now show that this is the case.
 
-Let \textbf{K}$_1$ and \textbf{K}$_2$ be database instances over $\sch(P)$, such that $\textbf{K}_1 \sqsubseteq \textbf{K}_2$. By definition, $\textbf{K}_1 = P_1 \cup E_1$ and $\textbf{K}_2 = P_2 \cup E_2$, where $P_1, P_2$ are relations over \textsc{Path} and $E_1, E_2$ are relations over \textsc{Edge}.  $\textbf{K}_1 \sqsubseteq \textbf{K}_2$ means that $E_1 \subseteq E_2$ and $P_1 \sqsubseteq_\textsc{Path} P_2$. We need to show that $T_{P'}(\textbf{K}_1) \sqsubseteq T_{P'}(\textbf{K}_2)$. This is by definition equivalent to $E'_1 \subseteq E'_2 \wedge P'_1 \sqsubseteq_\textsc{Path} P'_2$, where $E'_1, E'_2, P'_1, P'_2$ are such that $T_{P'}(\textbf{K}_i) = E'_i \cup P'_i$, $P'_i$ is a relation instance over \textsc{Path} and $E'_i$ is a relation instance over \textsc{Edge}, for $i = 1, 2$.
+\begin{prof}
+Let \textbf{K}$_1$ and \textbf{K}$_2$ be database instances after aggregation over $\sch(P)$, such that $\textbf{K}_1 \sqsubseteq \textbf{K}_2$. By definition, $\textbf{K}_1 = P_1 \cup E_1$ and $\textbf{K}_2 = P_2 \cup E_2$, where $P_1, P_2$ are relations after aggregation over \textsc{Path} and $E_1, E_2$ are relations over \textsc{Edge}.  $\textbf{K}_1 \sqsubseteq \textbf{K}_2$ implies that $E_1 \subseteq E_2$ and $P_1 \sqsubseteq_\textsc{Path} P_2$. We need to show that $T_{P'}(\textbf{K}_1) \sqsubseteq T_{P'}(\textbf{K}_2)$. This by definition is equivalent to $E'_1 \subseteq E'_2 \wedge P'_1 \sqsubseteq_\textsc{Path} P'_2$, where $E'_1, E'_2, P'_1, P'_2$ are such that for $i = 1, 2$, $T_{P'}(\textbf{K}_i) = E'_i \cup P'_i$, $P'_i$ is a relation instance over \textsc{Path} and $E'_i$ is a relation instance over \textsc{Edge}.
 
-Let us recall that by definition of immediate consequence, $R(v) \in T_{P'}(\textbf{I})$ if and only if $R(v)$ is an immediate consequence for $P'$ and \textbf{I}, i.e.\ $R(v) \in \textbf{I}$ or there exists an instantiation $R(v) \assign R_1(v_1), \dots, R_n(v_n)$ of a rule in $P'$ such that $R_i(v_i) \in \textbf{I}$ for each $i = 1\dots n$.
+For any $\textsc{Edge}{(x, y, z)} \in E'_1$, it must be true that $\textsc{Edge}{(x, y, z)} \in E_1$, since there are no rules with \textsc{Edge} in head. Hence, as $E_1 \subseteq E_2$, \relat{Edge}{(x, y, z)}$ \in E_2$ and consequently \relat{Edge}{(x, y, z)}$ \in E'_2$, so $E'_1 \subseteq E'_2$.
 
-For any \relat{Edge}{(x, y, z)}$ \in E'_1$, it must be true that \relat{Edge}{(x, y, z)}$ \in E_1$, since there are no rules with \textsc{Edge} in head. Hence, \relat{Edge}{(x, y, z)}$ \in E_2 \supseteq E_1$ and consequently \relat{Edge}{(x, y, z)}$ \in E'_2$, so $E'_1 \subseteq E'_2$.
+$P'_1 \sqsubseteq_\textsc{Path} P'_2$ is by definition equivalent to $\forall_{(v, d) \in g_\textsc{Path}(P'_1)} \exists_{(v, d') \in g_\textsc{Path}(P'_2)} d \ge d' $.  To prove this, let us suppose by contradiction that this does not hold, that is that for some $(v, d) \in g_\textsc{Path}(P'_1)$, for all $d'$ such that $(v, d') \in g_\textsc{Path}(P'_2)$, it holds that $d < d'$.
 
-For any \relat{Path}{(x, y, z)}$ \in P'_1$, there are two options: either \relat{Path}{(x, y, z)}$ \in P_1$ or there exists corresponding instantiation of one of the two rules for \textsc{Path}.
+Since $g_\textsc{Path}$ groups by first column and aggregates second column with $\min$, we know that $(v, d) \in P'_1$. By definition of immediate consequence, this means that either $(v, d) \in P_1$ or there is a corresponding instantiation of one of the rules.
 
-%Let us consider the first case. Since \relat{Path}{(x, y)}$ \in P_1$, we know that there exists \relat{Path}{(x, y')$ \in g_\textsc{Path}(P_1)$ such that \relat{Path}{(x, y')}$ \subseteq_\textsc{Path} $ \relat{Path}{(x, y)}. Since $P_1 \subseteq_\textsc{Path} P_2$, there has to exist \relat{Path}{(x, y'')}$ \in fa$....
+$P_1, P_2$ are relations after aggregation, so $P_1 = g_\textsc{Path}(P_1)$ and $P_2 = g_\textsc{Path}(P_2)$
 
+\todo{tu jest coś nie tak, brakuje kropki i następne zdanie nie jest zdaniem dale się pogubiłem - widzę, że zaczynasz rozpatrywać przypadki, ale nigdzie nie napisałeś że zaczynasz - zazwyczaj pisze się, że możliwe są (1), ..., (2), ... (3) ... żeby było jasne że to wszystkie możliwści i potem się kolejne rozważa sprawdź to solidnie!}
+If $(v, d) \in P_1 = g_\textsc{Path}(P_1)$. Since $P_1 \sqsubseteq_\textsc{Path} P_2$, there exists $d^* \le d$ such that $(v, d^*) \in g_\textsc{Path}(P_2)$. By definition of $g_\textsc{Path}$, $(v, d^*) \in P_2$. By definition of immediate consequence, $(v, d^*) \in P'_2$, so it cannot hold that $d < d'$ for all $d'$ such that $(v, d') \in g_\textsc{Path}(P'_2)$.
 
-%it must be true that \relat{Edge}{(x, y, z)}$ \in E_1$, since there are no rules with \textsc{Edge} in head. Hence, \relat{Edge}{(x, y, z)}$ \in E_2 \supseteq E_1$ and consequently \relat{Edge}{(x, y, z)}$ \in E'_2$, so $E'_1 \subseteq E'_2$.
+If there exists a corresponding instatiantion of the first rule in $\textbf{K}_1$, i.e. $(v, d) = (1, 0)$, we also have the same instatiation in $\textbf{K}_2$, so $(1, 0) \in P'_2$ and it also cannot hold that $d < d'$ for all $d'$ such that $(v, d') \in g_\textsc{Path}(P'_2)$.
 
-\todo{Finish this proof.}
+The last possibility is that there is a corresponding instatiantion of the second rule in $\textbf{K}_1$, i.e. there exist $s, d_1, d_2$ such that $d = d_1 + d_2$, $(s, d_1) \in P_1$ and $(s, v, d_2) \in E_1$. Since $\textsc{Path}(s, d_1) \in P_1 = g_\textsc{Path}(P_1)$ and $P_1 \sqsubseteq_\textsc{Path} P_2$, there exists $d^*_1 \le d_1$ such that $(s, d^*_1) \in g_\textsc{Path}(P_2)$.  By definition of $g_\textsc{Path}$, $(s, d^*_1) \in P_2$. Additionally, $(s, v, d_2) \in E_1 \subseteq E_2$. Therefore, $\textsc{Path} (v, d^*) \assign \textsc{Path} (s, d^*_1), \textsc{Edge} (s, v, d_2), d^* = d^*_1 + d_2$, where $d^* = d^*_1 + d_2 \le d_1 + d_2 = d$ is an instatiation of the second rule in $\textbf{K}_2$. This means that $(v, d^*) \in P_2$, so again it cannot hold that $d < d'$ for all $d'$ such that $(v, d') \in g_\textsc{Path}(P'_2)$. 
 
-
-
+Since each of the three possibilities results in a contradiction, it follows that $P'_1 \sqsubseteq_\textsc{Path} P'_2$. Therefore $T_{P'}(\textbf{K}_1) \sqsubseteq T_{P'}(\textbf{K}_2)$, which proves that $T_{P'}$ is monotone with respect to $\sqsubseteq$.
+\end{prof}
 \end{exmp}
 
 \subsection{Evaluation}
-A straightforward way to evaluate $P(\textbf{K})$, i.e.\ to compute the minimal fix-point of $T_P$ containing $\textbf{K}$, is to iteratively apply $T_P$ to $\textbf{K}$ until a fix-point is reached. This algorithm, used also in Datalog and described in detail in Section \ref{ss:datalognaiveeval}, can be directly applied also in \datalogra. The only difference is the immediate consequence operator which is used: to evaluate \datalogra programs, one needs to use the $T_P$ operator for \datalogra, which takes into account the aggregation to be applied.
+A straightforward way to evaluate $P(\textbf{K})$, i.e.\ to compute the minimal fix-point of $T_P$ containing $\textbf{K}$, is to iteratively apply $T_P$ to $\textbf{K}$ until a fix-point is reached. This algorithm, used in Datalog and described in detail in Section \ref{ss:datalognaiveeval}, can also be directly applied in \datalogra. The only difference is that the immediate consequence operator which is used needs to take into account the aggregations.
 
 \subsubsection{Semi-naive evaluation} Semi-naive evaluation, the most basic optimization technique used in Datalog evaluation, can be easily adopted in \datalogra.
 
-In semi-naive evaluation of Datalog, which is described in Section \ref{ss:seminaiveevaldatalog}, $T_P$ in a more efficient way than in the naive evaluation. To achieve this, a $T^\Delta_P$ function is used. $T_P^\Delta(I, \Delta)$ evaluates rules of program $P$ on database instance $I$ and a set of new facts from last iteration $\Delta$, so that at least one new fact is used in application of each rule. Output of $T^\Delta_P$ is then merged with the current database instance.
+In semi-naive evaluation of Datalog, which is described in Section \ref{ss:seminaiveevaldatalog}, $T_P$ is computed in a more efficient way than in the naive evaluation. To achieve this, a $T^\Delta_P$ function is used. $T_P^\Delta(I, \Delta)$ evaluates the rules of program $P$ on database instance $I$ and the set of new facts from the last iteration $\Delta$, so that at least one new fact is used in the application of each rule. In each iteration, $T^\Delta_P$ is applied to the full database and $\Delta$ from in the last step and the output is merged with the current database instance.
 
-In evaluation of a program $P$ in \datalogra, such that $P = (P', \aggcol, \aggfun)$ where $P'$ is a Datalog program, we can use this technique to efficiently compute $T_{P'}$. The full algorithm is presented on the following pseudocode:
+In the evaluation of a program $P$ in \datalogra, such that $P = (P', \aggfun)$ where $P'$ is a Datalog program, we can use this technique to efficiently compute $T_{P'}$. The full algorithm is presented in pseudocode in Figure \ref{psc:seminaiveevaldatalogra}.
+
+\begin{figure}[!htbp]
+\begin{codebox}
+  \Procname{$\proc{Semi-naive-Evaluate-DatalogRA}(P,~\textbf{K})$}
+  \li $I_0 \leftarrow K$, $\Delta_0 \leftarrow K$
+  \li $i \leftarrow 0$
+  \li \Repeat
+	\li $i \leftarrow i + 1$
+	\li $C_i \leftarrow T_P^\Delta(I_{i-1}, \Delta_{i-1})$
+	\li $I_i \leftarrow G_P(C_i \cup I_{i-1})$
+	\li $\Delta_i \leftarrow I_i - I_{i-1}$
+  \li \Until $\Delta_i = \emptyset$
+  \li \Return $I_i$
+\end{codebox}
+\caption{Semi-naive evaluation algorithm for \datalogra}\label{psc:seminaiveevaldatalogra}
+\end{figure}
 
 
-\parbox{0.5\textwidth}{
-$P(\textbf{K}) = \{$
-
-{\addtolength{\leftskip}{5mm}
-
-$I_0 \leftarrow K$
-$\Delta_0 \leftarrow K$
-
-$i \leftarrow 0$
-
-\textbf{repeat}
-
-{\addtolength{\leftskip}{5mm}
-
-$i \leftarrow i + 1$
-
-$C_i \leftarrow T_P^\Delta(I_{i-1}, \Delta_{i-1})$
-
-$I_i \leftarrow G_P(C_i \cup I_{i-1})$
-
-$\Delta_i \leftarrow I_i - I_{i-1}$
-
-}
-
-\textbf{until} $\Delta_i = \emptyset$
-
-\textbf{return} $I_i$
-
-}
-
-$\}$
-}
-
-The only difference from the algorithm for Datalog without aggregation described in Section \ref{ss:seminaiveevaldatalog} is that is each step $G_P$ is applied to the newly computed database instance.
+The only difference between this algorithm and the semi-naive evaluation algorithm for Datalog described in Section \ref{ss:seminaiveevaldatalog} is that in each step $G_P$ is applied to the newly computed database instance.
 
 \subsection{Stratified \datalogra}
-Negation can be introduced to \datalogra in the same way as to regular Datalog: by stratification. Intuitively, if there is are no recursive calls are not negated, then the program's can be divided into smaller subprograms, called \emph{strata}, so that there is no cyclic dependency between relations defined in different strata. The whole program can be then evaluated by evaluating the subprograms for each stratum in the topological order. Stratification and semantics for \datalogneg are described in detail in \ref{ss:datalogneg}.
+Negation can be introduced to \datalogra in the same way as to regular Datalog --- by stratification. Intuitively, if there are no negated recursive calls, then the program can be divided into smaller subprograms, called \emph{strata}, so that there is no cyclic dependency between relations defined in different strata. The whole program can be then evaluated by evaluating the subprograms for each stratum in the topological order. Stratification and semantics for \datalogneg are described in detail in Subsection \ref{ss:datalogneg}.
 
-We have already defined semantics for \datalogra without negation. It can be naturally extended to semantics of semi-positive \datalogra programs, i.e.\ programs in \datalogra that can also use \edb relations in a negated subgoal. This defines the semantics for an individual stratum.
+We have already defined the semantics for \datalogra without negation. It can be naturally extended to the semantics of semi-positive \datalogra programs, i.e.\ programs in \datalogra that can also use \edb relations in a negated subgoal. This defines the semantics for an individual stratum.
 
-To obtain the semantics of a general program in \datalogra with negation, let us notice that stratification can be applied to \datalogra programs with negation just like to regular \datalogneg programs. The only difference is that when $P$ is partitioned into the strata $P_1, \dots, P_n$, each stratum $P_i$ can contain recursive aggregation. In other words, it each $P_i$ is a semi-positive \datalogra program. Therefore, each $P_i$ is evaluated using the \datalogra semantics, instead of a regular Datalog semantics.
-
-%\section{Tail-nested tables}\label{s:tnt}
-%Another important extension in SociaLite are \emph{tail nested tables}, which optimize the memory layout so that it can be accessed in a faster way. While being very useful in practice, this optimization is not crucial for running such programs on distributed architecture. \todo{I don't want to have this in the compiler, but maybe describe here?}
+To obtain the semantics of a general program in \datalogra with negation, let us notice that stratification can be applied to \datalogra programs with negation just like to regular \datalogneg programs. The only difference is that when $P$ is partitioned into the strata $P_1, \dots, P_n$, each stratum $P_i$ can contain recursive aggregation. In other words, it each $P_i$ is a semi-positive \datalogra program. Therefore, each $P_i$ is evaluated using the \datalogra semantics, instead of the regular Datalog semantics.
 
 \section{Distributed SociaLite}\label{s:distributed}
-Running a program on a single machine significantly limits the scale of problems which can be addressed. Large datasets cannot be fit into one computer's memory, and the running time is usually too large for practical applications. To be able to perform computations on large datasets, they must be distributed across multiple machines. This rule also applies to programs in Datalog and in its variants such as \datalogra.
+Running a program on a single machine significantly limits the scale of problems which can be addressed. Large datasets will not fit into one computer's memory, and the running time is usually too large for practical applications. It is not possible to perform computations on large datasets, unless they are distributed across multiple machines. This rule also applies to programs in Datalog and its variants such as \datalogra.
 
-The second paper on SociaLite \cite{distsoc} describes one of the possible ways to distribute evaluation of such programs. It proposes that each relation is distributed across workers based on the values in the first column. The facts from relations are sharded either with a hash function, or by dividing the possible values range into equal parts. The first column, by which the sharding is done, is distinguished by writing it separately in [], for example:
+The second paper on SociaLite \cite{distsoc} describes one of the possible ways of distributing evaluation of such programs. It proposes that each relation is distributed across workers based on the values in its first column. The facts from relations are sharded either with a hash function, or by dividing the possible value ranges into equal parts. The first column, by which the sharding is done, is distinguished by writing it separately in square brackets, for example the following rule for each fact $(1, v, d)$ in \textsc{Edge} adds a fact $(v, d)$ to \textsc{Path}:
 $$\textsc{Path}[v](d) :- \textsc{Edge}[1](v, d)$$
 
-The evaluation is performed on the workers, which are coordinated by a \emph{master node} and send each other the facts they need. Fault tolerance is achieved by checkpointing the state of the computation on distributed file system every few evaluation steps.
+The evaluation is performed on the workers, which are coordinated by a \emph{master node} and distribute between themselves the facts they need. Fault tolerance is achieved by checkpointing the state of the computation on distributed file system every few evaluation steps.
 
 In Chapter \ref{r:implementation} we present an alternative way of parallelizing Datalog evaluation --- by translating the program into a set of Apache Spark's native operations on RDDs.
 
 \section{Differences from original SociaLite formulation}
 
-The version of Datalog presented here differs from original description found in the original papers introducing SociaLite \cite{socialite, distsoc}.
+The version of Datalog presented here differs from the original description found in \cite{socialite, distsoc}.
 
-We presented a precise definition of a \datalogra program and the well-defined conditions for it to have an unambiguous solution. While the original papers contains these conditions, it lacks precise definitions of the notions used, such as the order on database instances.
+We presented a precise definition of a \datalogra program and the well-defined conditions for it to have an unambiguous solution. While the original papers contains these conditions, they lack precise definitions of the notions used, such as the order on database instances.
 
-In our definition, the syntax for declaring the aggregated column and function is to place them in the relation declaration, while in the original paper it is connected with the rules. We believe that this can enhance the readability of \datalogra programs.
+In our definition, the syntax for declaring the aggregated column and function is to place them in the preamble, while in the original paper the aggregations are placed in the rules' heads. We believe that our approach can enhance the readability of \datalogra programs.
 
-In \cite{socialite, distsoc} recursive aggregate functions are defined using \emph{meet operation}, which is dual to join operation, but induces a partial order in which the outcome of the operation is the greatest lower bound instead of the least upper bound. This requires the semantics of a program to be defined using a greatest fixed point. We decided to use join operations, as it allows the semantics to be defined with the least fixed point, consistently with regular Datalog.
+In \cite{socialite, distsoc} recursive aggregate functions are defined using \emph{meet operation}, which is dual to join operation, but induces a partial order in which the outcome of the operation is the greatest lower bound instead of the least upper bound. This requires the semantics of a program to be defined using the greatest fixed point. We decided to use join operations, as it allows the semantics to be defined with the least fixed point, consistently with regular Datalog.

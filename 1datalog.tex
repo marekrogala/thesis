@@ -5,38 +5,38 @@ In this chapter we describe the basic Datalog language and its typical extended 
 
 Languages based on relational algebra and relational calculus, like SQL, are widely used and researched as query languages for relational databases. This dates back to Edgar F. Codd's relational model \cite{coddrelmodel} introduced in 1970. Unfortunately, such languages leave some simple operations that they cannot handle. Examples of such problems are transitive closure of a graph or distances from a vertex to all other vertices. Although new implementations of SQL permit recursion, it is usually not suitable for expressing complex graph algorithms in an easy and succinct way.
 
-Datalog \cite{fod} is a query language which allows for solving those problems, thanks to the availability of recursion. Without the recursion, Datalog (with negation) has the same expressive power as both relational algebra and relational calculus. The language appeared around 1978 and is inspired by the logical programming paradigm. Recently, there is an increasing interest in Datalog research as well as its implementations in industry. Datalog is typically extended with negation and simple, non-recursive aggregation.
+Datalog \cite{fod} is a query language which allows for solving those problems due to the availability of recursion. Without the recursion, Datalog (with negation) has the same expressive power as both relational algebra and relational calculus. The language appeared around 1978 and was inspired by the logical programming paradigm. Recently, there has been an increasing interest in Datalog research as well as in its industrial implementations. Datalog is typically extended with negation and simple, non-recursive aggregation.
 
-Let us begin with an example of a problem which cannot be solved in relational calculus, but can easily be solved in Datalog.
+Let us begin with an example of a problem which cannot be solved in relational calculus, but can be easily solved in Datalog.
 
-Let us suppose that we have a database with a binary relation $\textsc{Edge}$. The database represents a graph $G$: $\textsc{Edge}(a, b)$ means that there is an edge in $G$ between vertices $a$ and $b$. Given a selected vertex $s$, we would like to find all vertices in $G$ that are reachable from $s$.
+Let us suppose that we have a database with a binary relation $\textsc{Edge}$. The database represents graph $G$:	 $\textsc{Edge}(a, b)$ means that there is an edge in $G$ between vertices $a$ and $b$. Given a selected vertex $s$, we would like to find all vertices in $G$ that are reachable from $s$.
 
-Unfortunately, unless we have some additional assumptions about $G$, it can be proven that this kind of query is not expressible in relational calculus \cite{fod}. Intuitively, what is necessary to answer such queries is some kind of conditional iteration or recursion, which is the most important feature of Datalog.
+Unfortunately it can be proven that this kind of query is not expressible in relational calculus \cite{fod}, unless we make some additional assumptions about $G$. Intuitively, what is necessary to answer such queries is some kind of conditional iteration or recursion, which is the most important feature of Datalog.
 
 \section{History}
 
-Datalog is not credited to any particular researchers since it originated as an extension or restriction of various other languages, including logic programming languages. It emerged as a separate area of research around 1977. It is believed that professor David Maier is the author of the name \emph{Datalog}.
+Datalog is not credited to any particular researchers since it originated as an extension or restriction of various other languages, including logic programming languages. It emerged as a separate area of research around 1977. Professor David Maier is believed to be the author of the name \emph{Datalog}.
 
 Datalog is described in detail in classical books on databases theory, such as \emph{Foundations of Databases} \cite{fod}.
 
-The language has been proven to be useful in various fields like program analysis \cite{pointanalysis}, network systems \cite{boomanalysis, dataloganalysis}. It is also used to formally define computational problems which can be solved with different models and frameworks, allowing for comparison of those frameworks and their optimizations \cite{ullman}. 
+The language has been proven to be useful in various fields like program analysis \cite{pointanalysis} and network systems \cite{boomanalysis, dataloganalysis}. It is also used to formally define computational problems which can be solved with different models and frameworks, allowing for the comparison of those frameworks and their optimizations \cite{ullman}. 
 
-Some of the most important fields of research concerning Datalog are optimizations in programs evaluation, e.g. magic sets \cite{magicsets} and subsumptive queries \cite{subsumptivequeries}, and extensions to the language \cite{magicsetsexist, disjunctivedatalog, datalogrelaunched}.
+Some of the most important fields of research concerning Datalog are the optimizations in programs evaluation, e.g. magic sets \cite{magicsets} and subsumptive queries \cite{subsumptivequeries} as well as extensions to the language \cite{magicsetsexist, disjunctivedatalog, datalogrelaunched}.
 
-Recently there is also an increasing interest in applications of Datalog in industry. Two examples worth mentioning are LogicBlox and Datomic. LogicBlox \cite{logicblox} delivers a high performance database which can be queried with a Datalog variant called LogiQL.  Datomic \cite{datomic} is a distributed database with an innovative architecture featuring immutable records and temporal queries, which uses Datalog as a query language.
+Recently there also has been an increasing interest in applications of Datalog in industry. Two examples worth mentioning are LogicBlox and Datomic. LogicBlox \cite{logicblox} provides a high performance database which can be queried with a Datalog variant called LogiQL.  Datomic \cite{datomic}, which uses Datalog as a query language, is a distributed database with an innovative architecture featuring immutable records and temporal queries.
 
 \section{Introduction to Datalog}
 
-Before we formally define Datalog syntax and semantics in the following sections, let us take a look at an example program in this language.
+Before we formally define Datalog syntax and semantics in the further sections, let us take a look at an example program in this language.
 
 As before, let us assume that the database contains a relation $\textsc{Edge}$ representing a graph and $\textsc{Edge}(a, b)$ means that there is an edge between vertices $a$ and $b$. Figure \ref{ex:tcdatalog} presents a program that computes relation $\textsc{Tc}$ containing a transitive closure of the relation $\textsc{Edge}$.
 
 \dprog{}{
   & \textsc{Tc} (a, b) &&  & \assign & && \textsc{Edge} (a, b). & \\
   & \textsc{Tc} (a, b) &&  & \assign & && \textsc{Tc} (a, c), \textsc{Edge}(c, b). &\\
-}{Datalog query for computing transitive closure of a graph}{ex:tcdatalog}
+}{Datalog query for computing transitive closure of a graph.}{ex:tcdatalog}
 
-This program contains two rules. The first one states that if there is an edge between $a$ and $b$, then also there is such edge in the transitive closure. The second rule says that if there is a connection in the transitive closure between $a$ and some $c$ and at the same time there is an edge between $c$ and $b$ in the original graph, then there also exists a connection in transitive closure between $a$ and $b$. This is where recursion occurs: $\textsc{Tc}$ appears on both sides of the second rule.
+This program contains two rules. The first one states that if there is an edge between $a$ and $b$, then there also is such an edge in the transitive closure. The second rule says that if there is a connection in the transitive closure between $a$ and some $c$ and there is an edge between $c$ and $b$ in the original graph, then there also exists a connection in transitive closure between $a$ and $b$. This is where recursion occurs, as $\textsc{Tc}$ appears on both sides of the second rule.
 
 For example, let $\textsc{Edge}$ contain the following facts:
 
@@ -83,20 +83,20 @@ The result computed by the program is:
 \end{center}
 
 
-Both rules can add new facts to the relation $\textsc{Tc}$, since each of them has $\textsc{Tc}$ on its left side. We can view $\textsc{Tc}$ as an output of this program. On the other hand, $\textsc{Edge}$ appears only on the right side of the rules. The program can not produce any new $\textsc{Edge}$ facts, so $\textsc{Edge}$ must be given to the program as an input. As we can see, the program defines a function from an instance of relation $\textsc{Edge}$ into an instance of relation $\textsc{Tc}$. We will define this more formally in this chapter.
+Both rules can add new facts to the $\textsc{Tc}$ relation, since each of them has $\textsc{Tc}$ on its left side. We can view $\textsc{Tc}$ as an output of this program. On the other hand, $\textsc{Edge}$ appears only on the right side of the rules. The program can not produce any new $\textsc{Edge}$ facts, so $\textsc{Edge}$ must be given to the program as an input. As we can see, the program defines a function from an instance of relation $\textsc{Edge}$ into an instance of relation $\textsc{Tc}$. We will define this more formally in the present chapter.
 
 \subsection{Differences between Datalog and Prolog}
-Datalog was largely inspired by logic programming languages such as Prolog. Datalog's and Prolog's syntax are very similar.
+Datalog was largely inspired by logic programming languages such as Prolog. Datalog's and Prolog's syntaxes are very similar.
 Despite the close relation between Datalog and logic programming languages, there are some significant differences:
 
 \begin{itemize}
 \item In Prolog, one can use complex terms as arguments to predicates, for example $p(s(x), y)$, which is not permitted in Datalog, where the only allowed arguments are constants and variables.
-\item One of the important language constructs in Prolog is the cut operator ``!'', which allows to express negation. There is no such operator in Datalog. While some versions of Datalog have the notion of negation, it is still different than the cut operator known from Prolog.
-\item Datalog requires the rules to be \emph{safe}, which means that every variable mentioned in a rule must be also mentioned at least once in a non-negated, non-arithmetic sense.
-\item Unlike Prolog, the order of rules and subgoals in Datalog does not change the program's semantics.
+\item One of the important language constructs in Prolog is the cut operator ``!'', which allows for expressing negation. There is no such operator in Datalog. While some versions of Datalog have the notion of negation, it is different than the cut operator known from Prolog.
+\item Datalog requires the rules to be \emph{safe}, which means that every variable mentioned in a rule must also be mentioned at least once in a non-negated, non-arithmetic sense.
+\item Unlike Prolog, the order of rules and subgoals in Datalog does not change the program semantics.
 \end{itemize}
 
-Datalog is less expressive than Prolog. In contrast to Prolog, it is not Turing-complete. This obviously restricts the set of problems which can be solved with Datalog, but at the same time it allows more to be reasoned about Datalog programs, giving more possibilities to optimize their evaluation.
+Datalog is less expressive than Prolog. In contrast to Prolog, it is not Turing-complete. This obviously restricts the set of problems which can be solved with Datalog, but at the same time it allows more to be reasoned about Datalog programs and gives more possibilities to optimize their evaluation.
 
 \section{Datalog syntax}
 Let us define Datalog programs and rules.
@@ -115,7 +115,7 @@ Intuitively, if there is a free variable in the head, it should also appear in a
 A rule is \emph{safe} iff each free variable appearing in its head also appears in at least one of the subgoals.
 \end{defn}
 
-A program in Datalog consists of some number of rules, all of which are required to be safe. Order of the rules is irrelevant.
+A program in Datalog consists of some number of rules, all of which are required to be safe. The order of the rules is irrelevant.
 
 \begin{defn}[Program in Datalog]\label{d:datalogprog}
 A \emph{program} in Datalog is a finite set of safe rules.
@@ -133,10 +133,10 @@ The rules of a Datalog program $P$ divide the relations into two disjoint classe
 \end{itemize}
 \end{defn}
 
-The set of extensional relations is called the \emph{extensional database} or the \edb, whereas the set of intensional relations is called the \emph{intensional database} or the \idb. For a program $P$, the \emph{extensional database schema}, denoted by $\edb(P)$, is the set of all extensional relation names. Similarly, the \emph{intensional database schema}, denoted by $\idb(P)$, is the set of all intensional relation names. 
+The set of extensional relations is called the \emph{extensional database} or the \edb, whereas the set of intensional relations is called the \emph{intensional database} or the \idb. For program $P$, the \emph{extensional database schema}, denoted by $\edb(P)$, is the set of all extensional relation names. Similarly, the \emph{intensional database schema}, denoted by $\idb(P)$, is the set of all intensional relation names. 
 
 \begin{exmp}
-As an example, let us consider the program $P$ presented on Figure~\ref{d:ancestors}.
+As an example, let us consider the program $P$ presented in Figure~\ref{d:ancestors}.
 
 \begin{figure}[!ht]
 \begin{flalign*}
@@ -148,7 +148,7 @@ As an example, let us consider the program $P$ presented on Figure~\ref{d:ancest
 \caption{Datalog program for computing ancestors based on a database with relations \relat{Parent}{}, \relat{Woman}{} and \relat{Man}{}.}\label{d:ancestors}
 \end{figure}
 
-Let \relat{Parent}{(p, c)} mean that $p$ is $c$'s parent and \relat{Woman}{(x)} and \relat{Man}{(x)} tell whether person $x$ is a woman or a man, respectively. As will be clear after defining program semantics in \ref{ss:datalogsemantics}, this program computes child's father, mother and all its ancestors that can be derived.
+Let \relat{Parent}{(p, c)} mean that $p$ is $c$'s parent and \relat{Woman}{(x)} and \relat{Man}{(x)} state whether person $x$ is a woman or a man, respectively. As will be clear after defining the program semantics in \ref{ss:datalogsemantics}, this program computes child's father, mother and all its ancestors that can be derived.
 
 \edb and \idb for $P$ are the following:
 \begin{align*}
@@ -161,21 +161,21 @@ Let \relat{Parent}{(p, c)} mean that $p$ is $c$'s parent and \relat{Woman}{(x)} 
 \end{exmp}
 
 \section{Datalog semantics}\label{ss:datalogsemantics}
-A Datalog program is essentially a function from database instances over $\edb(P)$ into database instances over $\sch(P)$. We assume that all \emph{edb} relations are provided in the input. \emph{idb} relations are always empty at the start of a computation and can only be populated by the corresponding rules.
+A Datalog program is essentially a function from database instances over $\edb(P)$ into database instances over $\sch(P)$. We assume that all \emph{edb} relations are provided in the input. \emph{idb} relations are always empty at the start of a computation and can only be populated by the rules.
 
 The exact semantics of a Datalog program can be defined using one of three  equivalent approaches.
 
 In the \emph{model theoretic} definition, we consider the rules of program $P$ to be logical properties of the desired solution. From all possible instances of the intensional database we choose those, which are a \emph{model} for the program, i.e. satisfy all the rules. The smallest such model is defined to be the semantics of $P$.
 
-The second approach is \emph{proof theoretic}, in which a fact is included in the result if and only if it can be derived, or proven using the rules. There are two strategies for obtaining proofs for facts: \emph{bottom up}, in which we start from all known facts and incrementally derive all provable facts, and \emph{top down}, which starts from a fact to be proven and seeks for rules and facts that can be used to prove it.
+The second approach is \emph{proof theoretic}, in which a fact is included in the result if and only if it can be derived, i.e. proven using the rules. There are two strategies for obtaining proofs for facts: \emph{bottom up}, in which we start from all known facts and incrementally derive all provable facts, and \emph{top down}, which starts from a fact to be proven and seeks for rules and facts that can be used to prove it.
 
-The third approach, on which we focus in this thesis is the \emph{least fix-point semantics}, which defines the result of a program as the least fix-point of some function. In this definition, a program is evaluated by iteratively applying the function until a fix-point is reached. This is very similar to the bottom-up evaluation strategy of the proof-theoretic approach.
+The third approach, on which we focus in this thesis is the \emph{least fix-point semantics}, defininf the program result as the least fix-point of some function. In this definition, a program is evaluated by iteratively applying the function until a fix-point is reached. This is very similar to the bottom-up evaluation strategy of the proof-theoretic approach.
 
 \subsection{Fix-point semantics}
-In this section we give the fix-point semantics for Datalog programs. A central notion in this definition is the \emph{immediate consequence} operator. Intuitively, that operator adds to the database new facts that could be immediately derived using one of the rules. In order to define the immediate consequence operator, let us first introduce the notion of an instantiation of a rule.
+In this section we give the fix-point semantics for Datalog programs. A central notion in this definition is the \emph{immediate consequence} operator. Intuitively, this operator adds to the database new facts that could be immediately derived using one of the rules. In order to define the immediate consequence operator, let us first introduce the notion of an instantiation of a rule.
 
 \begin{defn}[Instantiation]
-Given a rule $ \textsc{R}(x) \assign R_1(x_1), \dots, R_n(x_n). $, if $\nu$ is a valuation of variables appearing in this rule, then we obtain an \emph{instantiation} of this rule by replacing each tuple in the rule by its value $\nu(t)$:
+Given a rule $ \textsc{R}(x) \assign R_1(x_1), \dots, R_n(x_n). $, if $\nu$ is a valuation of variables appearing in this rule, then we obtain an \emph{instantiation} of this rule with replacing each tuple in the rule by its value $\nu(t)$:
 $$ \textsc{R}(\nu(x)) \assign R_1(\nu(x_1)), \dots, R_n(\nu(x_n)). $$
 \end{defn}
 
@@ -191,7 +191,7 @@ Given some database $\textbf{K}$ and a program $P$, we can infer facts using the
 
 \begin{defn}[Immediate consequence operator]
 
-For a program $P$ and a database instance $\textbf{K}$ over $\sch(P)$, we say that a fact $R(v)$ is an \emph{immediate consequence} for $\textbf{K}$ and $P$, if $R(v) \in \textbf{K}$ or there exists an instantiation $R(v) \assign R_1(v_1), \dots, R_n(v_n)$ of a rule in $P$ such that $R_i(v_i) \in \textbf{K}$ for each $i = 1\dots n$. The \emph{immediate consequence operator} for a Datalog program $P$ is a function $T_P: \inst(\sch(P)) \to \inst(\sch(P))$, such that:
+For a program $P$ and a database instance $\textbf{K}$ over $\sch(P)$, we say that a fact $R(v)$ is an \emph{immediate consequence} for $\textbf{K}$ and $P$, iff $R(v) \in \textbf{K}$ or there exists an instantiation $R(v) \assign R_1(v_1), \dots, R_n(v_n)$ of a rule in $P$ such that $R_i(v_i) \in \textbf{K}$ for each $i = 1\dots n$. The \emph{immediate consequence operator} for a Datalog program $P$ is a function $T_P: \inst(\sch(P)) \to \inst(\sch(P))$, such that:
 $$T_P(\textbf{K}) = \{ R(v): R(v) \text{ is an immediate consequence for } \textbf{K} \text{ and } P \}.$$
 
 \end{defn}
@@ -208,20 +208,20 @@ Hence, $R(v)$ is also an immediate consequence of $\textbf{J}$, and thus $R(v) \
 Since $R(v)$ was arbitrarily chosen, we have  $T_P(\textbf{I}) \subseteq T_P(\textbf{J})$ and so $T_P$ is a monotone function with respect to $\subseteq$.
 
 \subsubsection{Semantics of a Datalog program}
-The output of a Datalog program $P$ on some input $\textbf{K}$, denoted by $P(\textbf{K})$, is defined as the minimum fix-point of $T_P$ that contains $\textbf{K}$.
+The output of a Datalog program $P$ on some finite input database $\textbf{K}$, denoted by $P(\textbf{K})$, is defined as the minimum fix-point of $T_P$ that contains $\textbf{K}$.
 
 \begin{thm}\label{t:datalogfixpointsem}
-For any Datalog program $P$ and an instance $\textbf{K}$ over $\edb(P)$, there exists a finite minimum fix-point of $T_P$ containing $\textbf{K}$.
+For a Datalog program $P$ and a finite database instance $\textbf{K}$ over $\edb(P)$, there exists a finite minimum fix-point of $T_P$ containing $\textbf{K}$.
 \end{thm}
 \emph{Proof.}
-As it holds that $\adom(P) \cup \adom(\textbf{K})$ and the database schema $\sch(P)$ are all finite, there is a finite number $n$ of database instances over $\sch(P)$ that can be reached by iteratively applying $T_P$ to $\textbf{K}$. Hence, because of the monotonicity of $T_P$, the sequence $\{T_P^i(\textbf{K})\}_i$ reaches a fix-point: $T_P^n(\textbf{K}) = T_P^{n+1}(\textbf{K})$. Let us denote this fix-point by $T_P^*(\textbf{K})$.
+As it holds that $\adom(P) \cup \adom(\textbf{K})$ and the database schema $\sch(P)$ are all finite and rules of $P$ are safe, they do not introduce any other values, and so there is a finite number $n$ of database instances over $\sch(P)$ that can be reached by iteratively applying $T_P$ to $\textbf{K}$. Hence, because of the monotonicity of $T_P$, the sequence $\{T_P^i(\textbf{K})\}_i$ reaches a fix-point: $T_P^n(\textbf{K}) = T_P^{n+1}(\textbf{K})$. Let us denote this fix-point by $T_P^*(\textbf{K})$.
 
 The definition of $T_P$ implies that $\textbf{K} \subseteq T_P(\textbf{K})$.
 Because of monotonicity of $T_P$, we have inductively that $T_P^i(\textbf{K}) \subseteq T_P^{i+1}(\textbf{K})$.
 Hence, we have:
 $$\textbf{K} \subseteq T_P(\textbf{K}) \subseteq T_P^2(\textbf{K}) \subseteq T_P^3(\textbf{K}) \subseteq \dots \subseteq T_P^*(\textbf{K})$$
 
-We will now prove that $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$. Let us suppose that $\textbf{J}$ is a fix-point of $T_P$ containing  $\textbf{K}$:  $\textbf{K} \subseteq \textbf{J}$. By applying $T_P$ $n$ times to both sides of the inequality and observing that $T_P^n(\textbf{J}) = \textbf{J}$ as $\textbf{J}$ is a fix-point, we have $T_P^*(\textbf{K}) = T_P^n(\textbf{K}) \subseteq \textbf T_P^n(\textbf{J}) = \textbf{J}$. Hence, $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$.
+We will now prove that $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$. Let us suppose that $\textbf{J}$ is a fix-point of $T_P$ containing  $\textbf{K}$ as a subset, i.e.  $\textbf{K} \subseteq \textbf{J}$. By applying $T_P$ $n$ times to both sides of the inequality and observing that $T_P^n(\textbf{J}) = \textbf{J}$ as $\textbf{J}$ is a fix-point, we have $T_P^*(\textbf{K}) = T_P^n(\textbf{K}) \subseteq \textbf T_P^n(\textbf{J}) = \textbf{J}$. Hence, $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$.
 
 
 \begin{exmp}
@@ -282,16 +282,16 @@ The minimal fix-point of $T_P$ containing \textbf{K} is:
 
 
 \section{Evaluation of Datalog programs}
-The most straightforward evaluation algorithm for Datalog programs is the iterative evaluation derived from the fix-point definition of semantics. While having very simple formulation, this method is not efficient in a typical case due to redundant computation. The most basic optimization addressing this problem is \emph{semi-naive} evaluation, which tries to avoid computations that cannot bring any new facts. Naive and semi-naive evaluations are examples of the bottom-up strategy, where new facts are inferred based on the facts currently known.
+The most straightforward evaluation algorithm for Datalog programs is the iterative evaluation derived from the fix-point definition of semantics. While having a very simple formulation, this method is not efficient in a typical case due to redundant computation. The most basic optimization addressing this problem is the \emph{semi-naive} evaluation, which tries to avoid computations that cannot bring any new facts. Naive and semi-naive evaluations are examples of the bottom-up strategy, where new facts are inferred based on the facts currently known.
 
-There are also other, more optimized evaluation methods, such as magic sets \cite{magicsets} and subsumptive queries \cite{subsumptivequeries} as well. A top-down strategy \cite{fod, subsumptivequeries} is also possible, where queries are answered by making an attempt to prove a fact using available rules.
+There exist also other, more optimized evaluation methods, such as magic sets \cite{magicsets} and subsumptive queries \cite{subsumptivequeries}. The top-down strategy \cite{fod, subsumptivequeries} is also possible, where queries are answered by making an attempt to prove a fact using available rules.
 
 This section briefly describes the ways to evaluate Datalog programs.
 
 \subsection{Naive evaluation}\label{ss:datalognaiveeval}
-In naive evaluation, the computation starts with the initial database containing the \edb relations and repeatedly applies all the rules, until a fix-point is reached.
+In the naive evaluation the computation starts with the initial database containing the \edb relations and repeatedly applies all the rules until a fix-point is reached.
 
-In pseudocode, the algorithm for naive evaluation of a program $P$ on an input $\textbf{K}$ can be written as presented on Figure \ref{psc:naiveevaldatalog}.
+In pseudocode the algorithm for naive evaluation of a program $P$ on an input $\textbf{K}$ can be written as presented in Figure \ref{psc:naiveevaldatalog}.
 
 \begin{figure}[!htbp]
 \begin{codebox}
@@ -304,17 +304,17 @@ In pseudocode, the algorithm for naive evaluation of a program $P$ on an input $
   \li \Until $I_i = I_{i-1}$
   \li \Return $I_i$
 \end{codebox}
-\caption{Naive evaluation algorithm for Datalog}\label{psc:naiveevaldatalog}
+\caption{Naive evaluation algorithm for Datalog.}\label{psc:naiveevaldatalog}
 \end{figure}
 
 \begin{exmp}
-As an example, let us consider the program from Figure \ref{ex:tcofr}, which computes a transitive closure of a binary relation \relat{R}{}.
+As an example, let us consider the program shown in Figure \ref{ex:tcofr} which computes a transitive closure of a binary relation \relat{R}{}.
 \begin{figure}[!htbp]
 \begin{align*}
 \textsc{Tc}(x, y) &\assign~ \textsc{R}(x, y).\\
 \textsc{Tc}(x, y) &\assign~ \textsc{Tc}(x, z), \textsc{Tc}(z, y).
 \end{align*}
-\caption{Program computing transitive closure of relation \relat{R}{}\label{ex:tcofr}}
+\caption{Program computing transitive closure of relation \relat{R}{}\label{ex:tcofr}.}
 \end{figure}
 
 Given $K = \{\textsc{R}(1, 2), \textsc{R}(2, 3), \textsc{R}(3, 4), \textsc{R}(4, 5)\}$, the values produced in subsequent iterations are:
@@ -330,18 +330,19 @@ I_3 \leftarrow \{&\textsc{R}(1, 2), \textsc{R}(2, 3), \textsc{R}(3, 4), \textsc{
 \end{exmp}
 
 \subsection{Semi-Naive evaluation}\label{ss:seminaiveevaldatalog}
-A straightforward implementation of $T_P$ definition is to perform a natural join on subgoal relations and a projection to head variables. Example \ref{ex:naiveeval} shows that such implementation may be inefficient, because most of the facts are computed more than once.
+A straightforward implementation of the definition of $T_P$ is to perform a natural join on subgoal relations and then a projection to head variables. Example \ref{ex:naiveeval} shows that such implementation may be inefficient, because most of the facts are computed more than once.
 
-A simple observation is that the immediate consequence operator $T_P$ for any program $P$ is \emph{inflationary}, i.e. it possibly adds facts to the database, but can never remove any fact. In other words, $T_P(\textbf{I}) \supseteq \textbf{I}$ for any $I$. As a consequence, in an iterative evaluation which uses $T_P$, the database instance $\textbf{I}_i$ inferred in step $i$ is a superset any of the database instance $\textbf{I}_j$ that was derived in a previous step $j < i$. To name this property, we say that such semantics is \emph{inflationary}.
+A simple observation is that the immediate consequence operator $T_P$ for any program $P$ is \emph{inflationary}, i.e. it possibly adds facts to the database, but can never remove any fact. In other words, $T_P(\textbf{I}) \supseteq \textbf{I}$ for any $I$. As a consequence, in an iterative evaluation which uses $T_P$, the database instance $\textbf{I}_i$ inferred in step $i$ is a superset of any database instance $\textbf{I}_j$ that was derived in a previous step $j < i$. To name this property, we say that such semantics is \emph{inflationary}.
 
-\emph{Semi-naive evaluation} is the most basic optimization used in Datalog evaluation, in which $T_P$ is computed in an optimized way. It comes from the following observation: in a Datalog program, if some rule $Q$ produced a fact $R(t)$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule will produce this fact in each subsequent iteration, because of the inflationary semantics of the language. The goal of this optimization is to avoid those computations after producing the fact for the first time. This is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration. 
+The \emph{semi-naive evaluation} is the most basic optimization used in Datalog evaluation, in which $T_P$ is computed in a more efficient way. It comes from the following observation: in a Datalog program, if some rule $Q$ produces fact $R(t)$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule will produce this fact in each subsequent iteration, because of the inflationary semantics of the language. The goal of this optimization is to avoid such computations after producing the fact for the first time. This is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration. 
 
-Let $T^\Delta_P$ denote a function that evaluates rules of program $P$ so that at least one new fact is used in application of a rule. This function needs to know which facts are the new ones, so it takes two arguments: $I$ --- the full database instance and $\Delta$ --- a database instance containing the facts that were added in the last iteration. Note that this function does not necessarily return facts from $I$, so we will need to add them to the facts newly computed to get the same result as $T_P$, i.e. for each $i$, $T_P(I_i) = I_i \cup T_P^\Delta(I_i, \Delta_i)$. The following pseudocode on Figure \ref{psc:seminaiveevaldatalog} presents the algorithm for semi-naive evaluation of Datalog program $P$ on input database \textbf{K}.
+Let $T^\Delta_P$ denote a function that evaluates the rules of program $P$ so that at least one new fact is used in the application of a rule. This function needs to know which facts are the new ones, so it takes two arguments: $I$ --- the full database instance and $\Delta$ --- the database instance containing the facts that were added in the last iteration. Note that this function does not necessarily return facts from $I$, so we will need to add them to the newly computed facts in order to get the same result as $T_P$, i.e. for each $i$, $T_P(I_i) = I_i \cup T_P^\Delta(I_i, \Delta_i)$. Figure \ref{psc:seminaiveevaldatalog} presents the algorithm for semi-naive evaluation of Datalog program $P$ on input database \textbf{K}.
 
 \begin{figure}[!htbp]
 \begin{codebox}
   \Procname{$\proc{Semi-naive-Evaluate-Datalog}(P,~\textbf{K})$}
-  \li $I_0 \leftarrow K$, $\Delta_0 \leftarrow K$
+  \li $I_0 \leftarrow K$
+  \li $\Delta_0 \leftarrow K$
   \li $i \leftarrow 0$
   \li \Repeat
 	\li $i \leftarrow i + 1$
@@ -351,11 +352,11 @@ Let $T^\Delta_P$ denote a function that evaluates rules of program $P$ so that a
   \li \Until $\Delta_i = \emptyset$
   \li \Return $I_i$
 \end{codebox}
-\caption{Semi-naive evaluation algorithm for Datalog}\label{psc:seminaiveevaldatalog}
+\caption{Semi-naive evaluation algorithm for Datalog.}\label{psc:seminaiveevaldatalog}
 \end{figure}
 
 \begin{exmp}
-Let us consider the program and input from Example \ref{ex:naiveeval}. The facts computed by the Semi-naive evaluation in subsequent iterations would be:
+Let us consider the program and input from Example \ref{ex:naiveeval}. The facts computed by the Semi-naive evaluation in subsequent iterations would be the following:
 
 $$C_1 \leftarrow \{\textsc{Tc}(1, 2), \textsc{Tc}(2, 3), \textsc{Tc}(3, 4), \textsc{Tc}(4, 5)\}$$
 $$C_2 \leftarrow \{\textsc{Tc}(1, 3), \textsc{Tc}(2, 4), \textsc{Tc}(3, 5)\}$$
@@ -364,16 +365,16 @@ $$C_4 \leftarrow \{\textsc{Tc}(1, 5)\}$$
 \label{ex:semieval}
 \end{exmp}
 
-Semi-naive evaluation does not assure that each fact will be computed once, e.g. \relat{Tc}(1, 5) was computed more than once --- in third iteration because of $\textsc{Tc}(1, 3), \textsc{Tc}(3, 5)$ and in fourth iteration because of $\textsc{Tc}(1, 4), \textsc{Tc}(4, 5)$ --- but it eliminates a significant portion of redundant computation.
+Semi-naive evaluation does not ensure that each fact will be computed once, e.g. \relat{Tc}(1, 5) was computed more than once --- in the third iteration because of $\textsc{Tc}(1, 3), \textsc{Tc}(3, 5)$ and in the fourth iteration because of $\textsc{Tc}(1, 4), \textsc{Tc}(4, 5)$ --- but it eliminates a significant portion of redundant computation.
 
 \subsection{Other strategies}
 Naive evaluation and semi-naive evaluation are examples of the bottom-up approach, where we start with the initial database instance and gradually extend it with facts that can be inferred until a fix-point is reached.
 
 An opposite approach is possible as well. In top-down evaluation which originates in logic programs evaluation, we start with the query. For example, we would like to find all values of $x$, for which \relat{Tc}{(3, x)} is true. We can use the first rule: for \relat{Tc}{(3, x)} we would need \relat{R}{(3, x)}. The only such fact is \relat{R}{(3, 4)} for $x=4$. We can also use the second rule, which leaves us with finding $y$ such that \relat{Tc}{(3, y)}, which yields $y \in \{4\}$ by the first rule. Then, we need to find $x$ such that \relat{Tc}{(4, x)}, which by the first rule yields $x \in \{5\}$. The final result is thus $x \in \{4, 5\}$
 
-An advantage of the top-down approach is that id does not have to compute the whole database. Instead, it computes only the facts actually necessary.
+An advantage of the top-down approach is that it does not have to compute the whole database. Instead, it computes only the actually necessary facts.
 
-This can be also achieved in bottom-up evaluation by using optimization techniques such as \emph{magic sets} \cite{magicsets, fod} and \emph{Subsumptive queries} \cite{subsumptivequeries}. They involve transforming the relations and rules into a new program, which evaluation using the bottom-up approach essentially simulates evaluation using a top-down algorithm. Magic sets is a classical technique, while subsumptive queries is an example of a new development in the field, published in 2011.
+This can be also achieved in bottom-up evaluation by using optimization techniques such as \emph{magic sets} \cite{magicsets, fod} and \emph{subsumptive queries} \cite{subsumptivequeries}. They involve transforming the relations and rules into a new program, which evaluation using the bottom-up approach essentially simulates evaluation using a top-down algorithm. Magic sets is a classical technique, while subsumptive queries is an example of a new development in the field, published in 2011.
 
 \section{Typical extensions}
 Despite recursion, pure Datalog's expressive power is still not enough for many practical applications. Datalog is often extended with:
@@ -387,9 +388,9 @@ Despite recursion, pure Datalog's expressive power is still not enough for many 
 It this section we will briefly describe these extensions.
 
 \subsection{Arithmetic predicates}
-If we assume that all values in a selected column of a relation are numeric, it may be often useful to write Datalog programs that incorporate arithmetic comparisons between such values.
+If we assume that all values in a given column of a relation are numeric, it may often be useful to write Datalog programs that incorporate arithmetic comparisons between such values.
 
-Let us consider a following example. We have a database of employees consisting of two relations \relat{Boss}{} and \relat{Salary}: \relat{Boss}{(a, b)} means that employee $a$ is a direct boss of employee $b$ and \relat{Salary}(a, s) means that salary of employee $a$ is $s$. We assume that all values in the second column of relation \relat{Salary}{} are numeric. We would like to find all employees that earn more than their direct boss.
+Let us consider the following example. We have a database of employees consisting of two relations \relat{Boss}{} and \relat{Salary}: \relat{Boss}{(a, b)} means that employee $a$ is a direct boss of employee $b$ and \relat{Salary}(a, s) means that the salary of employee $a$ is $s$. All values in the second column of relation \relat{Salary}{} are assumed to be numeric. We would like to find all employees that earn more than their direct boss.
 
 \begin{center}
 \begin{tabular}{l}
@@ -407,53 +408,53 @@ Let us consider a following example. We have a database of employees consisting 
 \end{center}
 
 
-The following query with arithmetic comparisons solves this problem:
+The problem is solved by the following query with arithmetic comparisons:
 \begin{multline*}
 \textsc{EarnsMoreThanBoss} (employee) \assign \\ \textsc{Boss}(boss, employee), \textsc{Salary}(boss, bs), \textsc{Salary}(employee, es), es > bs. \\
 \end{multline*}
 
-We can think of arithmetic comparisons as a new kind of predicates, which are infinite built-in relations. Since we introduced implicit infinite relations, we need to adjust the definition \ref{d:datalogsaferule} of rule safety:
+Arithmetic comparisons can be thought of as a new kind of predicates, which are infinite built-in relations. Since we introduced implicit infinite relations, we need to adjust the definition \ref{d:datalogsaferule} of rule safety.
 
 \begin{defn}[Rule safety]\label{d:datalogcomparisonsaferule}
 A rule with arithmetic comparisons is \emph{safe} iff each free variable appearing in its head or in any of the comparisons also appears in at least one of the non-comparison subgoals.
 \end{defn}
 
-This version of the requirement assures that comparisons do not introduce any new values into the database.
+This version of the requirement ensures that comparisons do not introduce any new values into the database.
 
 \subsection{Datalog with negation}\label{ss:datalogneg}
-Pure version of Datalog permits recursion, but provides no negation. Negation allows to answer queries such as "which pairs of the nodes in graph are not connected?". There are several ways of adding negation to Datalog. One of the most prominent of them is the \emph{stratified semantics}, which we will present in this section. 
+Pure version of Datalog permits recursion but provides no negation. Negation allows to answer queries such as "which pairs of the nodes in graph are not connected?". There are several ways of adding negation to Datalog. One of the most prominent of them is the \emph{stratified semantics}, which we will present in this section. 
 
-In Datalog with negation, or \datalogneg, each relational subgoal may be negated, i.e. preceded with the negation symbol ,,$!$''. The negated subgoals are called \emph{negative} subgoals, and the rest of the subgoals is called \emph{positive} subgoals. Other types of subgoals are not allowed to be negated.
+In Datalog with negation, abbreviated \datalogneg, each relational subgoal may be negated, i.e. preceded with the negation symbol ``$!$". The negated subgoals are called \emph{negative} subgoals, and the rest of the subgoals is called \emph{positive} subgoals. Other types of subgoals, such as arithmetic comparisons, are not allowed to be negated.
 
 \begin{exmp}
-Let us consider the program for computing transitive closure \relat{Tc}{} of a relation \relat{R}{} from example \ref{ex:naiveeval}. The following rule computes the pairs of nodes which are indirectly connected, i.e. are in \relat{Tc}{}, but not in \relat{R}{}:
+Let us consider the program from example \ref{ex:naiveeval} which computes transitive closure \relat{Tc}{} of a relation \relat{R}{}. The following rule computes the pairs of nodes which are indirectly connected, i.e. are in \relat{Tc}{}, but not in \relat{R}{}:
 
 $$\textsc{Indirect}(x, y) \assign \textsc{R}(x, y),~!\textsc{Tc}(x, y).$$
 \end{exmp}
 
-When negative subgoals are permitted, we need to include them in the definition of rules safety. 
+When negative subgoals are permitted, we need to include them in the definition of rule safety.
 
 \begin{defn}[Rule safety]\label{d:datalognegsaferule}
 A rule in \datalogneg with arithmetic comparisons is \emph{safe} iff each free variable appearing in:
 \begin{itemize}
 \item its head,
 \item any of the comparisons,
-\item or in any of its negated subgoals.
+\item or in any of its negated subgoals
 \end{itemize}
 also appears in at least one of the non-negated relational subgoals.
 \end{defn}
 
-We will first consider a certain class of \datalogneg programs, called semi-positive programs, for which semantics of negation is straightforward. We will then move on to a more general version.
+We will first consider a certain class of \datalogneg programs, called semi-positive programs, for which the semantics of negation is straightforward. We will then move on to a more general version.
 
 \begin{defn}[Semi-positive program]
 A \datalogneg program $P$ is \emph{semi-positive}, iff for each rule in $P$, all its negated subgoals are over $\edb(P)$.
 \end{defn}
 
-For a semi-positive program, any relation used in a negative sense is an \edb relation, so it is constant during the evaluation of $P$. Negation could be eliminated from $P$ by introducing artificial negated \edb relations, i.e. $!R(x_1, \dots, x_k)$ holds iff $x_1, \dots, x_n$ are in the active domain and $(x_1, \dots, x_k) \notin R$. Thus, semi-positive programs can be evaluated using the fix-point semantics just like positive Datalog programs.
+For a semi-positive program, any relation used in a negated subgoal is an \edb relation, so it is constant during the evaluation of $P$. Such subgoals can be interpreted in the immediate consequence operator as artificial negated \edb relations, i.e. $!R(x_1, \dots, x_k)$ holds iff $(x_1, \dots, x_k) \notin R$. The updated definition of rule safety ensures that such subgoals do not introduce any new values into the database. Thus, semi-positive programs can be evaluated using the fix-point semantics just like positive Datalog programs.
 
-The situation is different when \idb relations are used in negative subgoals. Let us assume that we use the naive evaluation. In classical Datalog, all tuples added to the database during the evaluation remain there until its end. However, when negation is allowed, it is not true in general. Let us consider a program which has a rule with a negated subgoal $!R(u)$. Such rule might produce a tuple $t$ in iteration $i$ because some $t'$ is not in $R$ and thus $!R(t')$ is true. When $t'$ is added to relation $R$ in a subsequent iteration though, the rule can no longer produce $t$. Some versions of negation semantics in Datalog allow for removing tuples from relations during the evaluation \cite{fod}.
+The situation is different when \idb relations are used in negative subgoals. Let us suppose that we use the naive evaluation. In classical Datalog, all tuples added to the database during the evaluation remain there until its end. However, when negation is allowed, it is not true in general. Let us consider a program which has a rule with a negated subgoal $!R(u)$. Such rule might produce a tuple $t$ in iteration $i$ because some $t'$ is not in $R$ and thus $!R(t')$ is true. When $t'$ is added to relation $R$ in the subsequent iteration though, the rule can no longer produce $t$. Some versions of negation semantics in Datalog allow for removing tuples from relations during the evaluation \cite{fod}.
 
-In stratified semantics, we do not allow tuples to be removed from relations. Consequently, the inflationary semantics of Datalog is preserved. To achieve that, we require that if there is a rule for computing relation $R_1$ that uses $R_2$ in a negated subgoal, then relation $R_2$ has to be fully computed before evaluation of relation $R_1$. Intuitively, such order of computation is possible if there is no direct or indirect dependency on $R_1$ in any of the rules for $R_2$, i.e. $R_1$ and $R_2$ are not recursively dependent from each other. This is formalized this by the notion of strata.
+In stratified semantics, we do not allow tuples to be removed from relations. Consequently, the inflationary semantics of Datalog is preserved. To achieve that, we require that if there is a rule for computing relation $R_1$ that uses $R_2$ in a negated subgoal, then relation $R_2$ has to be fully computed before the evaluation of relation $R_1$. Intuitively, such order of computation is possible if there is no direct or indirect dependency on $R_1$ in any of the rules for $R_2$, i.e. $R_1$ and $R_2$ are not recursively dependent on each other. This is formalized by the notion of strata.
 
 \begin{defn}[Stratification]
 Let $P$ be a program in \datalogneg and $n = \|\idb(P)\|$ be the number of \idb relations in $P$. A function $\rho : \sch(P) \to \{1, . . . , n\}$ is called \emph{stratification} of $P$ iff for each rule $\phi$ in $P$ with head predicate $T$, the following are true: 
@@ -467,7 +468,7 @@ Let $P$ be a program in \datalogneg and $n = \|\idb(P)\|$ be the number of \idb 
 A program for which a stratification exists is called \emph{stratifiable}. 
 
 
-$\rho$ corresponds to a partitioning of $P$ into several subprograms $P_1, P_2, \dots, P_n$. Each of those programs is called a \emph{stratum} of $P$. $\rho(R)$ is called \emph{stratum number} of the relation $R \in \idb(P )$. The $i$-th stratum consists of the rules from $P$ which have a relation with stratum number $i$ in their head. We say that those relations are \emph{defined} in $P_i$. An example program with a stratification represented as a graph is presented on Figure \ref{fig:precedgraph}.
+$\rho$ corresponds to a partitioning of $P$ into several subprograms $P_1, P_2, \dots, P_n$. Each of those programs is called a \emph{stratum} of $P$. $\rho(R)$ is called \emph{stratum number} of the relation $R \in \idb(P )$. The $i$-th stratum consists of the rules from $P$ which have a relation with stratum number $i$ in their head. We say that these relations are \emph{defined} in $P_i$. An example program with a stratification represented as a graph is presented in Figure \ref{fig:precedgraph}.
 
 \begin{figure}[!htbp]
 \begin{minipage}{0.5\linewidth}
@@ -501,9 +502,9 @@ $\rho$ corresponds to a partitioning of $P$ into several subprograms $P_1, P_2, 
 \caption{A Datalog program and one of its possible stratifications.}\label{fig:precedgraph}
 \end{figure}
 
-Stratification assures that if a relation $R$ is used in rules of stratum $P_i$ in a positive subgoal, then $R$ must be defined in this stratum or one of the previous strata. Additionally, if a relation is used in stratum $P_i$ in a negated subgoal, then it must be defined in an earlier stratum. It is worth noting that this allows for recursive rules, unless the recursive subgoal is not negated.
+Stratification ensures that if a relation $R$ is used in rules of stratum $P_i$ in a positive subgoal, then $R$ must be defined in this stratum or one of the previous strata. Additionally, if a relation is used in stratum $P_i$ in a negated subgoal, then it must be defined in an earlier stratum. It is worth noting that this allows for recursive rules, unless the recursive subgoal is negated.
 
-For each $P_i$, $\idb(P_i)$ consists of the relations defined in this stratum, while $\edb(P_i)$ contains only relations defined in any of the earlier strata and relations from $\edb(P)$. By definition of stratification, the negative subgoals in rules of $P_i$ use only relations in $\edb(P_i)$. Hence, each $P_i$ is a semi-positive program and as such, it may be evaluated using the fix-point semantics.
+For each $P_i$, $\idb(P_i)$ consists of relations defined in this stratum, while $\edb(P_i)$ contains only relations defined in any of the earlier strata and relations from $\edb(P)$. By definition of stratification, the negative subgoals in rules of $P_i$ use only relations in $\edb(P_i)$. Hence, each $P_i$ is a semi-positive program and as such, it may be evaluated using the fix-point semantics.
 
 We require the programs in \datalogneg to be stratifiable. If $P$ can be stratified into $P_1, P_2, \dots P_n$, then the output of program $P$ on input $\textbf{I}$ is defined by applying programs $P_1, P_2, \dots P_n$ in a sequence:
 $$P(\textbf{I}) = P_n(\dots, P_2(P_1(\textbf{I}))\dots)$$
@@ -512,16 +513,16 @@ A program can have multiple stratifications, but it can be shown that $P(\textbf
 
 \subsection{Arithmetic functions}
 
-One of the extensions very useful in practice are arithmetic functions. In this extension, there is a new kind of subgoal, an \emph{assignment subgoal}, in the form of:
+One of extensions very useful in practice are arithmetic functions. In this extension, there is a new kind of subgoal, an \emph{assignment subgoal}, in the form of:
 $$x = y \diamond z$$
 where $x, y, z$ are free variables or constants and $\diamond$ is a binary arithmetic operation like addition, subtraction, multiplication, division etc.
 
-To give an adjusted version of definition of rule safety \ref{d:datalogcomparisonsaferule}, let us first define \emph{input variables} and \emph{output variables} of subgoals. Intuitively, values of all input variables need to be known for a subgoal to be evaluated. After a subgoal is evaluated, values of all its output variables are known. All variables appearing in a positive relational subgoal are output variables. All variables appearing in a negative relational subgoal are input variables. All variables appearing in a comparison subgoal are output variables. For an assignment subgoal, the variables on the right side of the assignment are input variables, and the variable on the left side is an output variable.
+To give an adjusted version of the definition of rule safety \ref{d:datalogcomparisonsaferule}, let us first define \emph{input variables} and \emph{output variables} of subgoals. Intuitively, values of all input variables need to be determined before a subgoal is evaluated. When a subgoal is evaluated, the values of all its output variables are determined. All variables appearing in a positive relational subgoal are output variables. All variables appearing in a negative relational subgoal are input variables. All variables appearing in a comparison subgoal are output variables. For an assignment subgoal, the variables on the right side of the assignment are input variables, and the one on the left side is an output variable.
 
 \begin{defn}[Rule safety]\label{d:datalogeqsaferule}
 A rule in \datalogneg with arithmetic comparisons and assignments is \emph{safe} iff it satisfies the following conditions:
 \begin{itemize}
-\item each free variable appearing in its head also appears in an output variable in at least one of the subgoals
+\item each free variable appearing in its head also appears as an output variable in at least one of the subgoals,
 \item the subgoals can be ordered topologically, i.e. there exists an ordering $s_1, \dots, s_n$ of the subgoals, such that for each $i$, any \emph{input variable} in subgoal $s_i$ is an \emph{output variable} of at least one subgoal $s_j$ for $j < i$. 
 \end{itemize}
 \end{defn}
@@ -532,37 +533,37 @@ As an example, let us suppose we have a graph $G$ defined by a relation $\textsc
 where \relat{Edge}{(v, u, l)} means that $G$ has an edge from $v$ to $u$ of length $l > 0$. 
 There is also a distinguished source vertex $s$.
 An interesting question is what are the minimal distances from $s$ to all other vertices of $G$.
-We will come back to this question in section \ref{ss:datalognra}.
-For now, let us answer a simpler question: supposing that $G$ is a directed acyclic graph, for each vertex $v$ in $G$,
-what are the lengths of paths between $s$ and $v$?
+We will return to this question in Section \ref{ss:datalognra}.
+For now, let us answer a simpler question: supposing that $G$ is a directed acyclic graph, what are the lengths of paths between $s$ and $v$ for each vertex $v$ in $G$?
 
 The following program answers this question using a straightforward rule of edge relaxation:
 
 \dprog{}{
   & \textsc{Path} (v, d) &&  & \assign & && \textsc{Edge}(s, v, d) & \\
   & \textsc{Path} (v, d) &&  & \assign & && \textsc{Path} (t, d'), \textsc{Edge}(t, v, l), d = d' + l. &\\
-}{Datalog query for computing all path lengths from a given source}{ex:pathsdatalog}
+}{Datalog query for computing all path lengths from a given source.}{ex:pathsdatalog}
 
-It is easy to see that arithmetic addition is crucial in this program -- it would not be possible to find the path lengths without being able to generate new distance values. We can see that both rules satisfy the updated safety definition.
+It is easy to see that arithmetic addition is crucial in this program -- it would not be possible to find the path lengths without being able to generate new distance values. As can be seen that both rules satisfy the updated safety definition.
 \end{exmp}
 
 The introduction of arithmetic functions significantly changes the semantics.
-Similarly to arithmetic comparisons, arithmetic functions can be interpreted as built-in infinite relations. 
+Similarly to arithmetic comparisons, arithmetic functions can be thought of as built-in infinite relations. 
 The difference is that we do not forbid those relations to introduce new values into the database.
-Given a program $P$ and a database instance $\textbf{K}$ over $\sch(P)$, rules with arithmetic functions can produce new values, i.e. values that were not present in $\adom(P) \cup \adom(\textbf{K})$. In our example, such situation happens if there is a cycle in $G$ reachable from the source. There is an infinite number of paths from the source to the vertices of the cycle and thus $\textsc{Path}$ would be infinite.
+Given a program $P$ and a database instance $\textbf{K}$ over $\sch(P)$, rules with arithmetic functions can produce new values, i.e. values that were not present in $\adom(P) \cup \adom(\textbf{K})$. In our example, such a situation happens if there is a cycle in $G$ reachable from the source. There is an infinite number of paths from the source to the vertices of the cycle and thus $\textsc{Path}$ would be infinite.
 
 There are different approaches to address this problem, including \emph{finiteness dependencies} and syntactic requirements that imply safety of Datalog programs with arithmetic conditions \cite{RBS87, KRS88a, KRS88b, SV89}.
 
-For the purpose of this paper, we can simply define the semantics only for Datalog programs that have a finite fixed point. The updated version of Theorem \ref{t:datalogfixpointsem} is as follows. \todo{To koliduje z użyciem active domain do definicji negacji -- jak to poprawić?}
+For the purpose of this paper, we can simply define the semantics only for Datalog programs that have a finite fixed point. The updated version of Theorem \ref{t:datalogfixpointsem} is as follows.
 
 \begin{thm}
-For any $P$ and an instance $\textbf{K}$ over $\edb(P)$, if there exists $n \ge 0$ such that $T_P^n(\textbf{K})$ is a fix-point of $T_P$, then it is the minimal fix-point of $T_P$ containing $\textbf{K}$.
+For a program $P$ and a finite database instance $\textbf{K}$ over $\edb(P)$, if there exists $n \ge 0$ such that $T_P^n(\textbf{K})$ is a fix-point of $T_P$, then it is the minimal fix-point of $T_P$ containing $\textbf{K}$.
 \end{thm}
 \emph{Proof.} See the second part of the proof for Theorem \ref{t:datalogfixpointsem}.
 
+
 \subsection{Datalog with non-recursive aggregation}\label{ss:datalognra}
 
-Datalog with negation and arithmetics is already a useful language, but for some queries one more feature is necessary: aggregation using a certain function $f$. Aggregation works similarly to $\textsc{GroupBy}$ clause in SQL. When aggregation is applied to $i$-th column of a relation, all the facts in the relation are grouped by their values in the remaining columns and for each group the value in $i$-th column is obtained by applying the aggregation function.
+Datalog with negation and arithmetics is already a useful language, but for some queries one more feature is necessary, namely the  aggregation using a certain function $f$. Aggregation works similarly to the $\textsc{Group By}$ clause in SQL. When aggregation is applied to $i$-th column of a relation, all the facts in the relation are grouped by their values in the remaining columns and for each group the value in $i$-th column is obtained by applying the aggregation function.
 Let us consider the following example of relation $\textsc{Rel}$:
 
 \begin{center}
@@ -602,18 +603,18 @@ If aggregation with function $\textsc{Min}$ is applied to the last column of thi
 
 A simple version of aggregation can be introduced in Datalog by allowing the rules for aggregated relations to use only \edb relations in subgoals. The semantics and evaluation is then straightforward. The rules can be evaluated within a single application of the $T_P$ operator and the aggregation can be applied immediately.
 
-This definition can be extended using the stratification method described in the previous section. Semantics for a program is defined if it can be stratified in such a way that each aggregation rule uses in its subgoals only relations defined in preceding strata. Aggregation of a relation from the same stratum, i.e. recursive aggregation, is much more complicated and is discussed in Chapter \ref{r:socialite}.
+This definition can be extended using the stratification method described in the previous section. Semantics for a program is defined if it can be stratified in such a way that each aggregation rule uses in its subgoals only the relations defined in the preceding strata. Aggregation of a relation from the same stratum, i.e. recursive aggregation, is much more complicated and is discussed in Chapter \ref{r:socialite}.
 
-For an example, let us recall the program \ref{ex:pathsdatalog}, which for a given graph computes the lengths of all existing paths from the source to other vertices. An typical question is to find the length of the shortest  path to each vertex from the source. This question can be answered using aggregation, by computing the minimum of distances for each vertex: 
+As an example, let us recall the program in Example \ref{ex:pathsdatalog}, which for a given graph computes the lengths of all existing paths from the source to other vertices. A typical question is to find the length of the shortest  path to each vertex from the source. This question can be answered using aggregation, by computing the minimum of distances for each vertex: 
 
 \dprog{}{
   & \textsc{Path} (v, d) &&  & \assign & && \textsc{Edge}(s, v, d) & \\
   & \textsc{Path} (v, d) &&  & \assign & && \textsc{Path} (t, d'), \textsc{Edge}(t, v, l), d = d' + l. &\\
   & \textsc{MinPath} (t, \textsc{Min}(d)) &&  & \assign & && \textsc{Path} (t, d). &
-}{Datalog query for computing all path lengths from a given source}{ex:pathsdatalogaggregate}
+}{Datalog query for computing all path lengths from a given source.}{ex:pathsdatalogaggregate}
 
-The semantics of this syntax is that after inferring all possible facts using the rule for \relat{MinPath}, this relation should be aggregated using the minimum function. As restriction for this syntax is that if there is aggregation used in a rule for some relation, there can be no other rules for this relation.
+The semantics of this syntax is that after inferring all possible facts using the rule for \relat{MinPath}, this relation should be aggregated using the minimum function. The restriction for this syntax is that if there is aggregation used in a rule for some relation, there can be no other rules for this relation.
 
-In this example, there are two strata, where \relat{Edge}{} is an \edb relation, \relat{Path}{} belongs to the first stratum and \relat{MinPath}{} belongs to the second stratum. Hence, \relat{MinPath}{} can be computed after computation of \relat{Path}{} is finished.
+In the example presented above, there are two strata, where \relat{Edge}{} is an \edb relation, \relat{Path}{} belongs to the first stratum and \relat{MinPath}{} belongs to the second stratum. Hence, \relat{MinPath}{} can be computed after computation of \relat{Path}{} is finished.
 
 

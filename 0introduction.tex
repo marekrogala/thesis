@@ -1,6 +1,5 @@
 
-\chapter{Introduction}\
-\addcontentsline{toc}{chapter}{Introduction}
+\chapter{Introduction}
 In recent years, the humanity has created many graph datasets much larger than those available ever before.
 Those graphs became a very popular object of research. Most notable examples are \emph{the Web graph} -- a graph of Internet websites and links between them, and all kinds of social networks. Other interesting graphs include transportation routes, similarity of scientific articles or citations among them.
 
@@ -12,33 +11,30 @@ Usually, such analyses are built on top of standard graph algorithms, such as va
 
 When dealing with such a large graph, distribution of the computations among many machines is inevitable. The graph size is often too large to fit in one computer's memory. At the same time, performing useful computations on a single machine would take too much time for it to be a feasible solution. Size of the data is growing faster than the computational power of computers, and so is the need for distributing the computations.
 
-In the past, we have seen many tools for efficient distributed large dataset computations, such as Google's MapReduce \cite{mapreduce} and its widely used open source counterpart, Apache's Hadoop \cite{hadoop}, as well as higher-level languages such as PigLatin \cite{piglatin} and Hive \cite{hive}. However, those are not well suited for graph computations, as they do not support iteration well.
+In the past, we have seen many tools for efficient distributed large dataset computations, such as Google's MapReduce \cite{mapreduce} and its widely used open source counterpart, Apache Hadoop \cite{hadoop}, as well as higher-level languages such as PigLatin \cite{piglatin} and Hive \cite{hive}. However, they are not well suited for graph computations, as they do not support iteration well.
 
 Recently, there is an outbreak of frameworks and languages for large graphs processing, including industrial systems such as Google's Pregel \cite{pregel} and its open-source version Apache Giraph \cite{giraph}, Graph Processing System \cite{gps}, GraphLab \cite{graphlabwww, graphlab, graphlab2}, Apache Spark with GraphX library \cite{spark2, sparkwww} and Giraph++ \cite{giraphpp}.
 
 In the frameworks currently available one needs to implement a graph algorithm in a specified model, for example Pregel's "think like a vertex", using a programming language like Java, Scala or Python. On the other hand, query languages, such as SQL, are a bad fit for graph data because of limited support of iteration. Yet, one of the advantages of query languages over general-purpose programming languages is that they are available for a much broader group of users: they are used not only by programmers, but also by analysts and data scientists. Queries are often optimized by query engines automatically. With the rise of graph computational problems, we need an easier way to extract information from graphs: a query language for effectively expressing data queries typical for graphs.
 
-The Socialite \cite{socialite, distsoc} language is one of the most interesting propositions. It is based on a classical query language --- Datalog \cite{fod}. In Datalog, the problem is expressed in a declarative way as a set of rules. Declarative semantics makes it easy to distribute the computations, since no execution flow is embedded in the program code. It also gives many possibilities for optimizations and approximate evaluation. At the same time, Datalog's support for recursion is crucial, since most graph algorithms have iterative nature. However, most practical graph algorithms cannot be expressed efficiently in Datalog because of the language limitations. With a few extensions to original Datalog, the most important of which is recursive aggregation, SociaLite makes it easy to write intuitive programs which can be executed very efficiently.
+The Socialite \cite{socialite, distsoc} language is one of the most interesting propositions. It is based on a classical query language --- Datalog \cite{fod}. In Datalog, the problem is expressed in a declarative way as a set of rules. Declarative semantics makes it easy to distribute the computations, since no execution flow is embedded in the program code. It also gives many possibilities for optimizations and approximate evaluation. At the same time, Datalog's support for recursion is crucial, since most graph algorithms are of iterative nature. However, most practical graph algorithms cannot be expressed efficiently in Datalog because of the language limitations. With a few extensions to original Datalog, the most important of which is recursive aggregation, SociaLite makes it easy to write intuitive programs which can be executed very efficiently.
 
-Unfortunately, there is no solid implementation of SociaLite available. The interpreter published by the authors is undocumented and contains many bugs. It is hard to imagine it being adopted in the industry in the foreseeable future. At the same time, papers \cite{socialite} and \cite{distsoc} which introduced SociaLite contain certain simplifications and are not specific about some important details in definitions and proofs.
+Unfortunately, there is no solid distributed implementation of SociaLite available. Only an undocumented interpreter for a sequential version of the language has been published along with the papers. According to \cite{distsoc}, the distributed version of the interpreter was build as an independent implementation based on Hadoop. It is hard to determine when the language could be adopted in the industry. At the same time, papers \cite{socialite} and \cite{distsoc} which introduced SociaLite contain certain simplifications and are not precise about some important details in definitions and proofs.
 
-The goal of this thesis is to bridge the gap between the theoretical idea for SociaLite and a practical implementation and to draw a path towards its usage in the industry. We show how to translate SociaLite declarative programs into Pregel "think-like-a-vertex" programs and introduce a compiler that enables SociaLite programs to be executed on existing infrastructure. This allows its users to write and execute SociaLite programs without any additional effort to build a dedicated server infrastructure for that.
+The goal of this thesis is to bridge the gap between the theoretical idea for Datalog with recursive aggregation and its practical implementation as well as to draw a path towards its usage in the industry. We show how to translate SociaLite-like declarative programs into programs on the Apache Spark platform and present an implementation of an extension to Spark that enables them to be executed on existing infrastructure and software stack. The extension allows Spark users to perform distributed graph computations using a declarative language without any additional effort to build a dedicated server infrastructure.
 
-We present an experimental implementation of the SociaLite language on the Apache Spark platform. Spark \cite{spark2} is an open-source project which provides a general platform for processing large datasets which has gained a huge momentum since the initial white paper in 2010 \cite{spark} and inclusion into Apache Incubator in June 2013. Computations in Spark are expressed using an abstraction of distributed memory, called \emph{RDD}. Distinctive features of Spark are the to ability keep cached data in node's memory, which gives impressive speedups over other environments like Hadoop MapReduce, and a powerful API allowing for various usages including MapReduce, machine learning, computations on graphs and stream data processing. In February 2014 Spark became a top-level project of the Apache Foundation, and in since July 2014 it is included in the Cloudera CDH, a popular enterprise platform for Hadoop deployment. Spark is already a stable, well-tested platform which is being intensively developed and can be expected to become a new industry standard in large datasets processing. For these reasons, it has been chosen as the most promising platform for the implementation.
+Spark \cite{spark2} is an open-source project providing a general platform for processing large datasets which has gained a huge momentum since the initial white paper in 2010 \cite{spark} and inclusion into Apache Incubator in June 2013. Computations in Spark are expressed using an abstraction of distributed memory, called \emph{RDD}. Distinctive features of Spark are the ability to keep cached data in node's memory, which gives impressive speedups over other environments like Hadoop MapReduce, and a powerful API allowing for various usages including MapReduce, machine learning, computations on graphs and stream data processing. In February 2014 Spark became a top-level project of the Apache Foundation, and since July 2014 it has been included in the Cloudera CDH, a popular enterprise platform for Hadoop deployment. Spark is already a stable, well-tested platform which is being intensively developed and can be expected to become a new industry standard in large datasets processing. For these reasons, it has been chosen as the most promising platform for the implementation.
 
-The thesis consists of six chapters. In Chapter~\ref{r:datalog} we recall definitions of Datalog and its evaluation methods while Chapter~\ref{r:pregel} contains an introduction to the Pregel computation model. In Chapter~\ref{r:socialite} we describe the recursive aggregation extension to Datalog introduced by SociaLite and provide formal definitions and general-case proofs which the original papers lack. Chapter \ref{r:implementation} describes the translation procedure from SociaLite to the RDD model and its implementation as a SparkDatalog extension for Apache Spark. In Chapter~\ref{r:summary} we summarize the results of this work.
+The thesis consists of six chapters. In Chapter~\ref{r:datalog} we recall definitions of Datalog and its evaluation methods while Chapter~\ref{r:pregel} contains an overview of the RDD and Pregel computation models. In Chapter~\ref{r:socialite} we describe the recursive aggregation extension to Datalog introduced by SociaLite and provide formal definitions and general-case proofs which the original papers lack. Chapter \ref{r:implementation} describes the translation procedure from Datalog with recursive aggregation to the RDD model and its implementation as a SparkDatalog extension for Apache Spark. In Chapter~\ref{r:summary} we summarize the results of this work.
 
 \section{Basic definitions}\label{r:basicdefs}
-\addcontentsline{toc}{section}{Basic definitions}
-\margp{Wstawić dodatkową narrację}{jaką?}
-
 We start by giving some basic definitions which will be used in this paper.
 
-The languages considered in the paper operate on databases, which consist of facts over relations identified by relation names, for example \relat{R}{}, \relat{P}{}, \relat{Tc}{}, \relat{Path}{} or \relat{Edge}{}.
+The languages considered in the paper operate on databases which consist of facts over relations identified by relation names, for example \relat{R}{}, \relat{P}{}, \relat{Tc}{}, \relat{Path}{} or \relat{Edge}{}.
 
-The relations contain facts, which are tuples of values from a countable infinite set $\textbf{dom}$ called the \emph{domain}. The programs that we will consider use variables from a set $\bf{var}$, which is disjoint from $\bf{dom}$. 
+The relations contain facts which are tuples of values from a countable infinite set $\textbf{dom}$ called the \emph{domain}. The programs that we will consider use variables from a set $\bf{var}$, which is disjoint from $\bf{dom}$. 
 
-Elements of $\bf{dom}$ are called \emph{constants}, whereas elements of $\bf{var}$ are called \emph{(free) variables}.
+The elements of $\bf{dom}$ are called \emph{constants}, whereas the elements of $\bf{var}$ are called \emph{(free) variables}.
 In examples and definitions we will use strings starting with a lowercase letter as variables, for example: $a$, $b$, $x$, $length$, $dist$. We will use numbers and strings starting with an uppercase letter as constants, for example $1$, $2$, \textit{A}, \textit{B}, \textit{Alice} and \textit{Bob}.
 
 \begin{defn}
@@ -47,11 +43,11 @@ A \emph{database schema} is a tuple $(N, ar)$, where $N$ is the set of \emph{rel
 
 For a database schema $\sigma = (N, ar)$ and a relation name $R$ we will write $R \in \sigma$ as a shorthand for $R \in N$. If $R \in \sigma$, we say that $R$ is a relation name in $\sigma$ with arity $ar(R)$.
 
-Given a database schema $\sigma$, let $R$ be a relation name in $\sigma$ with arity $n$. A \emph{fact} over $R$ is an expression $R(x_1 , \dots , x_n)$, where each $x_i \in \textbf{dom}$. A fact is sometimes written in the form $R(v)$ where $v \in \textbf{dom}^n$ is a tuple. The relation name is sometimes omitted when it can be understood from the context; a fact is then written simply as a tuple.
+Given a database schema $\sigma$, let $R$ be a relation name in $\sigma$ with arity $n$. A \emph{fact} over $R$ is an expression $R(x_1 , \dots , x_n)$, where each $x_i \in \textbf{dom}$. A fact is sometimes written in the form of $R(v)$ where $v \in \textbf{dom}^n$ is a tuple. The relation name is sometimes omitted when it can be understood from the context; a fact is then written simply as a tuple.
 
-A \emph{relation} or \emph{relation instance} over $R$ is defined as a finite set of facts over $R$.
+A \emph{relation} or \emph{relation instance} over $R$ is defined as a set of facts over $R$.
 
-A \emph{database} or \emph{database instance} over database schema $\sigma$ is a union of relations over $R$, where $R \in \sigma$. We typically use bold uppercase letters for databases, for example $\textbf{I}$, $\textbf{J}$ or $\textbf{K}$. 
+A \emph{database} or \emph{database instance} over database schema $\sigma$ is a union of relations over $R$, where $R \in \sigma$. We typically use bold uppercase letters for databases, for example $\textbf{I}$, $\textbf{J}$ or $\textbf{K}$. A database is \emph{finite} if all its relations are finite.
 
 We denote the set of all possible relations over a relation name $R$ by $\inst(R)$. Similarly, we denote the set of all possible databases over a database schema $\sigma$ by $\inst(\sigma)$.
 \end{defn}
@@ -76,23 +72,23 @@ For variables $x, y, z \in \textbf{dom}$, $\nu$ such that $\nu(x) = 1, \nu(y) = 
 \end{exmp}
 
 \begin{defn}[Fix-point]
-If $f$ is a function $f: D \to D$ and $f(x) = x$ for an $x \in D$, then $x$ is called a \emph{fix-point} of $f$.
+If $f$ is a function $f: D \to D$ and $f(x) = x$ for any $x \in D$, then $x$ is called a \emph{fix-point} of $f$.
 \end{defn}
 
 \begin{defn}[Pre-order]
 A binary relation $\le$ over a set $P$ is a \emph{pre-order} if it is reflexive and transitive, i.e.\ for each $x, y, z \in P$ the following properties are satisfied:
 \begin{itemize}
-\item $x \le x$
-\item if $x \le y$ and $y \le z$ then $x \le z$
+\item $x \le x$,
+\item if $x \le y$ and $y \le z$ then $x \le z$.
 \end{itemize}
 \end{defn}
 
 \begin{defn}[Partial order]
 A binary relation $\le$ over a set $P$ is a \emph{partial order} if it is reflexive, antisymmetric and transitive, i.e.\ for each $x, y, z \in P$ the following properties are satisfied:
 \begin{itemize}
-\item $x \le x$
-\item if $x \le y$ and $y \le x$ then $x = y$
-\item if $x \le y$ and $y \le z$ then $x \le z$
+\item $x \le x$,
+\item if $x \le y$ and $y \le x$ then $x = y$,
+\item if $x \le y$ and $y \le z$ then $x \le z$.
 \end{itemize}
 \end{defn}
 
@@ -104,5 +100,5 @@ If $G$ is additionally required to be acyclic, then the reachability relation is
 
 
 \begin{defn}[Monotonicity]
-Function $f: D \to C$ is monotone with respect to pre-order $\sqsubseteq$ if $x \sqsubseteq y \rightarrow f(x) \sqsubseteq f(y)$ for each $x, y \in D$.
+Function $f: D \to C$ is monotone with respect to pre-order $\sqsubseteq$ iff $x \sqsubseteq y \rightarrow f(x) \sqsubseteq f(y)$ for each $x, y \in D$.
 \end{defn}

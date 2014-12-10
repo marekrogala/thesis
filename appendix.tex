@@ -1,1 +1,77 @@
 \chapter{Source code of programs used in experiments}
+
+\section{Single source shortest paths}
+\begin{Verbatim}[label=Shortest paths - SparkDatalog]
+val query = """ declare Path(int v, int dist aggregate Min).
+                 Path(x, d) :- s == """ + sourceId + """ , Edge(s, x, d).
+                 Path(x, d) :- Path(y, da), Edge(y, x, db), d = da + db."""
+val resultDatabase = database.datalog(query)
+\end{Verbatim}
+
+\vspace{0cm}
+
+\begin{Verbatim}[label=Shortest paths - Spark]
+val initialGraph = graph.mapVertices((id, _) => if (id == sourceId) 0.0 else Double.PositiveInfinity)
+val sssp = initialGraph.pregel(Double.PositiveInfinity)(
+    (id, dist, newDist) => math.min(dist, newDist), // Vertex Program
+    triplet => \{  // Send Message
+      if (triplet.srcAttr + triplet.attr < triplet.dstAttr) \{
+        Iterator((triplet.dstId, triplet.srcAttr + triplet.attr))
+      \} else \{
+        Iterator.empty
+      \}
+    \},
+    (a,b) => math.min(a,b)) // Merge Message
+val shortestPaths = sssp.vertices.map(v => (v._1, v._2))
+\end{Verbatim}
+
+
+\section{Triangles counting}
+\begin{Verbatim}[label=Triangles counting - SparkDatalog]
+val query = """ |declare Triangle(int v, int w, int u).
+                |declare Total(int a, int b aggregate Sum).
+                |Triangle(x, y, z) :- Edge(x, y), x < y, Edge (y, z), y < z, Edge(x, z).
+                |Total(a, c) :- Triangle(x, y, z), a = 1, c = 1. """.stripMargin
+val resultDatabase: Database = database.datalog(query)
+\end{Verbatim}
+
+\vspace{0cm}
+
+\begin{Verbatim}[label=Triangles counting - Spark]
+val canonicalEdges = edgesRdd.filter(Function.tupled(_ < _)).distinct().cache()
+val swappedEdgesRdd = canonicalEdges.map(_.swap)
+val pathOf2 = swappedEdgesRdd.join(canonicalEdges).map( { case (y, (x, z)) => (x, (y, z)) } )
+val triangle = pathOf2.join(canonicalEdges)
+  .filter({ case (x, ((y, z), zp)) => z == zp })
+  .map({ case (x, ((y, z), zp)) => (x, y, z) })
+val count = triangle.count()
+\end{Verbatim}
+
+
+\section{Connected components}
+\begin{Verbatim}[label=Connected components - SparkDatalog]
+val query = """ |declare Component(int n, int component aggregate Min).
+                |declare ComponentId(int n).
+                |Component(n, i) :- Node(n), i = n.
+                |Component(n, i) :- Component(p, i), Edge(p, n).
+                |ComponentId(id) :- Component(x, id). """.stripMargin
+val resultDatabase = database.datalog(query)
+\end{Verbatim}
+
+\vspace{0.4cm}
+
+\begin{Verbatim}[label=Connected components - Spark]
+val initialGraph = graph.mapVertices((id, _) => id.toInt)
+val connectedComponents = initialGraph.pregel(Int.MaxValue)(
+  (id, cmp, newCmp) => math.min(cmp, newCmp), // Vertex Program
+  triplet => \{  // Send Message
+    if (triplet.srcAttr < triplet.dstAttr) \{
+      Iterator((triplet.dstId, triplet.srcAttr))
+    \} else \{
+      Iterator.empty
+    \}
+  \},
+  (a, b) => math.min(a, b)) // Merge Message
+\end{Verbatim}
+
+

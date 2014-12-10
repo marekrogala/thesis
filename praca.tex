@@ -64,7 +64,7 @@
 
 % Słowa kluczowe:
 %\keywords{Przetwarzanie dużych grafów, Deklaratywne języki zapytań, Obliczenia na dużych zbiorach danych, Datalog, SociaLite, Apache Spark, Hadoop.}
-\keywords{Large graphs processing, Declarative query languages, Computations on large datasets, Datalog, SociaLite, Apache Spark, Hadoop}
+\keywords{Large graphs processing, Declarative query languages, Computations on large datasets, Datalog, SociaLite, Apache Spark, RDD, Hadoop, Pregel}
 
 \theoremstyle{plain}
 \newtheorem{thm}{Theorem}[section]
@@ -86,7 +86,7 @@
 \newcommand{\pomysl}[1]{\textcolor{cyan}{\fbox{DO ROZWAŻENIA} #1}}
 
 \newcommand{\datalogra}{Datalog$^{RA}$ }
-\newcommand{\datalogneg}{Datalog$^{\neg}$ }
+\newcommand{\datalogneg}{Datalog$^{\neg}$}
 \newcommand{\aggfun}{\textit{aggfun} }
 \newcommand{\aggcol}{\textit{aggcol} }
 \newcommand{\assign}{:-}
@@ -98,11 +98,11 @@
 
 \newenvironment{centab}[1]{\begin{center}\begin{tabular}{#1}}{\end{tabular}\end{center}}
 
-\newcommand{\edb}{\textit{edb} }
-\newcommand{\idb}{\textit{idb} }
-\newcommand{\inst}{\textit{inst} }
-\newcommand{\sch}{\textit{sch} }
-\newcommand{\adom}{\textit{adom} }
+\newcommand{\edb}{\textit{edb}}
+\newcommand{\idb}{\textit{idb}}
+\newcommand{\inst}{\textit{inst}}
+\newcommand{\sch}{\textit{sch}}
+\newcommand{\adom}{\textit{adom}}
 
 \newcommand{\narrow}[1]{\begin{changemargin}{2cm}{2cm} #1 \end{changemargin}}
 \newcommand{\relat}[2]{$\textsc{#1}#2$}
@@ -134,10 +134,10 @@
 \maketitle
 
 \begin{abstract}
-Distributed computations on graphs are becoming increasingly important with the emergence of large graphs such as social networks and the Web that contain huge amount of useful information.
+Distributed computations on graphs are becoming increasingly important with the emergence of large graphs such as social networks and the Web that contain huge amounts of useful information.
 Currently existing solutions, such as iterated MapReduce, Pregel and GraphLab are relatively difficult and require a significant level of fluency in programming.
 This thesis presents an implementation of a tool which extends a distributed computations platform, Apache Spark, with the capability of executing queries written in a variant of a declarative query language, Datalog, especially extended to better support graph algorithms.
-This approach makes it is possible to express graph algorithms in a declarative query language, accessible to a broader group of users than typical programming languages, and execute them on an existing infrastructure for distributed computations.
+This approach makes it possible to express graph algorithms in a declarative query language, accessible to a broader group of users than typical programming languages, and execute them on an existing infrastructure for distributed computations.
 \end{abstract}
 
 \tableofcontents
@@ -156,11 +156,11 @@ This approach makes it is possible to express graph algorithms in a declarative 
 
 \input{6summary.tex}
 
+\appendix
+
+\input{appendix.tex}
+
 \input{7bibliography.tex}
-
-%\appendix
-
-%\input{appendix.tex}
 
 \end{document}
 
