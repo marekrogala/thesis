@@ -15,7 +15,7 @@ Unfortunately it can be proven that this kind of query is not expressible in rel
 
 \section{History}
 
-Datalog is not credited to any particular researchers since it originated as an extension or restriction of various other languages, including logic programming languages. It emerged as a separate area of research around 1977. Professor David Maier is believed to be the author of the name \emph{Datalog}.
+Datalog is not credited to any particular researchers since it originated as an extension or restriction of various other languages, including logic programming languages. It emerged as a separate area of research around 1977. Professor David Maier is believed to be the author of the name \emph{Datalog} \cite{fod}.
 
 Datalog is described in detail in classical books on databases theory, such as \emph{Foundations of Databases} \cite{fod}.
 
@@ -29,7 +29,7 @@ Recently there also has been an increasing interest in applications of Datalog i
 
 Before we formally define Datalog syntax and semantics in the further sections, let us take a look at an example program in this language.
 
-As before, let us assume that the database contains a relation $\textsc{Edge}$ representing a graph and $\textsc{Edge}(a, b)$ means that there is an edge between vertices $a$ and $b$. Figure \ref{ex:tcdatalog} presents a program that computes relation $\textsc{Tc}$ containing a transitive closure of the relation $\textsc{Edge}$.
+As before, let us assume that the database contains a relation $\textsc{Edge}$ representing a graph and $\textsc{Edge}(a, b)$ means that there is an edge between vertices $a$ and $b$. Figure~\ref{ex:tcdatalog} presents a program that computes relation $\textsc{Tc}$ containing a transitive closure of the relation $\textsc{Edge}$.
 
 \dprog{}{
   & \textsc{Tc} (a, b) &&  & \assign & && \textsc{Edge} (a, b). & \\
@@ -115,7 +115,7 @@ Intuitively, if there is a free variable in the head, it should also appear in a
 A rule is \emph{safe} iff each free variable appearing in its head also appears in at least one of the subgoals.
 \end{defn}
 
-A program in Datalog consists of some number of rules, all of which are required to be safe. The order of the rules is irrelevant.
+A program in Datalog consists of a number of rules, all of which are required to be safe. The order of the rules is irrelevant.
 
 \begin{defn}[Program in Datalog]\label{d:datalogprog}
 A \emph{program} in Datalog is a finite set of safe rules.
@@ -224,7 +224,8 @@ Because of monotonicity of $T_P$, we have inductively that $T_P^i(\textbf{K}) \s
 Hence, we have:
 $$\textbf{K} \subseteq T_P(\textbf{K}) \subseteq T_P^2(\textbf{K}) \subseteq T_P^3(\textbf{K}) \subseteq \dots \subseteq T_P^*(\textbf{K})$$
 
-We will now prove that $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$. Let us suppose that $\textbf{J}$ is a fix-point of $T_P$ containing  $\textbf{K}$ as a subset, i.e.  $\textbf{K} \subseteq \textbf{J}$. By applying $T_P$ $n$ times to both sides of the inequality and observing that $T_P^n(\textbf{J}) = \textbf{J}$ as $\textbf{J}$ is a fix-point, we have $T_P^*(\textbf{K}) = T_P^n(\textbf{K}) \subseteq \textbf T_P^n(\textbf{J}) = \textbf{J}$. Hence, $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$.
+We will now prove that $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$. Let us suppose that $\textbf{J}$ is a fix-point of $T_P$ containing  $\textbf{K}$ as a subset, i.e.  $\textbf{K} \subseteq \textbf{J}$. By applying $T_P$ $n$ times to both sides of the inequality and observing that $T_P^n(\textbf{J}) = \textbf{J}$ as $\textbf{J}$ is a fix-point, we have $T_P^*(\textbf{K}) = T_P^n(\textbf{K}) \subseteq \textbf T_P^n(\textbf{J}) = \textbf{J}$. Hence, $T_P^*(\textbf{K})$ is the minimum fix-point of $T_P$ containing $\textbf{K}$. 
+
 \QEDA
 \end{prof}
 
@@ -296,7 +297,7 @@ This section briefly describes the ways to evaluate Datalog programs.
 \subsection{Naive evaluation}\label{ss:datalognaiveeval}
 In the naive evaluation the computation starts with the initial database containing the \edb relations and repeatedly applies all the rules until a fix-point is reached.
 
-In pseudocode the algorithm for naive evaluation of a program $P$ on an input $\textbf{K}$ can be written as presented in Figure \ref{psc:naiveevaldatalog}.
+In pseudocode the algorithm for naive evaluation of a program $P$ on an input $\textbf{K}$ can be written as presented in Figure~\ref{psc:naiveevaldatalog}.
 
 \begin{figure}[!htbp]
 \begin{codebox}
@@ -313,7 +314,7 @@ In pseudocode the algorithm for naive evaluation of a program $P$ on an input $\
 \end{figure}
 
 \begin{exmp}
-As an example, let us consider the program shown in Figure \ref{ex:tcofr} which computes a transitive closure of a binary relation \relat{R}{}.
+As an example, let us consider the program shown in Figure~\ref{ex:tcofr} which computes a transitive closure of a binary relation \relat{R}{}.
 \begin{figure}[!htbp]
 \begin{align*}
 \textsc{Tc}(x, y) &\assign~ \textsc{R}(x, y).\\
@@ -335,13 +336,13 @@ I_3 \leftarrow \{&\textsc{R}(1, 2), \textsc{R}(2, 3), \textsc{R}(3, 4), \textsc{
 \end{exmp}
 
 \subsection{Semi-Naive evaluation}\label{ss:seminaiveevaldatalog}
-A straightforward implementation of the definition of $T_P$ is to perform a natural join on subgoal relations and then a projection to head variables. Example \ref{ex:naiveeval} shows that such implementation may be inefficient, because most of the facts are computed more than once.
+A straightforward implementation of the definition of $T_P$ is to perform a natural join on subgoal relations and then a projection to head variables. Example \ref{ex:naiveeval} shows that such an implementation may be inefficient, because most of the facts are computed more than once.
 
 A simple observation is that the immediate consequence operator $T_P$ for any program $P$ is \emph{inflationary}, i.e. it possibly adds facts to the database, but can never remove any fact. In other words, $T_P(\textbf{I}) \supseteq \textbf{I}$ for any $I$. As a consequence, in an iterative evaluation which uses $T_P$, the database instance $\textbf{I}_i$ inferred in step $i$ is a superset of any database instance $\textbf{I}_j$ that was derived in a previous step $j < i$. To name this property, we say that such semantics is \emph{inflationary}.
 
 The \emph{semi-naive evaluation} is the most basic optimization used in Datalog evaluation, in which $T_P$ is computed in a more efficient way. It comes from the following observation: in a Datalog program, if some rule $Q$ produces fact $R(t)$ based on database instance $I_i$ in the $i$-th iteration of the naive evaluation algorithm, then this rule will produce this fact in each subsequent iteration, because of the inflationary semantics of the language. The goal of this optimization is to avoid such computations after producing the fact for the first time. This is achieved by joining only subgoals in the body of each rule which have at least one new answer produced in the previous iteration. 
 
-Let $T^\Delta_P$ denote a function that evaluates the rules of program $P$ so that at least one new fact is used in the application of a rule. This function needs to know which facts are the new ones, so it takes two arguments: $I$ --- the full database instance and $\Delta$ --- the database instance containing the facts that were added in the last iteration. Note that this function does not necessarily return facts from $I$, so we will need to add them to the newly computed facts in order to get the same result as $T_P$, i.e. for each $i$, $T_P(I_i) = I_i \cup T_P^\Delta(I_i, \Delta_i)$. Figure \ref{psc:seminaiveevaldatalog} presents the algorithm for semi-naive evaluation of Datalog program $P$ on input database \textbf{K}.
+Let $T^\Delta_P$ denote a function that evaluates the rules of program $P$ so that at least one new fact is used in the application of a rule. This function needs to know which facts are the new ones, so it takes two arguments: $I$ --- the full database instance and $\Delta$ --- the database instance containing the facts that were added in the last iteration. Note that this function does not necessarily return facts from $I$, so we will need to add them to the newly computed facts in order to get the same result as $T_P$, i.e. for each $i$, $T_P(I_i) = I_i \cup T_P^\Delta(I_i, \Delta_i)$. Figure~\ref{psc:seminaiveevaldatalog} presents the algorithm for semi-naive evaluation of Datalog program $P$ on input database \textbf{K}.
 
 \begin{figure}[!htbp]
 \begin{codebox}
@@ -427,7 +428,7 @@ A rule with arithmetic comparisons is \emph{safe} iff each free variable appeari
 This version of the requirement ensures that comparisons do not introduce any new values into the database.
 
 \subsection{Datalog with negation}\label{ss:datalogneg}
-Pure version of Datalog permits recursion but provides no negation. Negation allows to answer queries such as "which pairs of the nodes in graph are not connected?". There are several ways of adding negation to Datalog. One of the most prominent of them is the \emph{stratified semantics}, which we will present in this section. 
+The pure version of Datalog permits recursion but provides no negation. Negation allows to answer queries such as "which pairs of the nodes in graph are not connected?". There are several ways of adding negation to Datalog. One of the most prominent of them is the \emph{stratified semantics}, which we will present in this section. 
 
 In Datalog with negation, abbreviated \datalogneg, each relational subgoal may be negated, i.e. preceded with the negation symbol ``$!$". The negated subgoals are called \emph{negative} subgoals, and the rest of the subgoals is called \emph{positive} subgoals. Other types of subgoals, such as arithmetic comparisons, are not allowed to be negated.
 
@@ -473,7 +474,7 @@ Let $P$ be a program in \datalogneg and $n = \|\idb(P)\|$ be the number of \idb 
 A program for which a stratification exists is called \emph{stratifiable}. 
 
 
-$\rho$ corresponds to a partitioning of $P$ into several subprograms $P_1, P_2, \dots, P_n$. Each of those programs is called a \emph{stratum} of $P$. $\rho(R)$ is called \emph{stratum number} of the relation $R \in \idb(P )$. The $i$-th stratum consists of the rules from $P$ which have a relation with stratum number $i$ in their head. We say that these relations are \emph{defined} in $P_i$. An example program with a stratification represented as a graph is presented in Figure \ref{fig:precedgraph}.
+We let $\rho$ correspond to a partitioning of $P$ into several subprograms $P_1, P_2, \dots, P_n$. Each of those programs is called a \emph{stratum} of $P$. $\rho(R)$ is called \emph{stratum number} of the relation $R \in \idb(P )$. The $i$-th stratum consists of the rules from $P$ which have a relation with stratum number $i$ in their head. We say that these relations are \emph{defined} in $P_i$. An example program with a stratification represented as a graph is presented in Figure~\ref{fig:precedgraph}.
 
 \begin{figure}[!htbp]
 \begin{minipage}{0.5\linewidth}
@@ -570,7 +571,7 @@ See the second part of the proof for Theorem \ref{t:datalogfixpointsem}. \QEDA
 
 \subsection{Datalog with non-recursive aggregation}\label{ss:datalognra}
 
-Datalog with negation and arithmetics is already a useful language, but for some queries one more feature is necessary, namely the  aggregation using a certain function $f$. Aggregation works similarly to the $\textsc{Group By}$ clause in SQL. When aggregation is applied to $i$-th column of a relation, all the facts in the relation are grouped by their values in the remaining columns and for each group the value in $i$-th column is obtained by applying the aggregation function.
+Datalog with negation and arithmetics is already a useful language, but for some queries one more feature is necessary, namely the  aggregation using a certain function $f$. Aggregation in Datalog \cite{fod, aggss, lcagg} works similarly to the $\textsc{Group By}$ clause in SQL. When aggregation is applied to $i$-th column of a relation, all the facts in the relation are grouped by their values in the remaining columns and for each group the value in $i$-th column is obtained by applying the aggregation function.
 Let us consider the following example of relation $\textsc{Rel}$:
 
 \begin{center}

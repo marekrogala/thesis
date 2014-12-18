@@ -40,10 +40,10 @@ val resultDatabase: Database = database.datalog(query)
 \begin{Verbatim}[label=Triangles counting - Spark]
 val canonicalEdges = edgesRdd.filter(Function.tupled(_ < _)).distinct().cache()
 val swappedEdgesRdd = canonicalEdges.map(_.swap)
-val pathOf2 = swappedEdgesRdd.join(canonicalEdges).map( { case (y, (x, z)) => (x, (y, z)) } )
+val pathOf2 = swappedEdgesRdd.join(canonicalEdges).map( \{ case (y, (x, z)) => (x, (y, z)) \} )
 val triangle = pathOf2.join(canonicalEdges)
-  .filter({ case (x, ((y, z), zp)) => z == zp })
-  .map({ case (x, ((y, z), zp)) => (x, y, z) })
+  .filter(\{ case (x, ((y, z), zp)) => z == zp \})
+  .map(\{ case (x, ((y, z), zp)) => (x, y, z) \})
 val count = triangle.count()
 \end{Verbatim}
 
@@ -74,4 +74,15 @@ val connectedComponents = initialGraph.pregel(Int.MaxValue)(
   (a, b) => math.min(a, b)) // Merge Message
 \end{Verbatim}
 
+\chapter{Contents of the attached CD}\label{appendixb}
 
+The attached CD contains the implementation of the SparkDatalog extension for Spark described in this thesis and the results of the experiments. The repository containing the implementation is also published at \emph{https://github.com/marekrogala/sparkdatalog}. The CD has the following structure:
+\begin{itemize}
+\item \emph{implementation/}
+	\begin{itemize}
+	\item \emph{parsergen/} --- parser generator files,
+	\item \emph{sparkdatalog/} --- SparkDatalog extension source code,
+	\end{itemize}
+\item \emph{experiments/} --- results of experiments,
+\item \emph{thesis/} --- this thesis in electronic version.
+\end{itemize}

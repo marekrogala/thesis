@@ -8,11 +8,11 @@ SociaLite \cite{socialite, distsoc} is a graph query language based on Datalog. 
 
 The most significant extension over Datalog in SociaLite is the ability to combine recursive rules with aggregation. Under some conditions, such rules can be evaluated incrementally and thus as efficiently as regular recursion in Datalog.
 
-\cite{socialite} introduces \emph{Sequential SociaLite}, intended to be executed on one machine. We cover its most important feature, namely recursive aggregation, in Section \ref{s:recaggr}. Two other extensions over Datalog are tail-nested tables which improve the data layout in the memory and an option to provide hints regarding the execution order. \cite{socialite} describes the language proposition and possible optimizations, but does not define the language precisely. The paper outlines conditions for the programs to be correct, but only in a simplified way and lacks definitions of some of the notions used, which makes the exact meaning of theorems and proofs unclear.
+In \cite{socialite} Seo et al. introduce \emph{Sequential SociaLite}, intended to be executed on one machine. We cover its most important feature, namely recursive aggregation, in Section \ref{s:recaggr}. Two other extensions over Datalog are tail-nested tables which improve the data layout in the memory and an option to provide hints regarding the execution order. \cite{socialite} describes the language proposition and possible optimizations, but does not define the language precisely. The paper outlines conditions for the programs to be correct, but only in a simplified way and lacks definitions of some of the notions used, which makes the exact meaning of theorems and proofs unclear.
 
-\cite{distsoc} extends Sequential Socialite to \emph{Distributed SociaLite}, executable on a distributed architecture. The presented version of the interpreter for Distributed SociaLite was built as an independent implementation based directly on Hadoop. Distributed SociaLite, described in section \ref{s:distributed}, introduces a \emph{location operator}, which controls how data is distributed among workers and describes an independent implementation of the language. 
+In \cite{distsoc} Sequential Socialite is extended to \emph{Distributed SociaLite}, executable on a distributed architecture. The presented version of the interpreter for Distributed SociaLite was built as an independent implementation based directly on Hadoop. Distributed SociaLite, described in Section \ref{s:distributed}, introduces a \emph{location operator}, which controls how data is distributed among workers and describes an independent implementation of the language. 
 
-In this chapter, we give precise definitions for a Datalog language extended with recursive aggregate functions, which is the main extension over Datalog in SociaLite. We also analyze the conditions that such programs have to satisfy in order to have unambiguous solution.
+In this chapter, we give precise definitions for a Datalog language extended with recursive aggregate functions, which is the main extension over Datalog in SociaLite. We also analyze the conditions that such programs have to satisfy in order to have unambiguous solution. This supplements the original definitions and proofs from \cite{socialite, distsoc}, which contain certain simplifications and are not precise about some important details.
 
 \section{Datalog with recursive aggregation}\label{s:recaggr}
 
@@ -21,7 +21,7 @@ In this section we introduce the recursive aggregation extension to Datalog. Sin
 \subsection{Motivation}
 Most graph algorithms are based on some kind of iteration or recursive computation. Examples of such algorithms are the Dijkstra algorithm for single source shortest paths and PageRank. Although simple recursion can be expressed easily in Datalog, it is usually difficult or impossible to express such algorithms in Datalog efficiently, as it would require computing much more intermediate results than actually needed to obtain the solution. We will explain this on an example: a simple program that computes the shortest paths from a source node.
 
-A straightforward program in Datalog extended with non-recursive aggregation for computing single source shortest paths starting from node $1$ is presented in Figure \ref{ex:ssspsocialite}. Due to the limitations of Datalog, this program computes all possible path lengths from node $1$ to other nodes in the first place, and after that for each node the minimal distance is chosen. Not only does this approach result in a bad performance, but the program executes indefinitely if a loop in the graph is reachable from the source node.
+A straightforward program in Datalog extended with non-recursive aggregation for computing single source shortest paths starting from node $1$ is presented in Figure~\ref{ex:ssspsocialite}. Due to the limitations of Datalog, this program computes all possible path lengths from node $1$ to other nodes in the first place, and after that for each node the minimal distance is chosen. Not only does this approach result in a bad performance, but the program executes indefinitely if a loop in the graph is reachable from the source node.
 
 \dprog{}{
   & \textsc{Path} (t, d) &&  & \assign & && \textsc{Edge} (1, t, d). & \\
@@ -31,7 +31,7 @@ A straightforward program in Datalog extended with non-recursive aggregation for
 
 \subsection{A program in \datalogra}
 
-\datalogra allows aggregation to be combined with recursion under some conditions. This allows for writing straightforward programs for problems such as single source shortest paths, which finish execution in finite time and are often much more efficient than Datalog programs. An example \datalogra program that computes shortest paths from vertex 1 to all vertices is presented in Figure \ref{ex:ssspsocialite}.
+\datalogra allows aggregation to be combined with recursion under some conditions. This allows for writing straightforward programs for problems such as single source shortest paths, which finish execution in finite time and are often much more efficient than Datalog programs. An example \datalogra program that computes shortest paths from vertex 1 to all vertices is presented in Figure~\ref{ex:ssspsocialite}.
 
 
 \dprog{
@@ -55,7 +55,7 @@ The aggregation function needs to fulfill certain requirements that will be stat
 Syntactically, we require that each \idb relation is declared at the top of the program.
 In the declaration of a relation, an aggregated column can be specified by adding keyword \textit{aggregate} and the name of the aggregate function next to the column declaration. This syntax allows for providing multiple rules for each aggregated relation in the program.
 
-An example of a program in \datalogra is shown in Figure \ref{fig:datalograexampleprogram}.
+An example of a program in \datalogra is shown in Figure~\ref{fig:datalograexampleprogram}.
 
 \begin{figure}[!htbp]
 \narrow{
@@ -95,7 +95,7 @@ A binary operation $\odot: X \times X \to X$ is:
 \end{itemize}
 \end{defn}
 
-A core concept in \datalogra is the \emph{join operation}. Join operations have the basic properties that are sufficient for performing unambiguous aggregation.
+A core concept in \datalogra is the \emph{join operation}. Join operations have the basic properties that are sufficient for the type of aggregation that we consider here to have unambiguous semantics.
 
 \begin{defn}[Join operation]
 A binary operation is a \emph{join} operation iff it is idempotent, commutative and associative. 
@@ -115,9 +115,9 @@ $\max(a, b)$ for $a, b \in \mathbb{N}$ is a join operation; it is:
 Similarly, the minimum of two numbers is also a join operation. On the contrary, $+$ is not a join operation, since it is not idempotent: $1+1 \ne 1$.
 \end{exmp}
 
-Since join operation is associative, we can skip parentheses and write: $ a_1 \sqcup a_2 \sqcup \dots \sqcup a_n$ instead of: $ a_1 \sqcup (a_2 \sqcup ( \dots \sqcup a_n) \dots )$.
+Since the join operation is associative, we can skip parentheses and write: $ a_1 \sqcup a_2 \sqcup \dots \sqcup a_n$ instead of: $ a_1 \sqcup (a_2 \sqcup ( \dots \sqcup a_n) \dots )$.
 
-Join operation can be extended to finite sets of values in a straightforward way:
+Join operations can be extended to non-empty finite sets of values in a straightforward way:
 $$\sqcup(\{a_1, \dots, a_n \}) = a_1 \sqcup a_2 \sqcup \dots \sqcup a_n$$
 
 \subsubsection{Order induced by a join operation}
@@ -340,7 +340,7 @@ We will now prove that this is the minimum fix-point of $T_P$ containing $\textb
 \end{prof}
 
 \begin{exmp}
-As an example, let us recall the program for computing the shortest paths from a selected source to other vertices of a graph, which we repeat in Figure \ref{ssspexampledatalogra}.
+As an example, let us recall the program for computing the shortest paths from a selected source to other vertices of a graph, which we repeat in Figure~\ref{ssspexampledatalogra}.
 
 
 \dprog{
@@ -405,7 +405,7 @@ A straightforward way to evaluate $P(\textbf{K})$, i.e.\ to compute the minimal 
 
 In semi-naive evaluation of Datalog, which is described in Section \ref{ss:seminaiveevaldatalog}, $T_P$ is computed in a more efficient way than in the naive evaluation. To achieve this, a $T^\Delta_P$ function is used. $T_P^\Delta(I, \Delta)$ evaluates the rules of program $P$ on database instance $I$ and the set of new facts from the last iteration $\Delta$, so that at least one new fact is used in the application of each rule. In each iteration, $T^\Delta_P$ is applied to the full database and $\Delta$ from in the last step and the output is merged with the current database instance.
 
-In the evaluation of a program $P$ in \datalogra, such that $P = (P', \aggfun)$ where $P'$ is a Datalog program, we can use this technique to efficiently compute $T_{P'}$. The full algorithm is presented in pseudocode in Figure \ref{psc:seminaiveevaldatalogra}.
+In the evaluation of a program $P$ in \datalogra, such that $P = (P', \aggfun)$ where $P'$ is a Datalog program, we can use this technique to efficiently compute $T_{P'}$. The full algorithm is presented in pseudocode in Figure~\ref{psc:seminaiveevaldatalogra}.
 
 \begin{figure}[!htbp]
 \begin{codebox}

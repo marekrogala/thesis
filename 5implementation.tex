@@ -6,13 +6,13 @@
 
 To be truly useful, such solution has to be reliable, provide ways to interact with various distributed storages, ensure proper fault tolerance and require little to no additional work to be run on the existing infrastructure.
 
-Distributed Socialite, covered in section \ref{s:distributed}, executes queries with aggregation in a distributed way by sharding the data based on a selected column of each relation. Its authors presented an independent implementation of the proposed solution. We propose an alternative approach to distributed \datalogra queries evaluation and present an implementation of the proposed solution.
+Distributed Socialite, covered in Section \ref{s:distributed}, executes queries with aggregation in a distributed way by sharding the data based on a selected column of each relation. Its authors presented an independent implementation of the proposed solution. We propose an alternative approach to distributed \datalogra queries evaluation and present an implementation of the proposed solution.
 
 Instead of developing an independent project, we have chosen to implement \datalogra as an extension to Apache Spark. Owing to this approach, the implementation can read from and write to all popular Hadoop distributed data stores, including HDFS, HBase and Cassandra \cite{sparkwww}. It can be used on any existing cluster that supports Spark, including Hadoop YARN \cite{hadoop}, Mesos and standalone Spark clusters \cite{sparkwww} and has the industrial-quality fault tolerance and efficiency features developed by hundreds of Apache Spark contributors \cite{githubspark}. 
 
 Using Spark Datalog API, \datalogra queries can be integrated seamlessly into Spark programs. One can choose to use Datalog for all computations or only for their parts where it serves best. It is also possible to run \datalogra queries interactively using the Spark Shell.
 
-In this chapter we describe how Datalog and \datalogra queries can be translated into operations permitted in the RDD model. This method was used to implement the Datalog API for Spark, allowing for the usage of Datalog queries in Spark programs. The implementation is evaluated in section \ref{s:impl_eval}.
+In this chapter we describe how Datalog and \datalogra queries can be translated into operations permitted in the RDD model. This method was used to implement the Datalog API for Spark, allowing for the usage of Datalog queries in Spark programs. The implementation is evaluated in Section \ref{s:impl_eval}.
 
 \section{Integrating \datalogra into Spark}
 
@@ -27,7 +27,7 @@ Most of the computation logic is expressed with transformations.  Core Spark pro
 
 The same approach has been chosen for adding the ability to execute Datalog queries. The extension is contained in a module called \emph{Spark Datalog API} or \emph{SparkDatalog}. The main component it provides is the \emph{Database} class which contains a set of relations and can be created from regular RDDs. Database objects are equipped with a method \emph{datalog}, which performs a Datalog query on this database. The result of the query is a new Database, from which individual relations can be extracted as RDDs. 
 
-Datalog queries can be applied to any set of input RDDs. The input data can be directly loaded from a distributed storage supported by Spark or computed as a transformation of other RDDs. The user first creates relations, declares their arity, and groups them into a database. Next, any query on this database can be performed using its \emph{datalog} method. If there are no errors in the query, the result is a new database containing all computed relations. Each relation can be extracted from the database by giving its name. Figure \ref{sdinspark} shows an example of a \datalogra query in a Spark program using Datalog API for Spark.
+Datalog queries can be applied to any set of input RDDs. The input data can be directly loaded from a distributed storage supported by Spark or computed as a transformation of other RDDs. The user first creates relations, declares their arity, and groups them into a database. Next, any query on this database can be performed using its \emph{datalog} method. If there are no errors in the query, the result is a new database containing all computed relations. Each relation can be extracted from the database by giving its name. Figure~\ref{sdinspark} shows an example of a \datalogra query in a Spark program using Datalog API for Spark.
 
 \begin{figure}[!htbp]
   \centering
@@ -71,7 +71,7 @@ On the top level, the algorithm for executing a Datalog program on Spark consist
 
 \end{enumerate}
 
-To evaluate each stratum, the semi-naive evaluation algorithm is used. It maintains the current state of the database and runs iteratively until no changes are made to the database. In each iteration, for each rule in this stratum, all inferable facts are computed. The way this can be achieved on RDDs is described in section \ref{ss:impl_evalrule}. The set of obtained facts is then merged into the current database and a \emph{delta}, i.e. the difference between the current and previous database state is computed. During the merge all necessary aggregations are applied. This step is described in Section \ref{ss:impl_merge}.
+To evaluate each stratum, the semi-naive evaluation algorithm is used. It maintains the current state of the database and runs iteratively until no changes are made to the database. In each iteration, for each rule in this stratum, all inferable facts are computed. The way this can be achieved on RDDs is described in Section \ref{ss:impl_evalrule}. The set of obtained facts is then merged into the current database and a \emph{delta}, i.e. the difference between the current and previous database state is computed. During the merge all necessary aggregations are applied. This step is described in Section \ref{ss:impl_merge}.
 
 \subsection{Single rule evaluation}\label{ss:impl_evalrule}
 Evaluation of a single rule plays a crucial role in evaluating a Datalog query on RDDs. Given a single rule, consisting of a head and a sequence of subgoals, and two databases: the full database state after the last step and the delta database, the task is to compute an RDD of all facts that can be inferred. It is done in two steps: first, all valuations satisfying the rule body are computed, and then each such valuation is converted to a fact based on the head of the rule.
@@ -89,12 +89,12 @@ For example, given a subgoal \relat{Edge}{(v, u, d)} and a valuation $\{v: 5, t:
 
 This algorithm could be realized by means of \emph{map} and \emph{filter} transformations on the relation in the subgoal.
 
-Other types of subgoals are more straightforward. Arithmetic comparison subgoals, e.g. $x < y + z$ are simply evaluated to a boolean value and yield $\{v\}$ if the result was true, and an empty set if the result was not true. In case of assignment subgoals, e.g. $x = y + z$, the value of the expression is calculated inserted into the valuation for the given variable. If this causes a conflict with a different value for that variable, an empty set is returned. Otherwise, the result is a singleton containing the new variable.
+Other types of subgoals are more straightforward. Arithmetic comparison subgoals, e.g. $x < y + z$ are simply evaluated to a boolean value and yield $\{v\}$ if the result was true, and an empty set if the result was not true. In case of assignment subgoals, e.g. $x = y + z$, the value of the expression is calculated and inserted into the valuation for the given variable. If this causes a conflict with a different value for that variable, an empty set is returned. Otherwise, the result is a singleton containing the new valuation.
 
 \subsubsection{Evaluating a subgoal on a set of valuations}
 During the evaluation of a sequence of subgoals, instead of having just one starting valuation, we have an RDD of valuations to start with. The result of evaluating a subgoal on an RDD of valuations should be an RDD with all valuations satisfying the subgoal and being supersets of at least one of the starting valuations.
 
-In case of relational subgoals, to find the result efficiently, the relation is first converted into valuations of variables in the subgoal using a \emph{map} transformation. The resulting RDD is then joined with the starting valuations on the matching variables using the \emph{join} transformation on RDDs and mapped to a new RDD of valuations. This is illustrated in Figure \ref{graphevalrelsubgoalrddval}.
+In case of relational subgoals, to find the result efficiently, the relation is first converted into valuations of variables in the subgoal using a \emph{map} transformation. The resulting RDD is then joined with the starting valuations on the matching variables using the \emph{join} transformation on RDDs and mapped to a new RDD of valuations. This is illustrated in Figure~\ref{graphevalrelsubgoalrddval}.
 
 \tikzstyle{rect} = [rectangle, minimum width=2.5cm, minimum height=1cm,text centered, draw=black, align=left]
 \tikzstyle{arrow} = [thick,->,>=stealth]
@@ -130,7 +130,7 @@ In case of relational subgoals, to find the result efficiently, the relation is 
 \caption{Evaluation of a relational subgoal \relat{Rel}{(z, x)} on an RDD of valuations.}\label{graphevalrelsubgoalrddval}
 \end{figure}
 
-Arithmetic comparison subgoals are translated into a \emph{filter} transformation on the valuations RDD. They are filtered using a function that checks whether the comparison yields true for that valuation. This is illustrated in Figure \ref{graphevalarithmsubgoalrddval}. 
+Arithmetic comparison subgoals are translated into a \emph{filter} transformation on the valuations RDD. They are filtered using a function that checks whether the comparison yields true for that valuation. This is illustrated in Figure~\ref{graphevalarithmsubgoalrddval}. 
 
 
 \begin{figure}[!ht]
@@ -152,7 +152,7 @@ Arithmetic comparison subgoals are translated into a \emph{filter} transformatio
 \end{figure}
 
 
-Assignment subgoals are translated into a \emph{map} transformation on the valuations RDD, combined with flattening of the results. For each valuation, the assignment can be mapped either to a singleton or to an empty set, so the result of applying the mapping is an RDD of sets. Therefore it needs to be flattened so that the result is a plain RDD of valuations. Figure \ref{graphevalassignsubgoalrddval} illustrates these two steps.
+Assignment subgoals are translated into a \emph{map} transformation on the valuations RDD, combined with flattening of the results. For each valuation, the assignment can be mapped either to a singleton or to an empty set, so the result of applying the mapping is an RDD of sets. Therefore it needs to be flattened so that the result is a plain RDD of valuations. Figure~\ref{graphevalassignsubgoalrddval} illustrates these two steps.
 
 
 \begin{figure}[!ht]
@@ -180,7 +180,7 @@ Assignment subgoals are translated into a \emph{map} transformation on the valua
 
 \subsubsection{Processing rule head: converting valuations into facts}
 
-Each rule head consists of a relation name and a sequence of variable names, e.g. \relat{Path}{(v, d)}. Language constraints ensure that each valuation satisfying the rule body contains values for all variables appearing in the head, so a fact can be computed from a valuation by looking up corresponding variables in the valuation. Given an RDD of valuations obtained by evaluating the sequence of subgoals in the rule body, this is done by applying a \emph{map} transformation to this RDD. This is illustrated in Figure \ref{graphevalrulehead}.
+Each rule head consists of a relation name and a sequence of variable names, e.g. \relat{Path}{(v, d)}. Language constraints ensure that each valuation satisfying the rule body contains values for all variables appearing in the head, so a fact can be computed from a valuation by looking up corresponding variables in the valuation. Given an RDD of valuations obtained by evaluating the sequence of subgoals in the rule body, this is done by applying a \emph{map} transformation to this RDD. This is illustrated in Figure~\ref{graphevalrulehead}.
 
 
 \begin{figure}[!ht]
@@ -202,13 +202,13 @@ Each rule head consists of a relation name and a sequence of variable names, e.g
 \end{figure}
 
 \subsubsection{Naive and semi-naive evaluation}
-If full database is used to retrieve the contents of the relation in each subgoal, the evaluation procedure described in the previous sections will perform the naive evaluation.
+If the full database is used to retrieve the contents of the relation in each subgoal, the evaluation procedure described in the previous sections will perform the naive evaluation.
 
 For the semi-naive evaluation to be performed, the delta database needs to be used. Precisely, the rule body is evaluated separately for each subgoal that uses a relation being in the \emph{idb} of the current stratum. The contents of the relation for the selected subgoal is retrieved from the delta database and the full database is used in all other subgoals.
 
 \subsection{Adding new facts to the database}\label{ss:impl_merge}
 
-The procedure covered in section \ref{ss:impl_evalrule} allows for finding all facts that can be inferred using a single rule. This can be done for each rule within a stratum. The next step in one iteration of evaluation is to merge the results obtained with the existing database.
+The procedure covered in Section \ref{ss:impl_evalrule} allows for finding all facts that can be inferred using a single rule. This can be done for each rule within a stratum. The next step in one iteration of evaluation is to merge the results obtained with the existing database.
 
 In case of relations without aggregation, this is achieved by performing the \emph{union} transformation on the RDDs containing new facts for a given relation and the corresponding relation in the current database. It is possible that this introduces duplicated facts, so the \emph{distinct} transformation is used to remove the duplicates.
 
@@ -218,7 +218,7 @@ In case of relations that need to be aggregated, this is slightly different. Aft
 \item \emph{reduceByKey} to group by qualifying parameters and apply the aggregation function to the set of aggregated values in each group,
 \item \emph{map} to merge the qualifying parameters and the computed value in each group back into facts.
 \end{enumerate}
-This process is illustrated in Figure \ref{graphaggregate}.
+This process is illustrated in Figure~\ref{graphaggregate}.
 
 
 \begin{figure}[!ht]
@@ -242,7 +242,7 @@ This process is illustrated in Figure \ref{graphaggregate}.
 \draw[arrow] (reduced) -- node[anchor=south] {\emph{map}} (merged);
 
 \end{tikzpicture}
-\caption{Applying \emph{min} aggregation to third column of an RDD of facts.}\label{graphaggregate}
+\caption{Applying \emph{min} aggregation to the third column of an RDD of facts.}\label{graphaggregate}
 \end{figure}
 
 
@@ -276,7 +276,7 @@ The performance of the tested implementation was compared with plain Spark progr
 
 For each problem, both solutions have been evaluated on Amazon EC2 clusters consisting of $n = 2, 4, 8$ and $16$ worker nodes and one master node. Each node was a 2-core 64-bit machine with 7.5 GiB of RAM memory.  In all experiments, a social graph of Twitter circles \cite{twitterdata}, which has 2.4M edges was used.
 
-For both SparkDatalog and plain Spark programs the execution times $T_n$ were measured in each test case, where $n$ is the number of worker nodes. Relative speedups, i.e. the ratio of $T_n$ to $T_2$ were calculated. Figure \ref{img_plots_exp} presents the execution times and the relative speedups compared to the ideal speedup. In the Triangles Count test case the execution time in SparkDatalog is very similar to dedicated Spark. The SparkDatalog versions are slower than dedicated Spark programs in both Shortest Paths and Connected Components, by a factor of approximately 8.5 to 3.5 in Shortest Paths and 4 - 1.7 in Connected Components. The reasons for that are analyzed in section \ref{s:whyslow}. The speedups achieved were similar for both versions of each program. This shows that although the implemented solution is slower by some factor, it does parallelize. The speedups were slightly better for the SparkDatalog versions. This is probably because of the fact that the additional overhead in SparkDatalog execution time over dedicated Spark could also get parallelized. In Connected Components and Shortest Paths, the difference in execution times is the least with the greatest number of worker nodes.
+For both SparkDatalog and plain Spark programs the execution times $T_n$ were measured in each test case, where $n$ is the number of worker nodes. Relative speedups, i.e. the ratio of $T_n$ to $T_2$ were calculated. Figure~\ref{img_plots_exp} presents the execution times and the relative speedups compared to the ideal speedup. In the Triangles Count test case the execution time in SparkDatalog is very similar to dedicated Spark. The SparkDatalog versions are slower than dedicated Spark programs in both Shortest Paths and Connected Components, by a factor of approximately 8.5 to 3.5 in Shortest Paths and 4 to 1.7 in Connected Components. The reasons for that are analyzed in Section \ref{s:whyslow}. The speedups achieved were similar for both versions of each program. This shows that although the implemented solution is slower by some factor, it does parallelize. The speedups were slightly better for the SparkDatalog versions. This is probably because of the fact that the additional overhead in SparkDatalog execution time over dedicated Spark could also get parallelized. In Connected Components and Shortest Paths, the difference in execution times is the least with the greatest number of worker nodes.
 
 \begin{figure}[!htbp]
   \centering
@@ -299,12 +299,39 @@ For both SparkDatalog and plain Spark programs the execution times $T_n$ were me
 \label{tab_proglen}
 \end{table}
 
-An important goal for SparkDatalog is to provide programmers and non-programming analysts with the possibility to perform computations by writing declarative queries instead of implementing complicated, lengthy algorithms using the Pregel model or standard RDD transformations. Table \ref{tab_proglen} shows the comparison of lengths between SparkDatalog and plain Spark programs for each of the problems. Datalog versions are 1.4 to 3.5 shorter than dedicated Spark. Most importantly, they are conceptually simpler since they only require a few declarative rules instead of expressing the problem in the vertex-centric Pregel model.
+An important goal for SparkDatalog is to provide programmers and non-programming analysts with the possibility to perform computations by writing declarative queries instead of implementing complicated, lengthy algorithms using the Pregel model or standard RDD transformations. Table \ref{tab_proglen} shows the comparison of lengths between SparkDatalog and plain Spark programs for each of the problems. Datalog versions are 1.4 to 3 times shorter than dedicated Spark. Most importantly, they are conceptually simpler since they only require a few declarative rules instead of expressing the problem in the vertex-centric Pregel model.
 
-The source codes of programs used in the experiments are presented in Appendix \ref{appendixa}.
+The source codes of all programs used in the experiments are presented in Appendix~\ref{appendixa}. Figure \ref{sourcecodesample} presents an example of SparkDatalog and plain Spark programs used in the experiments for the Shortest Paths problem.
+
+\begin{figure}
+\begin{Verbatim}[label=Shortest paths - SparkDatalog]
+val query = """ declare Path(int v, int dist aggregate Min).
+                 Path(x, d) :- s == """ + sourceId + """ , Edge(s, x, d).
+                 Path(x, d) :- Path(y, da), Edge(y, x, db), d = da + db."""
+val resultDatabase = database.datalog(query)
+\end{Verbatim}
+
+\vspace{0cm}
+
+\begin{Verbatim}[label=Shortest paths - Spark]
+val initialGraph = graph.mapVertices((id, _) => if (id == sourceId) 0.0 else Double.PositiveInfinity)
+val sssp = initialGraph.pregel(Double.PositiveInfinity)(
+    (id, dist, newDist) => math.min(dist, newDist), // Vertex Program
+    triplet => \{  // Send Message
+      if (triplet.srcAttr + triplet.attr < triplet.dstAttr) \{
+        Iterator((triplet.dstId, triplet.srcAttr + triplet.attr))
+      \} else \{
+        Iterator.empty
+      \}
+    \},
+    (a,b) => math.min(a,b)) // Merge Message
+val shortestPaths = sssp.vertices.map(v => (v._1, v._2))
+\end{Verbatim}
+\caption{SparkDatalog and plain Spark programs for Single Source Shortest Paths\label{sourcecodesample}}
+\end{figure}
 
 \section{Performance differences}\label{s:whyslow}
-The SparkDatalog programs are several times slower than their dedicated Spark counterparts. There are several reasons for that, which can be eliminated or minimized in future versions of SparkDatalog:
+The SparkDatalog programs are up to several times slower than their dedicated Spark counterparts. There are several reasons for that, which can be eliminated or minimized in future versions of SparkDatalog:
 \begin{enumerate}
 \item SparkDatalog uses a general way of converting the Datalog program to a sequence of Spark transformations, which results in a suboptimal execution of the query, whereas the dedicated Spark program executes precisely the necessary operations. This can be resolved or minimized by more work on optimizing the generated execution plan.
 \item The internal data representation has a significant impact on the performance. In dedicated Spark programs, native Scala tuples are used. SparkDatalog, on the other hand, currently uses arrays, which are less efficiently serialized and hashed. This results in a significant performance overhead. This could be resolved by representing the most common arities, e.g. 1--20 with tuples and using pre-generated code to work with them.
@@ -317,10 +344,10 @@ In addition to the above, it is worth adding that since in Datalog problems are 
 
 There are several areas for further work connected both to the implementation and to the proposed theoretical solution.
 
-Currently, it is the user's responsibility to ensure that the program is correct and, in particular, that the rules are monotone with respect to the order implied by the aggregation function used. A theoretical result or an implementation of a tool helping to determine whether a program satisfies this condition is crucial for the wide adoption of the proposed language.
+Currently, it is the user's responsibility to ensure that the program is correct and, in particular, that the rules are monotone with respect to the order implied by the aggregation function used. A theoretical result or an implementation of a tool helping to determine whether a program satisfies this condition is crucial for wide adoption of the proposed language.
 
-Clearly, the performance of the solution is noticeably worse than that of dedicated Spark programs, although the speedups achieved are similar. More work is needed on optimizing the way the queries are executed, including the data representation and partitioning. More sophisticated optimizations of the generated execution plan, such as elimination of intermediate relations or the \emph{delta-stepping} technique, could also be implemented in order to further improve performance.
+Clearly, performance of the solution is noticeably worse than that of dedicated Spark programs, although the speedups achieved are similar. More work is needed on optimizing the way the queries are executed, including the data representation and partitioning. More sophisticated optimizations of the generated execution plan, such as elimination of intermediate relations or the \emph{delta-stepping} technique, could also be implemented in order to further improve performance.
 
-User experience in embedding the Datalog code in Spark programs could also be improved. Specifically, instead of writing the program as a string, which is then parsed, there could be a domain specific language that allowing users to write similar rules directly in the code. This would allow for type-aware syntax highlighting in IDEs, greater type safety checked at the compile time and additional performance optimizations.
+User experience in embedding the Datalog code in Spark programs could also be improved. Specifically, instead of writing the program as a string, which is then parsed, there could be a domain specific language allowing users to write similar rules directly in the code. This would allow for type-aware syntax highlighting in IDEs, greater type safety checked at the compile time and additional performance optimizations.
 
 

@@ -2,7 +2,7 @@
 \chapter{The BSP model, Pregel and Apache Spark}\label{r:pregel}
 In the recent years, several models and many technologies that help efficiently perform iterative computations on large datasets, especially graphs, have been developed.
 
-One of the most modern ones, Apache Spark, allows to express algorithms as transformations of RDDs, which are an abstraction of a distributed dataset. Its distinctive feature is that most of the data during the computation can be kept in worker nodes' memory, which makes it significantly faster than systems like Hadoop MapReduce. It is capable of handling wide range of tasks, including distributed graph computations using the GraphX extension.
+One of the most modern ones, Apache Spark, allows to express algorithms as transformations of RDDs, which are an abstraction of a distributed dataset. Its distinctive feature is that most of the data during the computation can be kept in worker nodes' memory, which makes it significantly faster than systems like Hadoop MapReduce. It is capable of handling a wide range of tasks, including distributed graph computations using the GraphX extension.
 
 Pregel is a computational model designed specifically for large graph computations, introduced in 2010 by Google engineers \cite{pregel}. Its goal is to streamline implementation of graph algorithms by providing a framework which lets the programmer forget about distributing the computation, implementing the graph topology and addressing fault tolerance issues and focus on the problem at hand. Pregel is based on the classical BSP model \cite{bsp} for iterative distributed computations.
 
@@ -16,7 +16,7 @@ In Section \ref{s:pregel}, the Pregel model is described. The RDD model employed
 
 The name of the Pregel model comes from its initial proprietary implementation by Google and honors Leonard Euler, a famous Swiss mathematician and physicist and also a pioneer of the graph theory. In 1735, he formulated the first theorem in graph theory: a solution to an old question whether it was possible for a Koenigsberg citizen to take a walk around the city so that he crossed each of the seven city's bridges exactly once. Euler concluded that it was impossible, because the graph bridges form is not what we today call an Euler graph --- a graph in which every vertex has an even degree. The name of the river flowing through Koenigsberg and spanned by the famous bridges is Pregel.
 
-The model of computation in Pregel is based on the L. Valiant's Bulk Synchronous Parallel model \cite{bsp}. The computation is performed in a sequence of \emph{supersteps}. In each superstep, the framework executes on each vertex a \emph{vertex program} provided by the user. Vertices communicate by messages: a message sent by a vertex in superstep $S$ is delivered to its recipient in superstep $S+1$. Figure \ref{bspiterimg} presents the phases in a single iteration of program execution in Pregel.
+The model of computation in Pregel is based on the L. Valiant's Bulk Synchronous Parallel model \cite{bsp}. The computation is performed in a sequence of \emph{supersteps}. In each superstep, the framework executes on each vertex a \emph{vertex program} provided by the user. Vertices communicate by messages: a message sent by a vertex in superstep $S$ is delivered to its recipient in superstep $S+1$. Figure~\ref{bspiterimg} presents the phases in a single iteration of program execution in Pregel.
 
 \begin{figure}[!htbp]
 \centering
@@ -42,7 +42,7 @@ According to the original definition, the result of a computation are the values
 
 In practice, computations are performed on a number of workers much smaller than the number of vertices in the graph. This allows distributing the vertices between workers in a workload-balanced manner.
 
-Let us consider the following example: for a strongly connected graph with an integer value assigned to each node, compute the minimum of those values. This can be implemented in Pregel using the vertex program presented in Figure \ref{psc:pregelmaxval}.
+Let us consider the following example: for a strongly connected graph with an integer value assigned to each node, compute the minimum of those values. This can be implemented in Pregel using the vertex program presented in Figure~\ref{psc:pregelmaxval}.
 
 \begin{figure}[!htbp]
 
@@ -62,7 +62,7 @@ Let us consider the following example: for a strongly connected graph with an in
 \caption{Pregel vertex program for computing maximum value among graph nodes}\label{psc:pregelmaxval}
 \end{figure}
 
-In the first superstep, a vertex sends its value to all neighbors and votes to halt. Upon the reception of any new values, a vertex is activated and if the received values are greater than the value stored in the vertex, it is updated and messages with the new value are sent. An example computation is presented in Figure \ref{img:pregelmaxval}. This picture comes from the original white paper about Pregel \cite{pregel}.
+In the first superstep, a vertex sends its value to all neighbors and votes to halt. Upon the reception of any new values, a vertex is activated and if the received values are greater than the value stored in the vertex, it is updated and messages with the new value are sent. An example computation is presented in Figure~\ref{img:pregelmaxval}. This picture comes from the original white paper about Pregel \cite{pregel}.
 
 \begin{figure}[!ht]
 \begin{center}
@@ -137,7 +137,7 @@ RDDs provide only a \emph{coarse-grained} interface, i.e. operations that apply 
 RDDs can be created only in two ways: by loading a dataset from a distributed storage or from another dataset by applying coarse-grained functional operations called \emph{transformations}, such as \emph{map}, \emph{filter} and \emph{join}. For greater efficiency, the user can also control the \emph{persistence} by indicating which RDDs are intended to be used in the future and as such should be kept in the memory and the \emph{partitioning} of each RDD by indicating the key by which the records of RDD should be partitioned across the machines. Finally, the user can perform \emph{actions} on an RDD. Actions return a value or export the dataset to some persistent storage. Available actions include \emph{count}, which returns the number of elements in the RDD, \emph{collect}, which returns the records from the dataset and \emph{save}, which exports the records to an external storage.
 
 \begin{exmp}
-Let us suppose we have an RDD \emph{friends}, which consists of pairs of identifiers $(a, b)$ meaning that person $b$ is a friend of person $a$. We will say that $y$ is a \emph{friend of friend} of $x$ iff there exists $z$, called a \emph{proxy}, such that $z$ is a friend of $x$ and $y$ is a friend of $z$. We will call a person with more than 10000 friends of friends an \emph{influencer}. A Spark program which computes the number of all influencers is presented in Figure \ref{ex:sparkfof}.
+Let us suppose we have an RDD \emph{friends}, which consists of pairs of identifiers $(a, b)$ meaning that person $b$ is a friend of person $a$. We will say that $y$ is a \emph{friend of friend} of $x$ iff there exists $z$, called a \emph{proxy}, such that $z$ is a friend of $x$ and $y$ is a friend of $z$. We will call a person with more than 10000 friends of friends an \emph{influencer}. A Spark program which computes the number of all influencers is presented in Figure~\ref{ex:sparkfof}.
 
 \begin{figure}[!htbp]
 \begin{codebox}
@@ -148,7 +148,7 @@ Let us suppose we have an RDD \emph{friends}, which consists of pairs of identif
   \li $\textit{influencers} \leftarrow \textit{fofCount}.\text{filter}((x, c) \mapsto count > 10000))$
   \li \Return $\textit{influencers}.\text{count}()$
 \end{codebox}
-\caption{Example of computation in Spark: computing the number influencers.}\label{ex:sparkfof}
+\caption{Example of computation in Spark: computing the number of influencers.}\label{ex:sparkfof}
 \end{figure}
 
 The \proc{Count-Influencers} function first performs a join of \emph{friends} with itself. Since the join transformation joins by the first value in the pair, the elements of \emph{friends} are swapped beforehand. The result is then mapped to remove the information about proxies, which is irrelevant, and duplicates are eliminated with \emph{distinct}. This gives an RDD of pairs $(x, y)$, such that $y$ is a friend of friend of $x$. For each $x$, the number of friends of friends is then computed using \emph{map} and \emph{reduceByKey}. The obtained RDD of pairs $(x, c)$, where $x$ is the person and $c$ is its number of friends of friends is then filtered so that only influencers remain. The size of the filtered RDD is returned as the number of influencers. It is worth noting that the transformations used, i.e. \emph{map, filter, distinct} and \emph{reduceByKey}, are not actually executed until the action \emph{count} is performed.
