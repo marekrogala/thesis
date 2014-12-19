@@ -327,7 +327,7 @@ val sssp = initialGraph.pregel(Double.PositiveInfinity)(
     (a,b) => math.min(a,b)) // Merge Message
 val shortestPaths = sssp.vertices.map(v => (v._1, v._2))
 \end{Verbatim}
-\caption{SparkDatalog and plain Spark programs for Single Source Shortest Paths\label{sourcecodesample}}
+\caption{SparkDatalog and plain Spark programs for Single Source Shortest Paths.\label{sourcecodesample}}
 \end{figure}
 
 \section{Performance differences}\label{s:whyslow}
